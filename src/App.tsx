@@ -1,5 +1,13 @@
 import { useState } from 'react'
-import type { AppState, RawDonation, Donation, Aggregates, Insight, Template } from './types'
+import type { AppState, TemplateType } from './types'
+import { FileUpload } from './components/upload/FileUpload'
+import { PreviewTable } from './components/upload/PreviewTable'
+import { InsightsPanel } from './components/insights/InsightsPanel'
+import { TemplateSelector } from './components/templates/TemplateSelector'
+import { ExportScreen } from './components/screens/ExportScreen'
+import { parseCSV, normalizeDonations } from './utils/csvParser'
+import { aggregateDonations } from './utils/dataAggregator'
+import { generateInsights } from './utils/insightGenerator'
 
 function App() {
   const [appState, setAppState] = useState<AppState>({
@@ -11,14 +19,105 @@ function App() {
     selectedTemplate: null,
   })
 
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const handleFileSelect = async (file: File) => {
+    setIsLoading(true)
+    setError(null)
+
+    try {
+      // Parse CSV
+      const rawData = await parseCSV(file)
+
+      if (rawData.length === 0) {
+        throw new Error('CSV файл порожній або не містить даних')
+      }
+
+      // Normalize donations
+      const donations = normalizeDonations(rawData)
+
+      if (donations.length === 0) {
+        throw new Error('Не вдалося обробити дані з CSV файлу. Переконайтеся, що формат файлу правильний')
+      }
+
+      // Update state with parsed data
+      setAppState(prev => ({
+        ...prev,
+        rawData,
+        donations,
+      }))
+
+      setShowPreview(true)
+    } catch (err) {
+      console.error('Error processing file:', err)
+      setError(err instanceof Error ? err.message : 'Помилка при обробці файлу')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleProceedToInsights = () => {
+    if (!appState.donations) return
+
+    try {
+      // Generate aggregates
+      const aggregates = aggregateDonations(appState.donations)
+
+      // Generate insights
+      const insights = generateInsights(aggregates)
+
+      // Update state and move to insights step
+      setAppState(prev => ({
+        ...prev,
+        aggregates,
+        insights,
+        step: 'insights',
+      }))
+
+      setShowPreview(false)
+    } catch (err) {
+      console.error('Error generating insights:', err)
+      setError('Помилка при генерації аналітики')
+    }
+  }
+
+  const handleTemplateSelect = (templateId: TemplateType) => {
+    setAppState(prev => ({
+      ...prev,
+      selectedTemplate: {
+        id: templateId,
+        name: templateId,
+        description: '',
+        format: templateId === 'daily-activity' ? 'story' : 'post',
+        requiresGoal: templateId === 'progress',
+      },
+      step: 'export',
+    }))
+  }
+
+  const handleReset = () => {
+    setAppState({
+      step: 'upload',
+      rawData: null,
+      donations: null,
+      aggregates: null,
+      insights: null,
+      selectedTemplate: null,
+    })
+    setShowPreview(false)
+    setError(null)
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
-                З
+                ₴
               </div>
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">Zbory</h1>
@@ -27,26 +126,26 @@ function App() {
             </div>
 
             {/* Progress indicator */}
-            <div className="hidden sm:flex items-center space-x-2">
+            <div className="flex items-center space-x-2 text-xs sm:text-sm">
               <div className={`flex items-center ${appState.step === 'upload' ? 'text-indigo-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState.step === 'upload' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'upload' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   1
                 </div>
-                <span className="ml-2 text-sm font-medium">Завантаження</span>
+                <span className="ml-2 font-medium hidden sm:inline">Завантаження</span>
               </div>
-              <div className="w-16 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${appState.step === 'insights' ? 'text-indigo-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState.step === 'insights' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
+              <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
+              <div className={`flex items-center ${appState.step === 'insights' || appState.step === 'export' ? 'text-indigo-600' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'insights' || appState.step === 'export' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   2
                 </div>
-                <span className="ml-2 text-sm font-medium">Аналітика</span>
+                <span className="ml-2 font-medium hidden sm:inline">Аналітика</span>
               </div>
-              <div className="w-16 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${appState.step === 'export' ? 'text-indigo-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${appState.step === 'export' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
+              <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
+              <div className={`flex items-center ${appState.step === 'export' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'export' ? 'bg-indigo-700 text-white' : 'bg-gray-200'}`}>
                   3
                 </div>
-                <span className="ml-2 text-sm font-medium">Експорт</span>
+                <span className="ml-2 font-medium hidden sm:inline">Експорт</span>
               </div>
             </div>
           </div>
@@ -54,47 +153,64 @@ function App() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {error && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-sm text-red-700">{error}</p>
+          </div>
+        )}
+
         <div className="animate-fade-in">
-          {appState.step === 'upload' && (
-            <div className="text-center py-20">
-              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+          {appState.step === 'upload' && !showPreview && (
+            <div className="text-center py-12 sm:py-20">
+              <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
                 Завантажте CSV файл з виписки
               </h2>
               <p className="text-gray-600 mb-8">
                 Підтримуються файли з Monobank Jar
               </p>
-              <div className="max-w-2xl mx-auto">
-                <div className="border-2 border-dashed border-gray-300 rounded-xl p-12 hover:border-indigo-400 transition-colors duration-200 cursor-pointer">
-                  <div className="text-center">
-                    <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                      <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                    <p className="mt-4 text-sm text-gray-600">
-                      Перетягніть файл сюди або <span className="text-indigo-600 font-medium">оберіть файл</span>
-                    </p>
-                    <p className="mt-2 text-xs text-gray-500">
-                      CSV до 50 MB
-                    </p>
-                  </div>
-                </div>
+              <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+            </div>
+          )}
+
+          {appState.step === 'upload' && showPreview && appState.donations && (
+            <div className="py-8">
+              <PreviewTable
+                donations={appState.donations}
+                totalCount={appState.donations.length}
+                onProceed={handleProceedToInsights}
+                onCancel={handleReset}
+              />
+            </div>
+          )}
+
+          {appState.step === 'insights' && appState.aggregates && appState.insights && (
+            <div>
+              <div className="mb-6 flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Аналітика збору</h2>
+                <button
+                  onClick={handleReset}
+                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                >
+                  Завантажити інший файл
+                </button>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <InsightsPanel
+                  insights={appState.insights}
+                  aggregates={appState.aggregates}
+                />
+                <TemplateSelector onSelect={handleTemplateSelect} />
               </div>
             </div>
           )}
 
-          {appState.step === 'insights' && (
-            <div className="text-center py-20">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Генеруємо інсайти...
-              </h2>
-            </div>
-          )}
-
-          {appState.step === 'export' && (
-            <div className="text-center py-20">
-              <h2 className="text-2xl font-bold text-gray-900">
-                Експорт зображення
-              </h2>
-            </div>
+          {appState.step === 'export' && appState.selectedTemplate && appState.aggregates && appState.insights && (
+            <ExportScreen
+              templateId={appState.selectedTemplate.id}
+              aggregates={appState.aggregates}
+              insights={appState.insights}
+              onBack={() => setAppState(prev => ({ ...prev, step: 'insights' }))}
+            />
           )}
         </div>
       </main>
