@@ -4,9 +4,11 @@ import { generateThankYouMessage } from '../../utils/insightGenerator';
 
 interface ThankYouCardProps {
   aggregates: Aggregates;
+  format?: 'post' | 'story';
 }
 
-export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(({ aggregates }, ref) => {
+export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(({ aggregates, format = 'post' }, ref) => {
+  const isStory = format === 'story';
   const message = generateThankYouMessage(aggregates.totalAmount, aggregates.donationCount);
   const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount));
 
@@ -15,13 +17,13 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(({ agg
       ref={ref}
       style={{
         width: 1080,
-        height: 1080,
+        height: isStory ? 1920 : 1080,
         background: 'linear-gradient(145deg, #1d3461 0%, #1a237e 50%, #0d1b4b 100%)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        padding: '80px',
+        padding: isStory ? '120px 80px' : '80px',
         fontFamily: "'Inter', 'Segoe UI', sans-serif",
         color: '#ffffff',
         boxSizing: 'border-box',

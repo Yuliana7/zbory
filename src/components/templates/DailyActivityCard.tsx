@@ -4,10 +4,12 @@ import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/da
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
+  format?: 'post' | 'story';
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates }, ref) => {
+  ({ aggregates, format = 'story' }, ref) => {
+    const isPost = format === 'post';
     const bestDay = findBestDay(aggregates);
 
     // Build chart data from cumulative (max 30 points for readability)
@@ -15,9 +17,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
     const step = Math.max(1, Math.floor(cumulative.length / 30));
     const chartPoints = cumulative.filter((_, i) => i % step === 0 || i === cumulative.length - 1);
 
-    // SVG dimensions for the chart area
+    // SVG dimensions for the chart area — shorter in post (1:1) mode
     const svgW = 920;
-    const svgH = 520;
+    const svgH = isPost ? 300 : 520;
     const padX = 40;
     const padY = 40;
 
@@ -55,7 +57,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         ref={ref}
         style={{
           width: 1080,
-          height: 1920,
+          height: isPost ? 1080 : 1920,
           background: 'linear-gradient(180deg, #0f172a 0%, #1e1b4b 40%, #0f172a 100%)',
           display: 'flex',
           flexDirection: 'column',
@@ -104,7 +106,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         </div>
 
         {/* Total */}
-        <div style={{ marginBottom: 60 }}>
+        <div style={{ marginBottom: isPost ? 32 : 60 }}>
           <div style={{ fontSize: 26, color: 'rgba(255,255,255,0.5)', marginBottom: 8 }}>
             Загальна сума
           </div>
@@ -128,8 +130,8 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           style={{
             background: 'rgba(255,255,255,0.04)',
             borderRadius: 24,
-            padding: '32px',
-            marginBottom: 40,
+            padding: isPost ? '24px' : '32px',
+            marginBottom: isPost ? 24 : 40,
           }}
         >
           <div style={{ fontSize: 24, color: 'rgba(255,255,255,0.5)', marginBottom: 16 }}>
@@ -179,8 +181,8 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           </svg>
         </div>
 
-        {/* Daily bars (last 14 days) */}
-        <div
+        {/* Daily bars (last 14 days) — story only, not enough height in post */}
+        {!isPost && <div
           style={{
             background: 'rgba(255,255,255,0.04)',
             borderRadius: 24,
@@ -221,7 +223,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
               );
             })}
           </div>
-        </div>
+        </div>}
 
         {/* Best day callout */}
         {bestDay && (

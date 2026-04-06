@@ -115,32 +115,47 @@ function App() {
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl">
+            <button
+              onClick={handleReset}
+              className="flex items-center space-x-3 group cursor-pointer"
+              title="На початок"
+            >
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl group-hover:opacity-80 transition-opacity">
                 ₴
               </div>
-              <div>
-                <h1 className="text-2xl font-bold text-gray-900">Zbory</h1>
+              <div className="text-left">
+                <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">Zbory</h1>
                 <p className="text-sm text-gray-500">Аналітика збору коштів</p>
               </div>
-            </div>
+            </button>
 
-            {/* Progress indicator */}
+            {/* Progress indicator — completed steps are clickable breadcrumbs */}
             <div className="flex items-center space-x-2 text-xs sm:text-sm">
-              <div className={`flex items-center ${appState.step === 'upload' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
+              {/* Step 1 */}
+              <button
+                onClick={appState.step !== 'upload' ? handleReset : undefined}
+                disabled={appState.step === 'upload'}
+                className={`flex items-center transition-colors ${appState.step === 'upload' ? 'text-indigo-700 font-semibold cursor-default' : 'text-gray-400 hover:text-indigo-600 cursor-pointer'}`}
+              >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'upload' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   1
                 </div>
                 <span className="ml-2 font-medium hidden sm:inline">Завантаження</span>
-              </div>
+              </button>
               <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${appState.step === 'insights' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
+              {/* Step 2 */}
+              <button
+                onClick={appState.step === 'export' ? () => setAppState(prev => ({ ...prev, step: 'insights' })) : undefined}
+                disabled={appState.step !== 'export'}
+                className={`flex items-center transition-colors ${appState.step === 'insights' ? 'text-indigo-700 font-semibold cursor-default' : appState.step === 'export' ? 'text-gray-400 hover:text-indigo-600 cursor-pointer' : 'text-gray-400 cursor-default'}`}
+              >
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'insights' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   2
                 </div>
                 <span className="ml-2 font-medium hidden sm:inline">Аналітика</span>
-              </div>
+              </button>
               <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
+              {/* Step 3 */}
               <div className={`flex items-center ${appState.step === 'export' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'export' ? 'bg-indigo-700 text-white' : 'bg-gray-200'}`}>
                   3
@@ -189,8 +204,13 @@ function App() {
                 <h2 className="text-2xl font-bold text-gray-900">Аналітика збору</h2>
                 <button
                   onClick={handleReset}
-                  className="text-sm text-gray-500 hover:text-gray-700 underline"
+                  className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+                             bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
+                             hover:border-gray-300 transition-all"
                 >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
                   Завантажити інший файл
                 </button>
               </div>

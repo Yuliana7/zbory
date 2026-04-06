@@ -5,27 +5,46 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 interface ProgressCardProps {
   aggregates: Aggregates;
   goal?: number;
+  format?: 'post' | 'story';
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal }, ref) => {
+  ({ aggregates, goal, format = 'post' }, ref) => {
+    const isStory = format === 'story';
     const total = aggregates.totalAmount;
-    const progressPct = goal ? Math.min(Math.round((total / goal) * 100), 100) : null;
+    const progressPct = goal ? Math.round((total / goal) * 100) : null;
+    const barWidthPct = progressPct !== null ? Math.min(progressPct, 100) : null;
     const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(total));
     const formattedGoal = goal
       ? new Intl.NumberFormat('uk-UA').format(Math.round(goal))
       : null;
+
+    const barColor =
+      progressPct === null
+        ? ''
+        : progressPct > 100
+        ? 'linear-gradient(90deg, #22d3ee, #06b6d4)'   // cyan — exceeded
+        : progressPct === 100
+        ? 'linear-gradient(90deg, #4ade80, #22c55e)'   // green — exact
+        : 'linear-gradient(90deg, #fbbf24, #f59e0b)';  // yellow — in progress
+
+    const pctLabel =
+      progressPct === null
+        ? ''
+        : progressPct > 100
+        ? `${progressPct}% — мету перевиконано! 🎉`
+        : `${progressPct}%`;
 
     return (
       <div
         ref={ref}
         style={{
           width: 1080,
-          height: 1080,
+          height: isStory ? 1920 : 1080,
           background: 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '80px',
+          padding: isStory ? '100px 80px' : '80px',
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: '#ffffff',
           boxSizing: 'border-box',
@@ -130,10 +149,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
                   style={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: progressPct >= 100 ? '#4ade80' : '#fbbf24',
+                    color: progressPct! > 100 ? '#22d3ee' : progressPct === 100 ? '#4ade80' : '#fbbf24',
                   }}
                 >
-                  {progressPct}%
+                  {pctLabel}
                 </span>
               </div>
               <div
@@ -147,11 +166,8 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
                 <div
                   style={{
                     height: '100%',
-                    width: `${progressPct}%`,
-                    background:
-                      progressPct >= 100
-                        ? 'linear-gradient(90deg, #4ade80, #22c55e)'
-                        : 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                    width: `${barWidthPct}%`,
+                    background: barColor,
                     borderRadius: 10,
                   }}
                 />

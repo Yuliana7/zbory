@@ -12,10 +12,12 @@ interface ExportScreenProps {
   onBack: () => void;
 }
 
-const TEMPLATE_DIMS: Record<TemplateType, { width: number; height: number; label: string }> = {
-  progress: { width: 1080, height: 1080, label: 'Пост 1:1 • 1080×1080' },
-  'daily-activity': { width: 1080, height: 1920, label: 'Сторіс 9:16 • 1080×1920' },
-  'thank-you': { width: 1080, height: 1080, label: 'Пост 1:1 • 1080×1080' },
+type Format = 'post' | 'story';
+
+const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, Format> = {
+  progress: 'post',
+  'daily-activity': 'story',
+  'thank-you': 'post',
 };
 
 const TEMPLATE_NAMES: Record<TemplateType, string> = {
@@ -24,21 +26,26 @@ const TEMPLATE_NAMES: Record<TemplateType, string> = {
   'thank-you': 'Подяка донатерам',
 };
 
+const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
+  post: { width: 1080, height: 1080, label: '1080×1080' },
+  story: { width: 1080, height: 1920, label: '1080×1920' },
+};
+
 export function ExportScreen({ templateId, aggregates, insights, onBack }: ExportScreenProps) {
   const templateRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
   const [goal, setGoal] = useState('');
   const [isExporting, setIsExporting] = useState(false);
+  const [format, setFormat] = useState<Format>(TEMPLATE_DEFAULT_FORMAT[templateId]);
 
-  const dims = TEMPLATE_DIMS[templateId];
+  const dims = FORMAT_DIMS[format];
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
-  // Calculate preview scale to fit the container
   useLayoutEffect(() => {
     const calculate = () => {
       if (!previewContainerRef.current) return;
-      const containerW = previewContainerRef.current.clientWidth - 48; // padding
+      const containerW = previewContainerRef.current.clientWidth - 48;
       const containerH = window.innerHeight * 0.65;
       const scaleW = containerW / dims.width;
       const scaleH = containerH / dims.height;
@@ -54,7 +61,7 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
     if (!templateRef.current) return;
     setIsExporting(true);
     try {
-      const filename = `zbory-${templateId}-${Date.now()}.png`;
+      const filename = `zbory-${templateId}-${format}-${Date.now()}.png`;
       await exportToPNG(templateRef.current, filename, dims.width, dims.height);
     } catch (err) {
       console.error('Export failed:', err);
@@ -72,7 +79,9 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
       <div className="mb-6 flex items-center justify-between">
         <button
           onClick={onBack}
-          className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+                     bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
+                     hover:border-gray-300 transition-all"
         >
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -81,7 +90,6 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
         </button>
         <div className="text-sm font-medium text-gray-700">
           {TEMPLATE_NAMES[templateId]}
-          <span className="ml-2 text-xs text-gray-400 font-normal">{dims.label}</span>
         </div>
       </div>
 
@@ -92,7 +100,6 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
           className="bg-gray-100 rounded-2xl p-6 flex items-center justify-center"
           style={{ minHeight: previewH + 48 }}
         >
-          {/* Overflow wrapper — crops to scaled size */}
           <div
             style={{
               width: previewW,
@@ -103,7 +110,6 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
               flexShrink: 0,
             }}
           >
-            {/* Scale wrapper */}
             <div
               style={{
                 width: dims.width,
@@ -113,13 +119,13 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
               }}
             >
               {templateId === 'progress' && (
-                <ProgressCard ref={templateRef} aggregates={aggregates} goal={goalValue} />
+                <ProgressCard ref={templateRef} aggregates={aggregates} goal={goalValue} format={format} />
               )}
               {templateId === 'daily-activity' && (
-                <DailyActivityCard ref={templateRef} aggregates={aggregates} />
+                <DailyActivityCard ref={templateRef} aggregates={aggregates} format={format} />
               )}
               {templateId === 'thank-you' && (
-                <ThankYouCard ref={templateRef} aggregates={aggregates} />
+                <ThankYouCard ref={templateRef} aggregates={aggregates} format={format} />
               )}
             </div>
           </div>
@@ -127,6 +133,29 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
 
         {/* Sidebar */}
         <div className="space-y-4">
+          {/* Format toggle */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">Формат</p>
+            <div className="grid grid-cols-2 gap-2">
+              {(['post', 'story'] as Format[]).map((f) => (
+                <button
+                  key={f}
+                  onClick={() => setFormat(f)}
+                  className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition-all ${
+                    format === f
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {f === 'post' ? 'Пост 1:1' : 'Сторіс 9:16'}
+                  <span className={`block text-xs mt-0.5 ${format === f ? 'text-indigo-200' : 'text-gray-400'}`}>
+                    {FORMAT_DIMS[f].label}
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
+
           {/* Goal input — only for progress template */}
           {templateId === 'progress' && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -193,10 +222,6 @@ export function ExportScreen({ templateId, aggregates, insights, onBack }: Expor
               </>
             )}
           </button>
-
-          <p className="text-xs text-center text-gray-400">
-            {dims.label}
-          </p>
         </div>
       </div>
     </div>

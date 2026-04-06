@@ -5,8 +5,8 @@ interface TemplateMeta {
   icon: string;
   name: string;
   description: string;
-  badge: string;
-  badgeColor: string;
+  badge?: string;
+  badgeColor?: string;
 }
 
 const TEMPLATES: TemplateMeta[] = [
@@ -14,25 +14,19 @@ const TEMPLATES: TemplateMeta[] = [
     id: 'progress',
     icon: '🟪',
     name: 'Картка прогресу',
-    description: 'Загальна сума, прогрес-бар, ціль (опційно)',
-    badge: 'Пост 1:1',
-    badgeColor: 'bg-purple-100 text-purple-700',
+    description: 'Загальна сума, прогрес-бар, ціль (опційно)'
   },
   {
     id: 'daily-activity',
     icon: '📱',
     name: 'Активність за днями',
-    description: 'Графік донатів, найкращий день',
-    badge: 'Сторіс 9:16',
-    badgeColor: 'bg-blue-100 text-blue-700',
+    description: 'Графік донатів, найкращий день'
   },
   {
     id: 'thank-you',
     icon: '💛',
     name: 'Подяка донатерам',
-    description: 'Кількість донатерів, сума, теплий тон',
-    badge: 'Пост 1:1',
-    badgeColor: 'bg-yellow-100 text-yellow-700',
+    description: 'Кількість донатерів, сума, теплий тон'
   },
 ];
 
@@ -60,9 +54,6 @@ export function TemplateSelector({ onSelect }: TemplateSelectorProps) {
                 <p className="font-semibold text-gray-900 group-hover:text-indigo-700 transition-colors">
                   {tpl.name}
                 </p>
-                <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${tpl.badgeColor}`}>
-                  {tpl.badge}
-                </span>
               </div>
               <p className="text-sm text-gray-500 mt-0.5">{tpl.description}</p>
             </div>
