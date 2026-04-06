@@ -127,15 +127,15 @@ function App() {
 
             {/* Progress indicator */}
             <div className="flex items-center space-x-2 text-xs sm:text-sm">
-              <div className={`flex items-center ${appState.step === 'upload' ? 'text-indigo-600' : 'text-gray-400'}`}>
+              <div className={`flex items-center ${appState.step === 'upload' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'upload' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   1
                 </div>
                 <span className="ml-2 font-medium hidden sm:inline">Завантаження</span>
               </div>
               <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
-              <div className={`flex items-center ${appState.step === 'insights' || appState.step === 'export' ? 'text-indigo-600' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'insights' || appState.step === 'export' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
+              <div className={`flex items-center ${appState.step === 'insights' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'insights' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
                   2
                 </div>
                 <span className="ml-2 font-medium hidden sm:inline">Аналітика</span>

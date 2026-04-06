@@ -6,13 +6,15 @@ export async function exportToPNG(
   width: number,
   height: number
 ): Promise<void> {
+  // skipFonts avoids a crash in html-to-image's font embedder when CSS font
+  // properties are undefined. Templates use system fonts so this is safe.
   const dataUrl = await toPng(element, {
     cacheBust: true,
     pixelRatio: 1,
     width,
     height,
+    skipFonts: true,
     style: {
-      // ensure the element is rendered at full resolution, not the scaled preview
       transform: 'none',
       transformOrigin: 'top left',
     },
