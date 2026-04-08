@@ -1,13 +1,15 @@
-import type { Insight, Aggregates } from '../../types';
+import type { Insight, Aggregates, CommentInsights } from '../../types';
 import { generateActionableInsights } from '../../utils/insightGenerator';
+import { formatCurrency } from '../../utils/dataAggregator';
 
 interface InsightsPanelProps {
   insights: Insight[];
   aggregates: Aggregates;
   goal?: number;
+  commentInsights: CommentInsights | null;
 }
 
-export function InsightsPanel({ insights, aggregates, goal }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, goal, commentInsights }: InsightsPanelProps) {
   const duration = Math.ceil(
     (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24)
   );
@@ -49,13 +51,7 @@ export function InsightsPanel({ insights, aggregates, goal }: InsightsPanelProps
       {/* Actionable recommendations */}
       {actionableInsights.length > 0 && (
         <div className="pt-2">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-px flex-1 bg-amber-200" />
-            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider px-1">
-              Що робити далі?
-            </p>
-            <div className="h-px flex-1 bg-amber-200" />
-          </div>
+          <SectionDivider label="Що робити далі?" color="amber" />
           <div className="space-y-3">
             {actionableInsights.map((action, i) => (
               <div
@@ -77,6 +73,104 @@ export function InsightsPanel({ insights, aggregates, goal }: InsightsPanelProps
           </div>
         </div>
       )}
+
+      {/* Comment analysis */}
+      {commentInsights?.hasEnoughData && (
+        <div className="pt-2">
+          <SectionDivider label="Коментарі донатерів" color="purple" />
+          <div className="space-y-3">
+
+            {/* Top emojis */}
+            {commentInsights.topEmojis.length > 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
+                  🎭 Найпопулярніші емоджі
+                </p>
+                <div className="flex items-end gap-3 flex-wrap">
+                  {commentInsights.topEmojis.map(({ emoji, count }, i) => (
+                    <div key={i} className="flex flex-col items-center gap-1">
+                      <span
+                        className="leading-none"
+                        style={{ fontSize: i === 0 ? '2rem' : i === 1 ? '1.6rem' : '1.25rem' }}
+                      >
+                        {emoji}
+                      </span>
+                      <span className="text-xs text-gray-500">{count}×</span>
+                    </div>
+                  ))}
+                </div>
+                <p className="mt-2 text-xs text-gray-400">
+                  З {commentInsights.totalWithComments} особистих коментарів
+                </p>
+              </div>
+            )}
+
+            {/* Repeat donors */}
+            {commentInsights.repeatDonors.length > 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
+                  🧡 Постійні донатери
+                </p>
+                <p className="text-xs text-gray-500 mb-2">
+                  {commentInsights.repeatDonors.length}{' '}
+                  {getPersonsWord(commentInsights.repeatDonors.length)} донатили більше одного разу
+                </p>
+                <div className="space-y-2">
+                  {commentInsights.repeatDonors.map(({ identity, count, totalAmount }, i) => (
+                    <div key={i} className="flex items-center justify-between gap-2">
+                      <span className="text-sm text-gray-800 truncate flex-1">{identity}</span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span className="text-xs text-gray-400">{count}×</span>
+                        <span className="text-xs font-medium text-indigo-700">
+                          {formatCurrency(totalAmount)}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* External communities */}
+            {commentInsights.communities.length > 0 && (
+              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
+                  🌐 Зовнішні спільноти
+                </p>
+                <p className="text-xs text-gray-500 mb-2">
+                  Донати надходять з {commentInsights.communities.length}{' '}
+                  {getCommunitiesWord(commentInsights.communities.length)}
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  {commentInsights.communities.map((c, i) => (
+                    <span
+                      key={i}
+                      className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2 py-0.5 font-medium"
+                    >
+                      {c}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Small helpers ────────────────────────────────────────────────────────────
+
+function SectionDivider({ label, color }: { label: string; color: 'amber' | 'purple' }) {
+  const lineClass = color === 'amber' ? 'bg-amber-200' : 'bg-purple-200';
+  const textClass = color === 'amber' ? 'text-amber-700' : 'text-purple-700';
+  return (
+    <div className="flex items-center gap-2 mb-3">
+      <div className={`h-px flex-1 ${lineClass}`} />
+      <p className={`text-xs font-semibold uppercase tracking-wider px-1 ${textClass}`}>{label}</p>
+      <div className={`h-px flex-1 ${lineClass}`} />
     </div>
   );
 }
@@ -89,4 +183,16 @@ function getDaysWord(days: number): string {
   if (lastDigit === 1) return 'день';
   if (lastDigit >= 2 && lastDigit <= 4) return 'дні';
   return 'днів';
+}
+
+function getPersonsWord(n: number): string {
+  if (n === 1) return 'людина';
+  if (n >= 2 && n <= 4) return 'людини';
+  return 'людей';
+}
+
+function getCommunitiesWord(n: number): string {
+  if (n === 1) return 'спільноти';
+  if (n >= 2 && n <= 4) return 'спільнот';
+  return 'спільнот';
 }

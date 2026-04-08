@@ -72,8 +72,24 @@ export interface AppState {
   donations: Donation[] | null;
   aggregates: Aggregates | null;
   insights: Insight[] | null;
+  commentInsights: CommentInsights | null;
   selectedTemplate: Template | null;
   goal?: number;
+}
+
+// Comment analysis results
+export interface RepeatDonor {
+  identity: string;      // donor name, emoji, or comment snippet
+  count: number;         // number of donations
+  totalAmount: number;
+}
+
+export interface CommentInsights {
+  totalWithComments: number;                      // donations with a personal comment (not auto-text)
+  topEmojis: Array<{ emoji: string; count: number }>;
+  repeatDonors: RepeatDonor[];                    // identities with 2+ donations
+  communities: string[];                          // detected group links / mentions
+  hasEnoughData: boolean;                         // false when <3% of donations have comments
 }
 
 // Export options

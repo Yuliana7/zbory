@@ -8,6 +8,7 @@ import { ExportScreen } from './components/screens/ExportScreen'
 import { parseCSV, normalizeDonations } from './utils/csvParser'
 import { aggregateDonations } from './utils/dataAggregator'
 import { generateInsights } from './utils/insightGenerator'
+import { analyzeComments } from './utils/commentAnalyzer'
 
 function App() {
   const [appState, setAppState] = useState<AppState>({
@@ -16,6 +17,7 @@ function App() {
     donations: null,
     aggregates: null,
     insights: null,
+    commentInsights: null,
     selectedTemplate: null,
   })
 
@@ -62,17 +64,15 @@ function App() {
     if (!appState.donations) return
 
     try {
-      // Generate aggregates
       const aggregates = aggregateDonations(appState.donations)
-
-      // Generate insights
       const insights = generateInsights(aggregates)
+      const commentInsights = analyzeComments(appState.donations)
 
-      // Update state and move to insights step
       setAppState(prev => ({
         ...prev,
         aggregates,
         insights,
+        commentInsights,
         goal,
         step: 'insights',
       }))
@@ -105,6 +105,7 @@ function App() {
       donations: null,
       aggregates: null,
       insights: null,
+      commentInsights: null,
       selectedTemplate: null,
     })
     setShowPreview(false)
@@ -220,6 +221,7 @@ function App() {
                   insights={appState.insights}
                   aggregates={appState.aggregates}
                   goal={appState.goal}
+                  commentInsights={appState.commentInsights}
                 />
                 <TemplateSelector onSelect={handleTemplateSelect} />
               </div>
