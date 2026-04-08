@@ -1,5 +1,5 @@
 import { useRef, useState, useLayoutEffect } from 'react';
-import type { Aggregates, Insight, TemplateType } from '../../types';
+import type { Aggregates, TemplateType } from '../../types';
 import { ProgressCard } from '../templates/ProgressCard';
 import { DailyActivityCard } from '../templates/DailyActivityCard';
 import { ThankYouCard } from '../templates/ThankYouCard';
@@ -8,7 +8,7 @@ import { exportToPNG } from '../../utils/exportPNG';
 interface ExportScreenProps {
   templateId: TemplateType;
   aggregates: Aggregates;
-  insights: Insight[];
+  initialGoal?: number;
   onBack: () => void;
 }
 
@@ -31,11 +31,11 @@ const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string
   story: { width: 1080, height: 1920, label: '1080×1920' },
 };
 
-export function ExportScreen({ templateId, aggregates, insights, onBack }: ExportScreenProps) {
+export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: ExportScreenProps) {
   const templateRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
-  const [goal, setGoal] = useState('');
+  const [goal, setGoal] = useState(initialGoal ? String(initialGoal) : '');
   const [isExporting, setIsExporting] = useState(false);
   const [format, setFormat] = useState<Format>(TEMPLATE_DEFAULT_FORMAT[templateId]);
 

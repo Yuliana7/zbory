@@ -58,7 +58,7 @@ function App() {
     }
   }
 
-  const handleProceedToInsights = () => {
+  const handleProceedToInsights = (goal?: number) => {
     if (!appState.donations) return
 
     try {
@@ -73,6 +73,7 @@ function App() {
         ...prev,
         aggregates,
         insights,
+        goal,
         step: 'insights',
       }))
 
@@ -218,6 +219,7 @@ function App() {
                 <InsightsPanel
                   insights={appState.insights}
                   aggregates={appState.aggregates}
+                  goal={appState.goal}
                 />
                 <TemplateSelector onSelect={handleTemplateSelect} />
               </div>
@@ -228,7 +230,7 @@ function App() {
             <ExportScreen
               templateId={appState.selectedTemplate.id}
               aggregates={appState.aggregates}
-              insights={appState.insights}
+              initialGoal={appState.goal}
               onBack={() => setAppState(prev => ({ ...prev, step: 'insights' }))}
             />
           )}

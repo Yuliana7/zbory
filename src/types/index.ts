@@ -51,6 +51,7 @@ export interface Insight {
   title: string;
   value: string;
   description?: string;
+  type?: 'insight' | 'action'; // 'action' = "Що робити далі?" recommendations
 }
 
 // Template types

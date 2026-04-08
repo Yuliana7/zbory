@@ -1,14 +1,18 @@
 import type { Insight, Aggregates } from '../../types';
+import { generateActionableInsights } from '../../utils/insightGenerator';
 
 interface InsightsPanelProps {
   insights: Insight[];
   aggregates: Aggregates;
+  goal?: number;
 }
 
-export function InsightsPanel({ insights, aggregates }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, goal }: InsightsPanelProps) {
   const duration = Math.ceil(
     (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24)
   );
+
+  const actionableInsights = generateActionableInsights(aggregates, goal);
 
   return (
     <div className="space-y-4">
@@ -23,7 +27,7 @@ export function InsightsPanel({ insights, aggregates }: InsightsPanelProps) {
         </p>
       </div>
 
-      {/* Insight cards */}
+      {/* Regular insight cards */}
       {insights.slice(1).map((insight, i) => (
         <div
           key={i}
@@ -41,6 +45,38 @@ export function InsightsPanel({ insights, aggregates }: InsightsPanelProps) {
           </div>
         </div>
       ))}
+
+      {/* Actionable recommendations */}
+      {actionableInsights.length > 0 && (
+        <div className="pt-2">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-px flex-1 bg-amber-200" />
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider px-1">
+              Що робити далі?
+            </p>
+            <div className="h-px flex-1 bg-amber-200" />
+          </div>
+          <div className="space-y-3">
+            {actionableInsights.map((action, i) => (
+              <div
+                key={i}
+                className="bg-amber-50 rounded-xl p-4 border border-amber-200 flex items-start gap-3"
+              >
+                <span className="text-2xl leading-none mt-0.5">{action.icon}</span>
+                <div className="min-w-0">
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">
+                    {action.title}
+                  </p>
+                  <p className="text-base font-semibold text-amber-900 mt-0.5">{action.value}</p>
+                  {action.description && (
+                    <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{action.description}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
