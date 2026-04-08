@@ -3,12 +3,22 @@ import type { AppState, TemplateType } from './types'
 import { FileUpload } from './components/upload/FileUpload'
 import { PreviewTable } from './components/upload/PreviewTable'
 import { InsightsPanel } from './components/insights/InsightsPanel'
-import { TemplateSelector } from './components/templates/TemplateSelector'
+import { TemplateGallery } from './components/screens/TemplateGallery'
 import { ExportScreen } from './components/screens/ExportScreen'
 import { parseCSV, normalizeDonations } from './utils/csvParser'
 import { aggregateDonations } from './utils/dataAggregator'
 import { generateInsights } from './utils/insightGenerator'
 import { analyzeComments } from './utils/commentAnalyzer'
+
+// Maps each step name to its 1-based index for the header breadcrumb
+const STEP_INDEX: Record<AppState['step'], number> = {
+  upload: 1,
+  insights: 2,
+  gallery: 3,
+  export: 4,
+}
+
+const STEP_LABELS = ['Завантаження', 'Аналітика', 'Шаблони', 'Експорт']
 
 function App() {
   const [appState, setAppState] = useState<AppState>({
@@ -25,32 +35,22 @@ function App() {
   const [showPreview, setShowPreview] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const currentStepIdx = STEP_INDEX[appState.step]
+
   const handleFileSelect = async (file: File) => {
     setIsLoading(true)
     setError(null)
 
     try {
-      // Parse CSV
       const rawData = await parseCSV(file)
+      if (rawData.length === 0) throw new Error('CSV файл порожній або не містить даних')
 
-      if (rawData.length === 0) {
-        throw new Error('CSV файл порожній або не містить даних')
-      }
-
-      // Normalize donations
       const donations = normalizeDonations(rawData)
-
       if (donations.length === 0) {
         throw new Error('Не вдалося обробити дані з CSV файлу. Переконайтеся, що формат файлу правильний')
       }
 
-      // Update state with parsed data
-      setAppState(prev => ({
-        ...prev,
-        rawData,
-        donations,
-      }))
-
+      setAppState(prev => ({ ...prev, rawData, donations }))
       setShowPreview(true)
     } catch (err) {
       console.error('Error processing file:', err)
@@ -62,21 +62,12 @@ function App() {
 
   const handleProceedToInsights = (goal?: number) => {
     if (!appState.donations) return
-
     try {
       const aggregates = aggregateDonations(appState.donations)
       const insights = generateInsights(aggregates)
       const commentInsights = analyzeComments(appState.donations)
 
-      setAppState(prev => ({
-        ...prev,
-        aggregates,
-        insights,
-        commentInsights,
-        goal,
-        step: 'insights',
-      }))
-
+      setAppState(prev => ({ ...prev, aggregates, insights, commentInsights, goal, step: 'insights' }))
       setShowPreview(false)
     } catch (err) {
       console.error('Error generating insights:', err)
@@ -112,11 +103,19 @@ function App() {
     setError(null)
   }
 
+  // Navigate backwards to a specific step (only allowed for completed steps)
+  const goToStep = (step: AppState['step']) => {
+    if (STEP_INDEX[step] < currentStepIdx) {
+      setAppState(prev => ({ ...prev, step }))
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
       <header className="bg-white border-b border-gray-200 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            {/* Logo */}
             <button
               onClick={handleReset}
               className="flex items-center space-x-3 group cursor-pointer"
@@ -131,39 +130,45 @@ function App() {
               </div>
             </button>
 
-            {/* Progress indicator — completed steps are clickable breadcrumbs */}
-            <div className="flex items-center space-x-2 text-xs sm:text-sm">
-              {/* Step 1 */}
-              <button
-                onClick={appState.step !== 'upload' ? handleReset : undefined}
-                disabled={appState.step === 'upload'}
-                className={`flex items-center transition-colors ${appState.step === 'upload' ? 'text-indigo-700 font-semibold cursor-default' : 'text-gray-400 hover:text-indigo-600 cursor-pointer'}`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'upload' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
-                  1
-                </div>
-                <span className="ml-2 font-medium hidden sm:inline">Завантаження</span>
-              </button>
-              <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
-              {/* Step 2 */}
-              <button
-                onClick={appState.step === 'export' ? () => setAppState(prev => ({ ...prev, step: 'insights' })) : undefined}
-                disabled={appState.step !== 'export'}
-                className={`flex items-center transition-colors ${appState.step === 'insights' ? 'text-indigo-700 font-semibold cursor-default' : appState.step === 'export' ? 'text-gray-400 hover:text-indigo-600 cursor-pointer' : 'text-gray-400 cursor-default'}`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'insights' ? 'bg-indigo-600 text-white' : 'bg-gray-200'}`}>
-                  2
-                </div>
-                <span className="ml-2 font-medium hidden sm:inline">Аналітика</span>
-              </button>
-              <div className="w-8 sm:w-16 h-0.5 bg-gray-200" />
-              {/* Step 3 */}
-              <div className={`flex items-center ${appState.step === 'export' ? 'text-indigo-700 font-semibold' : 'text-gray-400'}`}>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs ${appState.step === 'export' ? 'bg-indigo-700 text-white' : 'bg-gray-200'}`}>
-                  3
-                </div>
-                <span className="ml-2 font-medium hidden sm:inline">Експорт</span>
-              </div>
+            {/* 4-step breadcrumb */}
+            <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+              {STEP_LABELS.map((label, idx) => {
+                const stepNum = idx + 1
+                const isActive = stepNum === currentStepIdx
+                const isCompleted = stepNum < currentStepIdx
+                const stepKeys: AppState['step'][] = ['upload', 'insights', 'gallery', 'export']
+                const stepKey = stepKeys[idx]
+
+                return (
+                  <div key={stepNum} className="flex items-center">
+                    <button
+                      onClick={isCompleted ? () => goToStep(stepKey) : undefined}
+                      disabled={!isCompleted}
+                      className={`flex items-center transition-colors ${
+                        isActive
+                          ? 'text-indigo-700 font-semibold cursor-default'
+                          : isCompleted
+                          ? 'text-gray-400 hover:text-indigo-600 cursor-pointer'
+                          : 'text-gray-300 cursor-default'
+                      }`}
+                    >
+                      <div className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-xs font-medium ${
+                        isActive
+                          ? 'bg-indigo-600 text-white'
+                          : isCompleted
+                          ? 'bg-gray-200 text-gray-600'
+                          : 'bg-gray-100 text-gray-400'
+                      }`}>
+                        {stepNum}
+                      </div>
+                      <span className="ml-1.5 font-medium hidden sm:inline">{label}</span>
+                    </button>
+                    {idx < STEP_LABELS.length - 1 && (
+                      <div className="w-4 sm:w-10 h-0.5 bg-gray-200 mx-1 sm:mx-2" />
+                    )}
+                  </div>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -177,6 +182,7 @@ function App() {
         )}
 
         <div className="animate-fade-in">
+          {/* Step 1 — Upload */}
           {appState.step === 'upload' && !showPreview && (
             <div className="text-center py-12 sm:py-20">
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">
@@ -200,40 +206,61 @@ function App() {
             </div>
           )}
 
+          {/* Step 2 — Analytics */}
           {appState.step === 'insights' && appState.aggregates && appState.insights && (
             <div>
               <div className="mb-6 flex items-center justify-between">
                 <h2 className="text-2xl font-bold text-gray-900">Аналітика збору</h2>
-                <button
-                  onClick={handleReset}
-                  className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
-                             bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
-                             hover:border-gray-300 transition-all"
-                >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
-                  Завантажити інший файл
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleReset}
+                    className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+                               bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
+                               hover:border-gray-300 transition-all"
+                  >
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Інший файл
+                  </button>
+                  <button
+                    onClick={() => setAppState(prev => ({ ...prev, step: 'gallery' }))}
+                    className="flex items-center gap-2 text-sm font-semibold text-white
+                               bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 shadow-sm transition-all"
+                  >
+                    Обрати шаблон
+                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <InsightsPanel
-                  insights={appState.insights}
-                  aggregates={appState.aggregates}
-                  goal={appState.goal}
-                  commentInsights={appState.commentInsights}
-                />
-                <TemplateSelector onSelect={handleTemplateSelect} />
-              </div>
+              <InsightsPanel
+                insights={appState.insights}
+                aggregates={appState.aggregates}
+                goal={appState.goal}
+                commentInsights={appState.commentInsights}
+              />
             </div>
           )}
 
-          {appState.step === 'export' && appState.selectedTemplate && appState.aggregates && appState.insights && (
+          {/* Step 3 — Template gallery */}
+          {appState.step === 'gallery' && appState.aggregates && (
+            <TemplateGallery
+              aggregates={appState.aggregates}
+              goal={appState.goal}
+              onSelect={handleTemplateSelect}
+              onBack={() => setAppState(prev => ({ ...prev, step: 'insights' }))}
+            />
+          )}
+
+          {/* Step 4 — Export */}
+          {appState.step === 'export' && appState.selectedTemplate && appState.aggregates && (
             <ExportScreen
               templateId={appState.selectedTemplate.id}
               aggregates={appState.aggregates}
               initialGoal={appState.goal}
-              onBack={() => setAppState(prev => ({ ...prev, step: 'insights' }))}
+              onBack={() => setAppState(prev => ({ ...prev, step: 'gallery' }))}
             />
           )}
         </div>

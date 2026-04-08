@@ -67,7 +67,7 @@ export interface Template {
 
 // App state
 export interface AppState {
-  step: 'upload' | 'insights' | 'export';
+  step: 'upload' | 'insights' | 'gallery' | 'export';
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   aggregates: Aggregates | null;
