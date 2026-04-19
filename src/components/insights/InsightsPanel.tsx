@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import type { Insight, Aggregates, CommentInsights } from '../../types';
 import { generateActionableInsights } from '../../utils/insightGenerator';
 import { formatCurrency } from '../../utils/dataAggregator';
@@ -10,8 +11,10 @@ interface InsightsPanelProps {
 }
 
 export function InsightsPanel({ insights, aggregates, goal, commentInsights }: InsightsPanelProps) {
+  const { t } = useTranslation('insights');
+
   const duration = Math.ceil(
-    (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24)
+    (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
   const actionableInsights = generateActionableInsights(aggregates, goal);
@@ -20,12 +23,13 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
     <div className="space-y-4">
       {/* Hero stat */}
       <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-        <p className="text-indigo-200 text-sm font-medium mb-1">Загальна сума</p>
+        <p className="text-indigo-200 text-sm font-medium mb-1">{t('totalAmount')}</p>
         <p className="text-4xl font-bold tracking-tight">
           {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount))} ₴
         </p>
         <p className="mt-2 text-indigo-200 text-sm">
-          {aggregates.donationCount} донатів за {duration} {getDaysWord(duration)} 💙💛
+          {t('donationsCount', { count: aggregates.donationCount })}{' '}
+          {t('duration', { count: duration })} 💙💛
         </p>
       </div>
 
@@ -37,9 +41,7 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
         >
           <span className="text-2xl leading-none mt-0.5">{insight.icon}</span>
           <div className="min-w-0">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">
-              {insight.title}
-            </p>
+            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{insight.title}</p>
             <p className="text-lg font-semibold text-gray-900 mt-0.5">{insight.value}</p>
             {insight.description && (
               <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{insight.description}</p>
@@ -51,7 +53,7 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
       {/* Actionable recommendations */}
       {actionableInsights.length > 0 && (
         <div className="pt-2">
-          <SectionDivider label="Що робити далі?" color="amber" />
+          <SectionDivider label={t('sections.whatNext')} color="amber" />
           <div className="space-y-3">
             {actionableInsights.map((action, i) => (
               <div
@@ -60,9 +62,7 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
               >
                 <span className="text-2xl leading-none mt-0.5">{action.icon}</span>
                 <div className="min-w-0">
-                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">
-                    {action.title}
-                  </p>
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">{action.title}</p>
                   <p className="text-base font-semibold text-amber-900 mt-0.5">{action.value}</p>
                   {action.description && (
                     <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{action.description}</p>
@@ -77,14 +77,13 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
       {/* Comment analysis */}
       {commentInsights?.hasEnoughData && (
         <div className="pt-2">
-          <SectionDivider label="Коментарі донатерів" color="purple" />
+          <SectionDivider label={t('sections.comments')} color="purple" />
           <div className="space-y-3">
 
-            {/* Top emojis */}
             {commentInsights.topEmojis.length > 0 && (
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  🎭 Найпопулярніші емоджі
+                  {t('comments.topEmojis')}
                 </p>
                 <div className="flex items-end gap-3 flex-wrap">
                   {commentInsights.topEmojis.map(({ emoji, count }, i) => (
@@ -100,20 +99,18 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
                   ))}
                 </div>
                 <p className="mt-2 text-xs text-gray-400">
-                  З {commentInsights.totalWithComments} особистих коментарів
+                  {t('comments.emojiUsageFrom', { count: commentInsights.totalWithComments })}
                 </p>
               </div>
             )}
 
-            {/* Repeat donors */}
             {commentInsights.repeatDonors.length > 0 && (
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  🧡 Постійні донатери
+                  {t('comments.repeatDonors')}
                 </p>
                 <p className="text-xs text-gray-500 mb-2">
-                  {commentInsights.repeatDonors.length}{' '}
-                  {getPersonsWord(commentInsights.repeatDonors.length)} донатили більше одного разу
+                  {t('comments.repeatDonorsCount', { count: commentInsights.repeatDonors.length })}
                 </p>
                 <div className="space-y-2">
                   {commentInsights.repeatDonors.map(({ identity, count, totalAmount }, i) => (
@@ -131,15 +128,13 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
               </div>
             )}
 
-            {/* External communities */}
             {commentInsights.communities.length > 0 && (
               <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
                 <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  🌐 Зовнішні спільноти
+                  {t('comments.communities')}
                 </p>
                 <p className="text-xs text-gray-500 mb-2">
-                  Донати надходять з {commentInsights.communities.length}{' '}
-                  {getCommunitiesWord(commentInsights.communities.length)}
+                  {t('comments.communitiesCount', { count: commentInsights.communities.length })}
                 </p>
                 <div className="flex flex-wrap gap-2">
                   {commentInsights.communities.map((c, i) => (
@@ -161,8 +156,6 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
   );
 }
 
-// ─── Small helpers ────────────────────────────────────────────────────────────
-
 function SectionDivider({ label, color }: { label: string; color: 'amber' | 'purple' }) {
   const lineClass = color === 'amber' ? 'bg-amber-200' : 'bg-purple-200';
   const textClass = color === 'amber' ? 'text-amber-700' : 'text-purple-700';
@@ -173,26 +166,4 @@ function SectionDivider({ label, color }: { label: string; color: 'amber' | 'pur
       <div className={`h-px flex-1 ${lineClass}`} />
     </div>
   );
-}
-
-function getDaysWord(days: number): string {
-  if (days === 1) return 'день';
-  if (days >= 2 && days <= 4) return 'дні';
-  if (days >= 5 && days <= 20) return 'днів';
-  const lastDigit = days % 10;
-  if (lastDigit === 1) return 'день';
-  if (lastDigit >= 2 && lastDigit <= 4) return 'дні';
-  return 'днів';
-}
-
-function getPersonsWord(n: number): string {
-  if (n === 1) return 'людина';
-  if (n >= 2 && n <= 4) return 'людини';
-  return 'людей';
-}
-
-function getCommunitiesWord(n: number): string {
-  if (n === 1) return 'спільноти';
-  if (n >= 2 && n <= 4) return 'спільнот';
-  return 'спільнот';
 }

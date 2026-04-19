@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import type { Donation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
 
@@ -10,10 +11,10 @@ interface PreviewTableProps {
 }
 
 export function PreviewTable({ donations, totalCount, onProceed, onCancel }: PreviewTableProps) {
+  const { t } = useTranslation('upload');
   const [goalInput, setGoalInput] = useState('');
 
   const previewDonations = donations.slice(0, 10);
-
   const parsedGoal = parseGoal(goalInput);
 
   function handleProceed() {
@@ -25,9 +26,9 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
       <div className="card">
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Перегляд файлу</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{t('preview.title')}</h2>
             <p className="text-sm text-gray-600 mt-1">
-              Знайдено {totalCount} {getDonationsWord(totalCount)}
+              {t('preview.foundCount', { count: totalCount })}
             </p>
           </div>
         </div>
@@ -36,21 +37,16 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Дата
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Час
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Донатер
-                </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Сума
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Категорія
-                </th>
+                {(['date', 'time', 'donor', 'amount', 'category'] as const).map((col) => (
+                  <th
+                    key={col}
+                    className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
+                      col === 'amount' ? 'text-right' : 'text-left'
+                    }`}
+                  >
+                    {t(`preview.columns.${col}`)}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -64,15 +60,13 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
                   </td>
                   <td className="px-4 py-3 text-sm text-gray-900">
                     {donation.donor || (
-                      <span className="text-gray-400 italic">Анонімно</span>
+                      <span className="text-gray-400 italic">{t('preview.anonymous')}</span>
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap text-sm text-right font-medium text-gray-900">
                     {formatCurrency(donation.amount)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
-                    {donation.category}
-                  </td>
+                  <td className="px-4 py-3 text-sm text-gray-600">{donation.category}</td>
                 </tr>
               ))}
             </tbody>
@@ -81,26 +75,25 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
 
         {totalCount > 10 && (
           <div className="mt-4 text-center text-sm text-gray-500">
-            Показано 10 з {totalCount} донатів
+            {t('preview.showingOf', { total: totalCount })}
           </div>
         )}
 
         {/* Goal input */}
         <div className="mt-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
           <label className="block text-sm font-semibold text-indigo-900 mb-1">
-            Мета збору <span className="font-normal text-indigo-500">(необов'язково)</span>
+            {t('preview.goal.label')}{' '}
+            <span className="font-normal text-indigo-500">{t('preview.goal.optional')}</span>
           </label>
-          <p className="text-xs text-indigo-600 mb-3">
-            Вкажіть суму — і ми покажемо прогрес, прогноз виконання та додаткові підказки
-          </p>
+          <p className="text-xs text-indigo-600 mb-3">{t('preview.goal.hint')}</p>
           <div className="flex items-center gap-2 max-w-xs">
             <div className="relative flex-1">
               <input
                 type="text"
                 inputMode="numeric"
                 value={goalInput}
-                onChange={e => setGoalInput(e.target.value)}
-                placeholder="Наприклад: 100000"
+                onChange={(e) => setGoalInput(e.target.value)}
+                placeholder={t('preview.goal.placeholder')}
                 className="w-full pl-3 pr-8 py-2 rounded-lg border border-indigo-200 bg-white text-sm text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
                            placeholder:text-gray-400"
@@ -116,16 +109,16 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
             )}
           </div>
           {goalInput && parsedGoal === null && (
-            <p className="mt-1 text-xs text-red-500">Введіть коректне число</p>
+            <p className="mt-1 text-xs text-red-500">{t('preview.goal.invalidNumber')}</p>
           )}
         </div>
 
         <div className="mt-4 flex justify-end space-x-3">
           <button onClick={onCancel} className="btn-secondary">
-            Обрати інший файл
+            {t('preview.cancelButton')}
           </button>
           <button onClick={handleProceed} className="btn-primary">
-            Продовжити до аналітики →
+            {t('preview.proceedButton')}
           </button>
         </div>
       </div>
@@ -133,14 +126,9 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
   );
 }
 
-/**
- * Parses goal input — handles spaces, dots, commas as thousand separators.
- * Returns null if input is non-empty but invalid.
- */
 function parseGoal(raw: string): number | null {
   const trimmed = raw.trim();
   if (!trimmed) return null;
-  // Remove common separators (space, dot, comma used as thousands)
   const normalized = trimmed.replace(/[\s,.]/g, '');
   const value = Number(normalized);
   if (!Number.isFinite(value) || value <= 0) return null;
@@ -148,17 +136,5 @@ function parseGoal(raw: string): number | null {
 }
 
 function formatTime(date: Date): string {
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  return `${hours}:${minutes}`;
-}
-
-function getDonationsWord(count: number): string {
-  if (count === 1) return 'донат';
-  if (count >= 2 && count <= 4) return 'донати';
-  if (count >= 5 && count <= 20) return 'донатів';
-  const lastDigit = count % 10;
-  if (lastDigit === 1) return 'донат';
-  if (lastDigit >= 2 && lastDigit <= 4) return 'донати';
-  return 'донатів';
+  return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }

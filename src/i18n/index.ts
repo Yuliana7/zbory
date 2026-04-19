@@ -6,11 +6,12 @@ import uploadUk from './locales/uk/upload.json';
 import insightsUk from './locales/uk/insights.json';
 import galleryUk from './locales/uk/gallery.json';
 import exportUk from './locales/uk/export.json';
+import cardsUk from './locales/uk/cards.json';
 
 i18n.use(initReactI18next).init({
   lng: 'uk',
   fallbackLng: 'uk',
-  ns: ['common', 'upload', 'insights', 'gallery', 'export'],
+  ns: ['common', 'upload', 'insights', 'gallery', 'export', 'cards'],
   defaultNS: 'common',
   resources: {
     uk: {
@@ -19,6 +20,7 @@ i18n.use(initReactI18next).init({
       insights: insightsUk,
       gallery: galleryUk,
       export: exportUk,
+      cards: cardsUk,
     },
   },
   interpolation: {

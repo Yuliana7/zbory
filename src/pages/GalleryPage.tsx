@@ -1,37 +1,16 @@
 import { useRef, useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { TemplateType } from '../types';
+import type { Aggregates, TemplateType } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
 
-interface TemplateMeta {
-  id: TemplateType;
-  name: string;
-  description: string;
-}
-
-const TEMPLATES: TemplateMeta[] = [
-  {
-    id: 'progress',
-    name: 'Картка прогресу',
-    description: 'Сума зібраного, прогрес до цілі та мотивуючий заголовок',
-  },
-  {
-    id: 'daily-activity',
-    name: 'Активність за днями',
-    description: 'Графік надходжень і найактивніший день збору',
-  },
-  {
-    id: 'thank-you',
-    name: 'Подяка донатерам',
-    description: 'Тепле повідомлення з підсумком і кількістю учасників',
-  },
-];
-
+const TEMPLATE_IDS: TemplateType[] = ['progress', 'daily-activity', 'thank-you'];
 const NATIVE = 1080;
 
 export function GalleryPage() {
+  const { t } = useTranslation('gallery');
   const { state, dispatch, handleTemplateSelect } = useAppContext();
   const { app } = state;
 
@@ -40,7 +19,7 @@ export function GalleryPage() {
   return (
     <div>
       <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Оберіть шаблон</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <button
           onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'insights' })}
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
@@ -50,25 +29,25 @@ export function GalleryPage() {
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Назад до аналітики
+          {t('backButton')}
         </button>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {TEMPLATES.map((tpl) => (
+        {TEMPLATE_IDS.map((id) => (
           <button
-            key={tpl.id}
-            onClick={() => handleTemplateSelect(tpl.id)}
+            key={id}
+            onClick={() => handleTemplateSelect(id)}
             className="group bg-white rounded-2xl border border-gray-100 shadow-sm text-left
                        hover:border-indigo-300 hover:shadow-lg transition-all duration-150 overflow-hidden
                        flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
-            <TemplatePreview id={tpl.id} aggregates={app.aggregates!} goal={app.goal} />
+            <TemplatePreview id={id} aggregates={app.aggregates!} goal={app.goal} />
             <div className="p-5 flex flex-col gap-2 flex-1">
-              <p className="font-semibold text-gray-900 text-base">{tpl.name}</p>
-              <p className="text-sm text-gray-500 leading-relaxed">{tpl.description}</p>
+              <p className="font-semibold text-gray-900 text-base">{t(`templates.${id}.name`)}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
               <p className="mt-auto text-sm font-semibold text-indigo-600 group-hover:text-indigo-700">
-                Використати шаблон →
+                {t('useTemplate')}
               </p>
             </div>
           </button>
@@ -79,8 +58,6 @@ export function GalleryPage() {
 }
 
 // ─── Responsive tile preview ──────────────────────────────────────────────────
-
-import type { Aggregates } from '../types';
 
 interface TemplatePreviewProps {
   id: TemplateType;

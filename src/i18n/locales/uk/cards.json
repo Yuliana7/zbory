@@ -1,0 +1,31 @@
+{
+  "brand": "Збори",
+  "progress": {
+    "subtitle": "Звіт про збір",
+    "collectedLabel": "Зібрано",
+    "currencyWord": "гривень",
+    "goalPrefix": "Ціль:",
+    "goalExceeded": "{{pct}}% — мету перевиконано! 🎉",
+    "stats": {
+      "donations": "Донатів",
+      "average": "Середній",
+      "largest": "Найбільший"
+    }
+  },
+  "dailyActivity": {
+    "subtitle": "Активність збору",
+    "totalLabel": "Загальна сума",
+    "cumulativeLabel": "Наростаючий підсумок",
+    "last14Days": "Останні 14 днів",
+    "bestDay": "Найкращий день",
+    "stats": {
+      "donations": "Донатів",
+      "average": "Середній"
+    }
+  },
+  "thankYou": {
+    "thanks": "Дякуємо",
+    "collectedTogether": "зібрано разом",
+    "donorsLabel": "Небайдужих людей:"
+  }
+}

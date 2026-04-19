@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next'
 import { useAppContext } from './context/AppContext'
 import type { AppState } from './types'
 import { UploadPage } from './pages/UploadPage'
@@ -12,13 +13,20 @@ const STEP_INDEX: Record<AppState['step'], number> = {
   export: 4,
 }
 
-const STEP_LABELS = ['Завантаження', 'Аналітика', 'Шаблони', 'Експорт']
 const STEP_KEYS: AppState['step'][] = ['upload', 'insights', 'gallery', 'export']
 
 function App() {
+  const { t } = useTranslation('common')
   const { state, handleReset, goToStep } = useAppContext()
   const { app, error } = state
   const currentStepIdx = STEP_INDEX[app.step]
+
+  const stepLabels = [
+    t('steps.upload'),
+    t('steps.insights'),
+    t('steps.gallery'),
+    t('steps.export'),
+  ]
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50">
@@ -28,19 +36,19 @@ function App() {
             <button
               onClick={handleReset}
               className="flex items-center space-x-3 group cursor-pointer"
-              title="На початок"
+              title={t('logoTitle')}
             >
               <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl group-hover:opacity-80 transition-opacity">
-                ₴
+                {t('currency')}
               </div>
               <div className="text-left">
-                <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">Zbory</h1>
-                <p className="text-sm text-gray-500">Аналітика збору коштів</p>
+                <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">{t('appName')}</h1>
+                <p className="text-sm text-gray-500">{t('appSubtitle')}</p>
               </div>
             </button>
 
             <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
-              {STEP_LABELS.map((label, idx) => {
+              {stepLabels.map((label, idx) => {
                 const stepNum = idx + 1
                 const isActive = stepNum === currentStepIdx
                 const isCompleted = stepNum < currentStepIdx
@@ -70,7 +78,7 @@ function App() {
                       </div>
                       <span className="ml-1.5 font-medium hidden sm:inline">{label}</span>
                     </button>
-                    {idx < STEP_LABELS.length - 1 && (
+                    {idx < stepLabels.length - 1 && (
                       <div className="w-4 sm:w-10 h-0.5 bg-gray-200 mx-1 sm:mx-2" />
                     )}
                   </div>
@@ -98,9 +106,7 @@ function App() {
 
       <footer className="border-t border-gray-200 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-sm text-gray-500">
-            Збори • Створено для українських волонтерів 💙💛
-          </p>
+          <p className="text-center text-sm text-gray-500">{t('footer')}</p>
         </div>
       </footer>
     </div>

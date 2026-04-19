@@ -1,7 +1,9 @@
+import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
 
 export function InsightsPage() {
+  const { t } = useTranslation('insights');
   const { state, dispatch, handleReset } = useAppContext();
   const { app } = state;
 
@@ -10,7 +12,7 @@ export function InsightsPage() {
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">Аналітика збору</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
             onClick={handleReset}
@@ -21,14 +23,14 @@ export function InsightsPage() {
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>
-            Інший файл
+            {t('backButton')}
           </button>
           <button
             onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
             className="flex items-center gap-2 text-sm font-semibold text-white
                        bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 shadow-sm transition-all"
           >
-            Обрати шаблон
+            {t('nextButton')}
             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
             </svg>
