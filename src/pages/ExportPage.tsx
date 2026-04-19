@@ -1,16 +1,10 @@
 import { useRef, useState, useLayoutEffect } from 'react';
-import type { Aggregates, TemplateType } from '../../types';
-import { ProgressCard } from '../templates/ProgressCard';
-import { DailyActivityCard } from '../templates/DailyActivityCard';
-import { ThankYouCard } from '../templates/ThankYouCard';
-import { exportToPNG } from '../../utils/exportPNG';
-
-interface ExportScreenProps {
-  templateId: TemplateType;
-  aggregates: Aggregates;
-  initialGoal?: number;
-  onBack: () => void;
-}
+import { useAppContext } from '../context/AppContext';
+import type { TemplateType } from '../types';
+import { ProgressCard } from '../components/templates/ProgressCard';
+import { DailyActivityCard } from '../components/templates/DailyActivityCard';
+import { ThankYouCard } from '../components/templates/ThankYouCard';
+import { exportToPNG } from '../utils/exportPNG';
 
 type Format = 'post' | 'story';
 
@@ -31,17 +25,26 @@ const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string
   story: { width: 1080, height: 1920, label: '1080×1920' },
 };
 
-export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: ExportScreenProps) {
+export function ExportPage() {
+  const { state, dispatch } = useAppContext();
+  const { app } = state;
+
   const templateRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0.5);
-  const [goal, setGoal] = useState(initialGoal ? String(initialGoal) : '');
+  const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
   const [isExporting, setIsExporting] = useState(false);
-  const [format, setFormat] = useState<Format>(TEMPLATE_DEFAULT_FORMAT[templateId]);
+  const [format, setFormat] = useState<Format>(
+    app.selectedTemplate ? TEMPLATE_DEFAULT_FORMAT[app.selectedTemplate.id] : 'post',
+  );
 
+  if (!app.selectedTemplate || !app.aggregates) return null;
+
+  const templateId = app.selectedTemplate.id;
   const dims = FORMAT_DIMS[format];
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
+  // eslint-disable-next-line react-hooks/rules-of-hooks
   useLayoutEffect(() => {
     const calculate = () => {
       if (!previewContainerRef.current) return;
@@ -51,7 +54,6 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
       const scaleH = containerH / dims.height;
       setScale(Math.min(scaleW, scaleH, 0.55));
     };
-
     calculate();
     window.addEventListener('resize', calculate);
     return () => window.removeEventListener('resize', calculate);
@@ -75,10 +77,9 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
 
   return (
     <div>
-      {/* Top nav */}
       <div className="mb-6 flex items-center justify-between">
         <button
-          onClick={onBack}
+          onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
@@ -86,11 +87,9 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
           </svg>
-          Назад до аналітики
+          Назад до галереї
         </button>
-        <div className="text-sm font-medium text-gray-700">
-          {TEMPLATE_NAMES[templateId]}
-        </div>
+        <div className="text-sm font-medium text-gray-700">{TEMPLATE_NAMES[templateId]}</div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_320px] gap-8 items-start">
@@ -119,13 +118,13 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
               }}
             >
               {templateId === 'progress' && (
-                <ProgressCard ref={templateRef} aggregates={aggregates} goal={goalValue} format={format} />
+                <ProgressCard ref={templateRef} aggregates={app.aggregates} goal={goalValue} format={format} />
               )}
               {templateId === 'daily-activity' && (
-                <DailyActivityCard ref={templateRef} aggregates={aggregates} format={format} />
+                <DailyActivityCard ref={templateRef} aggregates={app.aggregates} format={format} />
               )}
               {templateId === 'thank-you' && (
-                <ThankYouCard ref={templateRef} aggregates={aggregates} format={format} />
+                <ThankYouCard ref={templateRef} aggregates={app.aggregates} format={format} />
               )}
             </div>
           </div>
@@ -171,13 +170,9 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
                   className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm
                              focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
-                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">
-                  ₴
-                </span>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₴</span>
               </div>
-              <p className="mt-1.5 text-xs text-gray-400">
-                Введіть суму — з'явиться прогрес-бар
-              </p>
+              <p className="mt-1.5 text-xs text-gray-400">Введіть суму — з'явиться прогрес-бар</p>
             </div>
           )}
 
@@ -185,9 +180,9 @@ export function ExportScreen({ templateId, aggregates, initialGoal, onBack }: Ex
           <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
             <p className="text-sm font-semibold text-gray-700">У шаблоні</p>
             {[
-              { label: 'Зібрано', value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount)) + ' ₴' },
-              { label: 'Донатів', value: String(aggregates.donationCount) },
-              { label: 'Середній', value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.avgDonation)) + ' ₴' },
+              { label: 'Зібрано', value: new Intl.NumberFormat('uk-UA').format(Math.round(app.aggregates.totalAmount)) + ' ₴' },
+              { label: 'Донатів', value: String(app.aggregates.donationCount) },
+              { label: 'Середній', value: new Intl.NumberFormat('uk-UA').format(Math.round(app.aggregates.avgDonation)) + ' ₴' },
             ].map((s) => (
               <div key={s.label} className="flex justify-between text-sm">
                 <span className="text-gray-500">{s.label}</span>

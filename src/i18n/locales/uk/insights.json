@@ -1,0 +1,28 @@
+{
+  "title": "Аналітика збору",
+  "backButton": "Інший файл",
+  "nextButton": "Обрати шаблон",
+  "totalAmount": "Загальна сума",
+  "donationsCount_one": "{{count}} донат за",
+  "donationsCount_few": "{{count}} донати за",
+  "donationsCount_many": "{{count}} донатів за",
+  "duration_one": "{{count}} день",
+  "duration_few": "{{count}} дні",
+  "duration_many": "{{count}} днів",
+  "sections": {
+    "whatNext": "Що робити далі?",
+    "comments": "Коментарі донатерів"
+  },
+  "comments": {
+    "topEmojis": "🎭 Найпопулярніші емоджі",
+    "emojiUsageFrom": "З {{count}} особистих коментарів",
+    "repeatDonors": "🧡 Постійні донатери",
+    "repeatDonorsCount_one": "{{count}} людина донатила більше одного разу",
+    "repeatDonorsCount_few": "{{count}} людини донатили більше одного разу",
+    "repeatDonorsCount_many": "{{count}} людей донатили більше одного разу",
+    "communities": "🌐 Зовнішні спільноти",
+    "communitiesCount_one": "Донати надходять з {{count}} спільноти",
+    "communitiesCount_few": "Донати надходять з {{count}} спільнот",
+    "communitiesCount_many": "Донати надходять з {{count}} спільнот"
+  }
+}

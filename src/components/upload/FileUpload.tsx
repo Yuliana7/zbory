@@ -156,9 +156,6 @@ export function FileUpload({ onFileSelect, isLoading = false }: FileUploadProps)
       </div>
 
       <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          Підтримуються файли з виписки Monobank Jar
-        </p>
         <details className="mt-2">
           <summary className="text-xs text-indigo-600 cursor-pointer hover:text-indigo-700">
             Де знайти файл виписки?

@@ -1,8 +1,9 @@
 import { useRef, useEffect, useState } from 'react';
-import type { TemplateType, Aggregates } from '../../types';
-import { ProgressCard } from '../templates/ProgressCard';
-import { DailyActivityCard } from '../templates/DailyActivityCard';
-import { ThankYouCard } from '../templates/ThankYouCard';
+import { useAppContext } from '../context/AppContext';
+import type { TemplateType } from '../types';
+import { ProgressCard } from '../components/templates/ProgressCard';
+import { DailyActivityCard } from '../components/templates/DailyActivityCard';
+import { ThankYouCard } from '../components/templates/ThankYouCard';
 
 interface TemplateMeta {
   id: TemplateType;
@@ -30,20 +31,18 @@ const TEMPLATES: TemplateMeta[] = [
 
 const NATIVE = 1080;
 
-interface TemplateGalleryProps {
-  aggregates: Aggregates;
-  goal?: number;
-  onSelect: (template: TemplateType) => void;
-  onBack: () => void;
-}
+export function GalleryPage() {
+  const { state, dispatch, handleTemplateSelect } = useAppContext();
+  const { app } = state;
 
-export function TemplateGallery({ aggregates, goal, onSelect, onBack }: TemplateGalleryProps) {
+  if (!app.aggregates) return null;
+
   return (
     <div>
       <div className="mb-8 flex items-center justify-between">
         <h2 className="text-2xl font-bold text-gray-900">Оберіть шаблон</h2>
         <button
-          onClick={onBack}
+          onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'insights' })}
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
@@ -57,31 +56,22 @@ export function TemplateGallery({ aggregates, goal, onSelect, onBack }: Template
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {TEMPLATES.map((tpl) => (
-          <div
+          <button
             key={tpl.id}
-            className="group bg-white rounded-2xl border border-gray-100 shadow-sm
+            onClick={() => handleTemplateSelect(tpl.id)}
+            className="group bg-white rounded-2xl border border-gray-100 shadow-sm text-left
                        hover:border-indigo-300 hover:shadow-lg transition-all duration-150 overflow-hidden
-                       flex flex-col"
+                       flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
           >
-            {/* Square preview — responsive, stretches to upper corners */}
-            <TemplatePreview id={tpl.id} aggregates={aggregates} goal={goal} />
-
-            {/* Info + CTA */}
-            <div className="p-5 flex flex-col gap-3 flex-1">
-              <div>
-                <p className="font-semibold text-gray-900 text-base">{tpl.name}</p>
-                <p className="text-sm text-gray-500 mt-1 leading-relaxed">{tpl.description}</p>
-              </div>
-              <button
-                onClick={() => onSelect(tpl.id)}
-                className="mt-auto w-full text-sm font-semibold text-indigo-700 border border-indigo-200
-                           bg-indigo-50 hover:bg-indigo-600 hover:text-white hover:border-indigo-600
-                           rounded-lg px-4 py-2 transition-all duration-150"
-              >
+            <TemplatePreview id={tpl.id} aggregates={app.aggregates!} goal={app.goal} />
+            <div className="p-5 flex flex-col gap-2 flex-1">
+              <p className="font-semibold text-gray-900 text-base">{tpl.name}</p>
+              <p className="text-sm text-gray-500 leading-relaxed">{tpl.description}</p>
+              <p className="mt-auto text-sm font-semibold text-indigo-600 group-hover:text-indigo-700">
                 Використати шаблон →
-              </button>
+              </p>
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -89,6 +79,8 @@ export function TemplateGallery({ aggregates, goal, onSelect, onBack }: Template
 }
 
 // ─── Responsive tile preview ──────────────────────────────────────────────────
+
+import type { Aggregates } from '../types';
 
 interface TemplatePreviewProps {
   id: TemplateType;
@@ -103,18 +95,15 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
-
     const observer = new ResizeObserver(([entry]) => {
       const w = entry.contentRect.width;
       if (w > 0) setScale(w / NATIVE);
     });
-
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
   return (
-    // padding-bottom: 100% keeps this div square at any width
     <div
       ref={containerRef}
       className="relative w-full rounded-t-2xl overflow-hidden"
@@ -134,15 +123,9 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
             userSelect: 'none',
           }}
         >
-          {id === 'progress' && (
-            <ProgressCard aggregates={aggregates} goal={goal} format="post" />
-          )}
-          {id === 'daily-activity' && (
-            <DailyActivityCard aggregates={aggregates} format="post" />
-          )}
-          {id === 'thank-you' && (
-            <ThankYouCard aggregates={aggregates} format="post" />
-          )}
+          {id === 'progress' && <ProgressCard aggregates={aggregates} goal={goal} format="post" />}
+          {id === 'daily-activity' && <DailyActivityCard aggregates={aggregates} format="post" />}
+          {id === 'thank-you' && <ThankYouCard aggregates={aggregates} format="post" />}
         </div>
       )}
     </div>
