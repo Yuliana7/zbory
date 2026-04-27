@@ -94,6 +94,8 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     case 'TEMPLATE_SELECTED': {
       const id = action.payload;
+      const defaultStory = new Set(['daily-activity', 'top-donors', 'weekly-recap']);
+      const needsGoal = new Set(['progress', 'milestone', 'urgency']);
       return {
         ...state,
         app: {
@@ -102,8 +104,8 @@ function appReducer(state: FullState, action: AppAction): FullState {
             id,
             name: id,
             description: '',
-            format: id === 'daily-activity' ? 'story' : 'post',
-            requiresGoal: id === 'progress',
+            format: defaultStory.has(id) ? 'story' : 'post',
+            requiresGoal: needsGoal.has(id),
           },
           step: 'export',
         },

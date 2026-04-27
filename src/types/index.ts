@@ -43,6 +43,9 @@ export interface Aggregates {
   smallDonations: number; // < 100 UAH
   mediumDonations: number; // 100-1000 UAH
   largeDonations: number; // > 1000 UAH
+
+  // Top donors by total amount
+  topDonors: Array<{ name: string; amount: number; count: number }>;
 }
 
 // Insight type for display
@@ -55,7 +58,16 @@ export interface Insight {
 }
 
 // Template types
-export type TemplateType = 'progress' | 'daily-activity' | 'thank-you';
+export type TemplateType =
+  | 'progress'
+  | 'daily-activity'
+  | 'thank-you'
+  | 'milestone'
+  | 'top-donors'
+  | 'donors-count'
+  | 'urgency'
+  | 'weekly-recap'
+  | 'speed';
 
 export interface Template {
   id: TemplateType;

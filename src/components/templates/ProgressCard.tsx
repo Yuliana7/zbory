@@ -1,16 +1,23 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
+import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 
 interface ProgressCardProps {
   aggregates: Aggregates;
   goal?: number;
   format?: 'post' | 'story';
+  palette?: Palette;
+  textOverrides?: Record<string, string>;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'post' }, ref) => {
+  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
+    const p = palette;
+
+    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+
     const total = aggregates.totalAmount;
     const progressPct = goal ? Math.round((total / goal) * 100) : null;
     const barWidthPct = progressPct !== null ? Math.min(progressPct, 100) : null;
@@ -23,10 +30,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
       progressPct === null
         ? ''
         : progressPct > 100
-        ? 'linear-gradient(90deg, #22d3ee, #06b6d4)'   // cyan — exceeded
+        ? 'linear-gradient(90deg, #22d3ee, #06b6d4)'
         : progressPct === 100
-        ? 'linear-gradient(90deg, #4ade80, #22c55e)'   // green — exact
-        : 'linear-gradient(90deg, #fbbf24, #f59e0b)';  // yellow — in progress
+        ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+        : 'linear-gradient(90deg, #fbbf24, #f59e0b)';
 
     const pctLabel =
       progressPct === null
@@ -41,18 +48,17 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         style={{
           width: 1080,
           height: isStory ? 1920 : 1080,
-          background: 'linear-gradient(145deg, #0f172a 0%, #1e1b4b 60%, #0f172a 100%)',
+          background: p.background,
           display: 'flex',
           flexDirection: 'column',
           padding: isStory ? '100px 80px' : '80px',
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: '#ffffff',
+          color: p.primary,
           boxSizing: 'border-box',
           position: 'relative',
           overflow: 'hidden',
         }}
       >
-        {/* Background accent circle */}
         <div
           style={{
             position: 'absolute',
@@ -61,7 +67,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             width: 700,
             height: 700,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(99,102,241,0.15) 0%, transparent 70%)',
+            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 70%)`,
             pointerEvents: 'none',
           }}
         />
@@ -73,7 +79,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             width: 500,
             height: 500,
             borderRadius: '50%',
-            background: 'radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%)',
+            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 70%)`,
             pointerEvents: 'none',
           }}
         />
@@ -85,24 +91,27 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               style={{
                 width: 56,
                 height: 56,
-                background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+                background: p.logoGradient,
                 borderRadius: 14,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: 28,
+                color: '#fff',
               }}
             >
               ₴
             </div>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px' }}>Збори</div>
-              <div style={{ fontSize: 18, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
-                Звіт про збір
+              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px' }}>
+                {tx('title', 'Збори')}
+              </div>
+              <div style={{ fontSize: 18, color: p.secondary, marginTop: 2 }}>
+                {tx('subtitle', 'Звіт про збір')}
               </div>
             </div>
           </div>
-          <div style={{ textAlign: 'right', color: 'rgba(255,255,255,0.5)', fontSize: 20 }}>
+          <div style={{ textAlign: 'right', color: p.secondary, fontSize: 20 }}>
             <div>{formatUkrainianDate(aggregates.firstDate)}</div>
             <div style={{ marginTop: 4 }}>— {formatUkrainianDate(aggregates.lastDate)}</div>
           </div>
@@ -110,8 +119,8 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: 28, marginBottom: 16 }}>
-            Зібрано
+          <div style={{ color: p.secondary, fontSize: 28, marginBottom: 16 }}>
+            {tx('collectedLabel', 'Зібрано')}
           </div>
           <div
             style={{
@@ -119,7 +128,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               fontWeight: 800,
               letterSpacing: '-3px',
               lineHeight: 1,
-              background: 'linear-gradient(135deg, #ffffff 0%, #c7d2fe 100%)',
+              background: p.accentGradient,
               WebkitBackgroundClip: 'text',
               WebkitTextFillColor: 'transparent',
             }}
@@ -130,26 +139,25 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             style={{
               fontSize: 48,
               fontWeight: 600,
-              color: 'rgba(255,255,255,0.6)',
+              color: p.secondary,
               marginTop: 8,
               letterSpacing: '-1px',
             }}
           >
-            гривень
+            {tx('currencyLabel', 'гривень')}
           </div>
 
-          {/* Progress bar */}
           {progressPct !== null && (
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: 22, color: 'rgba(255,255,255,0.6)' }}>
-                  Ціль: {formattedGoal} ₴
+                <span style={{ fontSize: 22, color: p.secondary }}>
+                  {tx('goalLabel', 'Ціль:')} {formattedGoal} ₴
                 </span>
                 <span
                   style={{
                     fontSize: 22,
                     fontWeight: 700,
-                    color: progressPct! > 100 ? '#22d3ee' : progressPct === 100 ? '#4ade80' : '#fbbf24',
+                    color: progressPct > 100 ? '#22d3ee' : progressPct === 100 ? '#4ade80' : '#fbbf24',
                   }}
                 >
                   {pctLabel}
@@ -158,7 +166,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               <div
                 style={{
                   height: 20,
-                  background: 'rgba(255,255,255,0.1)',
+                  background: p.progressTrack,
                   borderRadius: 10,
                   overflow: 'hidden',
                 }}
@@ -182,30 +190,27 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             display: 'flex',
             justifyContent: 'space-between',
             paddingTop: 40,
-            borderTop: '1px solid rgba(255,255,255,0.1)',
+            borderTop: `1px solid ${p.cardBorder}`,
           }}
         >
           {[
-            { label: 'Донатів', value: String(aggregates.donationCount) },
+            { label: tx('statDonations', 'Донатів'), value: String(aggregates.donationCount) },
             {
-              label: 'Середній',
+              label: tx('statAverage', 'Середній'),
               value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.avgDonation)) + ' ₴',
             },
             {
-              label: 'Найбільший',
+              label: tx('statMax', 'Найбільший'),
               value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.maxDonation)) + ' ₴',
             },
           ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 36, fontWeight: 700 }}>{stat.value}</div>
-              <div style={{ fontSize: 20, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>
-                {stat.label}
-              </div>
+              <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>{stat.label}</div>
             </div>
           ))}
         </div>
 
-        {/* UA flag accent bar */}
         <div
           style={{
             position: 'absolute',

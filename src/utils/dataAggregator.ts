@@ -86,6 +86,21 @@ export function aggregateDonations(donations: Donation[]): Aggregates {
     }
   }
 
+  const donorMap = new Map<string, { amount: number; count: number }>();
+  for (const donation of donations) {
+    if (donation.donor) {
+      const existing = donorMap.get(donation.donor) ?? { amount: 0, count: 0 };
+      donorMap.set(donation.donor, {
+        amount: existing.amount + donation.amount,
+        count: existing.count + 1,
+      });
+    }
+  }
+  const topDonors = Array.from(donorMap.entries())
+    .map(([name, stats]) => ({ name, ...stats }))
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 10);
+
   return {
     totalAmount,
     donationCount,
@@ -101,6 +116,7 @@ export function aggregateDonations(donations: Donation[]): Aggregates {
     smallDonations,
     mediumDonations,
     largeDonations,
+    topDonors,
   };
 }
 

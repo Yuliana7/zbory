@@ -5,9 +5,26 @@ import type { Aggregates, TemplateType } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
+import { MilestoneCard } from '../components/templates/MilestoneCard';
+import { DonorsCountCard } from '../components/templates/DonorsCountCard';
+import { UrgencyCard } from '../components/templates/UrgencyCard';
+import { TopDonorsCard } from '../components/templates/TopDonorsCard';
+import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
+import { SpeedCard } from '../components/templates/SpeedCard';
 
-const TEMPLATE_IDS: TemplateType[] = ['progress', 'daily-activity', 'thank-you'];
 const NATIVE = 1080;
+
+interface TemplateGroup {
+  label: string;
+  icon: string;
+  ids: TemplateType[];
+}
+
+const GROUPS: TemplateGroup[] = [
+  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency'] },
+  { label: 'Активність', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
+  { label: 'Люди', icon: '💛', ids: ['thank-you', 'donors-count', 'top-donors'] },
+];
 
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
@@ -33,24 +50,34 @@ export function GalleryPage() {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-        {TEMPLATE_IDS.map((id) => (
-          <button
-            key={id}
-            onClick={() => handleTemplateSelect(id)}
-            className="group bg-white rounded-2xl border border-gray-100 shadow-sm text-left
-                       hover:border-indigo-300 hover:shadow-lg transition-all duration-150 overflow-hidden
-                       flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-          >
-            <TemplatePreview id={id} aggregates={app.aggregates!} goal={app.goal} />
-            <div className="p-5 flex flex-col gap-2 flex-1">
-              <p className="font-semibold text-gray-900 text-base">{t(`templates.${id}.name`)}</p>
-              <p className="text-sm text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
-              <p className="mt-auto text-sm font-semibold text-indigo-600 group-hover:text-indigo-700">
-                {t('useTemplate')}
-              </p>
+      <div className="space-y-10">
+        {GROUPS.map((group) => (
+          <div key={group.label}>
+            <div className="flex items-center gap-2 mb-4">
+              <span className="text-xl">{group.icon}</span>
+              <h3 className="text-lg font-semibold text-gray-700">{group.label}</h3>
             </div>
-          </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {group.ids.map((id) => (
+                <button
+                  key={id}
+                  onClick={() => handleTemplateSelect(id)}
+                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm text-left
+                             hover:border-indigo-300 hover:shadow-lg transition-all duration-150 overflow-hidden
+                             flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                >
+                  <TemplatePreview id={id} aggregates={app.aggregates!} goal={app.goal} />
+                  <div className="p-5 flex flex-col gap-2 flex-1">
+                    <p className="font-semibold text-gray-900 text-base">{t(`templates.${id}.name`)}</p>
+                    <p className="text-sm text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
+                    <p className="mt-auto text-sm font-semibold text-indigo-600 group-hover:text-indigo-700">
+                      {t('useTemplate')}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
         ))}
       </div>
     </div>
@@ -103,6 +130,12 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
           {id === 'progress' && <ProgressCard aggregates={aggregates} goal={goal} format="post" />}
           {id === 'daily-activity' && <DailyActivityCard aggregates={aggregates} format="post" />}
           {id === 'thank-you' && <ThankYouCard aggregates={aggregates} format="post" />}
+          {id === 'milestone' && <MilestoneCard aggregates={aggregates} goal={goal} format="post" />}
+          {id === 'donors-count' && <DonorsCountCard aggregates={aggregates} format="post" />}
+          {id === 'urgency' && <UrgencyCard aggregates={aggregates} goal={goal} format="post" />}
+          {id === 'top-donors' && <TopDonorsCard aggregates={aggregates} format="post" />}
+          {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
+          {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
         </div>
       )}
     </div>
