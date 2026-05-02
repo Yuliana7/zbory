@@ -13,7 +13,10 @@ interface DailyActivityCardProps {
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isPost = format === 'post';
+    const isStory = !isPost;
     const p = palette;
+    const fs = (n: number) => isStory ? Math.round(n * 1.6) : n;
+    const fh = (n: number) => isStory ? Math.round(n * 1.35) : n;
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const bestDay = findBestDay(aggregates);
@@ -89,38 +92,37 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 60 }}>
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: fs(64),
+              height: fs(64),
               background: p.logoGradient,
               borderRadius: 16,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 32,
+              fontSize: fs(32),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: 32, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: 22, color: p.secondary }}>{tx('subtitle', 'Активність збору')}</div>
+            <div style={{ fontSize: fs(32), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fs(22), color: p.secondary }}>{tx('subtitle', 'Активність збору')}</div>
           </div>
         </div>
 
         {/* Total */}
         <div style={{ marginBottom: isPost ? 32 : 60 }}>
-          <div style={{ fontSize: 26, color: p.secondary, marginBottom: 8 }}>
+          <div style={{ fontSize: fs(26), color: p.secondary, marginBottom: 8 }}>
             {tx('totalLabel', 'Загальна сума')}
           </div>
           <div
             style={{
-              fontSize: 96,
+              fontSize: fh(96),
               fontWeight: 800,
               letterSpacing: '-2px',
               lineHeight: 1,
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
             }}
           >
@@ -137,7 +139,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             marginBottom: isPost ? 24 : 40,
           }}
         >
-          <div style={{ fontSize: 24, color: p.secondary, marginBottom: 16 }}>
+          <div style={{ fontSize: fs(24), color: p.secondary, marginBottom: 16 }}>
             {tx('chartLabel', 'Наростаючий підсумок')}
           </div>
           <svg
@@ -190,7 +192,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
               marginBottom: 40,
             }}
           >
-            <div style={{ fontSize: 24, color: p.secondary, marginBottom: 24 }}>
+            <div style={{ fontSize: fs(24), color: p.secondary, marginBottom: 24 }}>
               {tx('barsLabel', 'Останні 14 днів')}
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120 }}>
@@ -240,13 +242,13 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
               gap: 28,
             }}
           >
-            <span style={{ fontSize: 56 }}>🔥</span>
+            <span style={{ fontSize: fs(56) }}>🔥</span>
             <div>
-              <div style={{ fontSize: 24, color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день')}</div>
-              <div style={{ fontSize: 40, fontWeight: 700, marginTop: 4, color: p.primary }}>
+              <div style={{ fontSize: fs(24), color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день')}</div>
+              <div style={{ fontSize: fs(40), fontWeight: 700, marginTop: 4, color: p.primary }}>
                 {formatUkrainianDate(new Date(bestDay.date))}
               </div>
-              <div style={{ fontSize: 28, color: '#fbbf24', marginTop: 4 }}>
+              <div style={{ fontSize: fs(28), color: '#fbbf24', marginTop: 4 }}>
                 {formatCurrency(bestDay.amount)}
               </div>
             </div>
@@ -271,8 +273,8 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             },
           ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 44, fontWeight: 700 }}>{stat.value}</div>
-              <div style={{ fontSize: 24, color: p.secondary, marginTop: 4 }}>{stat.label}</div>
+              <div style={{ fontSize: fs(44), fontWeight: 700 }}>{stat.value}</div>
+              <div style={{ fontSize: fs(24), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
             </div>
           ))}
         </div>

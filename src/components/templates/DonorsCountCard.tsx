@@ -10,9 +10,10 @@ interface DonorsCountCardProps {
 }
 
 export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
-  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fs = (n: number) => isStory ? Math.round(n * 1.55) : n;
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -64,15 +65,15 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
+              fontSize: fs(28),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: 18, color: p.secondary }}>{tx('subtitle', 'Наша спільнота')}</div>
+            <div style={{ fontSize: fs(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fs(18), color: p.secondary }}>{tx('subtitle', 'Наша спільнота')}</div>
           </div>
         </div>
 
@@ -84,15 +85,14 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
               fontWeight: 900,
               lineHeight: 0.9,
               letterSpacing: '-6px',
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
               marginBottom: 20,
             }}
           >
             {fmt(aggregates.donationCount)}
           </div>
-          <div style={{ fontSize: 48, fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
+          <div style={{ fontSize: fs(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
             {tx('donorsLabel', 'людини підтримали збір')}
           </div>
         </div>
@@ -115,8 +115,8 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: 30, fontWeight: 800, color: p.primary }}>{s.value}</div>
-              <div style={{ fontSize: 18, color: p.secondary, marginTop: 6 }}>{s.label}</div>
+              <div style={{ fontSize: fs(30), fontWeight: 800, color: p.primary }}>{s.value}</div>
+              <div style={{ fontSize: fs(18), color: p.secondary, marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -136,7 +136,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             { label: tx('largeLabel', 'понад 1000 ₴'), pct: largePct, count: aggregates.largeDonations },
           ].map((row) => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-              <div style={{ width: 180, fontSize: 20, color: p.secondary, flexShrink: 0 }}>{row.label}</div>
+              <div style={{ width: 180, fontSize: fs(20), color: p.secondary, flexShrink: 0 }}>{row.label}</div>
               <div
                 style={{
                   flex: 1,
@@ -155,7 +155,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
                   }}
                 />
               </div>
-              <div style={{ width: 80, textAlign: 'right', fontSize: 20, fontWeight: 700, color: p.primary }}>
+              <div style={{ width: 80, textAlign: 'right', fontSize: fs(20), fontWeight: 700, color: p.primary }}>
                 {row.count}
               </div>
             </div>

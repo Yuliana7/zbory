@@ -11,9 +11,10 @@ interface UrgencyCardProps {
 }
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fs = (n: number) => isStory ? Math.round(n * 1.55) : n;
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -94,8 +95,9 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
                   fontWeight: 900,
                   letterSpacing: '-4px',
                   lineHeight: 1,
-                  background: p.accentGradient,
-                  WebkitBackgroundClip: 'text',
+                  background: `${p.accentGradient} text`,
+                  // background: p.accentGradient,
+                  // WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   marginBottom: 8,
                 }}
@@ -112,8 +114,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
                 fontSize: 80,
                 fontWeight: 900,
                 lineHeight: 1,
-                background: p.accentGradient,
-                WebkitBackgroundClip: 'text',
+                background: `${p.accentGradient} text`,
                 WebkitTextFillColor: 'transparent',
                 marginBottom: 56,
               }}

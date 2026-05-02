@@ -10,7 +10,7 @@ interface SpeedCardProps {
 }
 
 export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
-  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
     const p = palette;
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
@@ -106,8 +106,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
                 fontWeight: 900,
                 letterSpacing: '-2px',
                 lineHeight: 1,
-                background: p.accentGradient,
-                WebkitBackgroundClip: 'text',
+                background: `${p.accentGradient} text`,
                 WebkitTextFillColor: 'transparent',
               }}
             >

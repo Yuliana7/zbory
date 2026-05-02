@@ -11,9 +11,10 @@ interface MilestoneCardProps {
 }
 
 export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
-  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fs = (n: number) => isStory ? Math.round(n * 1.6) : n;
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const total = aggregates.totalAmount;
@@ -77,16 +78,16 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         {/* Decorative stars ring */}
         <div style={{ display: 'flex', gap: 24, marginBottom: 48, opacity: 0.5 }}>
           {stars.map((s, i) => (
-            <span key={i} style={{ fontSize: 28, color: p.accent }}>{s}</span>
+            <span key={i} style={{ fontSize: fs(28), color: p.accent }}>{s}</span>
           ))}
         </div>
 
         {/* Title */}
-        <div style={{ fontSize: 36, color: p.secondary, marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: fs(36), color: p.secondary, marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase' }}>
           {tx('title', 'Збори')}
         </div>
 
-        {/* Big percentage */}
+        {/* Big percentage — already story-aware, no extra scale needed */}
         {displayPct !== null ? (
           <div
             style={{
@@ -94,8 +95,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
               fontWeight: 900,
               lineHeight: 0.9,
               letterSpacing: '-8px',
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
               marginBottom: 24,
             }}
@@ -105,11 +105,10 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         ) : (
           <div
             style={{
-              fontSize: 96,
+              fontSize: isStory ? 130 : 96,
               fontWeight: 900,
               lineHeight: 1,
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
               marginBottom: 24,
             }}
@@ -121,7 +120,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         {/* Achieved label */}
         <div
           style={{
-            fontSize: 44,
+            fontSize: fs(44),
             fontWeight: 700,
             color: p.primary,
             marginBottom: 48,
@@ -132,7 +131,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         </div>
 
         {/* Subtitle */}
-        <div style={{ fontSize: 28, color: p.secondary, marginBottom: 56 }}>
+        <div style={{ fontSize: fs(28), color: p.secondary, marginBottom: 56 }}>
           {tx('subtitle', 'Дякуємо кожному, хто долучився!')}
         </div>
 
@@ -177,10 +176,10 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
               padding: '28px 24px',
             }}
           >
-            <div style={{ fontSize: 20, color: p.secondary, marginBottom: 8 }}>
+            <div style={{ fontSize: fs(20), color: p.secondary, marginBottom: 8 }}>
               {tx('collectedLabel', 'Зібрано')}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</div>
+            <div style={{ fontSize: fs(36), fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</div>
           </div>
           {formattedGoal && (
             <div
@@ -192,10 +191,10 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
                 padding: '28px 24px',
               }}
             >
-              <div style={{ fontSize: 20, color: p.secondary, marginBottom: 8 }}>
+              <div style={{ fontSize: fs(20), color: p.secondary, marginBottom: 8 }}>
                 {tx('goalLabel', 'Ціль')}
               </div>
-              <div style={{ fontSize: 36, fontWeight: 800, color: p.primary }}>{formattedGoal} ₴</div>
+              <div style={{ fontSize: fs(36), fontWeight: 800, color: p.primary }}>{formattedGoal} ₴</div>
             </div>
           )}
           <div
@@ -207,10 +206,10 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
               padding: '28px 24px',
             }}
           >
-            <div style={{ fontSize: 20, color: p.secondary, marginBottom: 8 }}>
+            <div style={{ fontSize: fs(20), color: p.secondary, marginBottom: 8 }}>
               {tx('donationsLabel', 'Донатів')}
             </div>
-            <div style={{ fontSize: 36, fontWeight: 800, color: p.primary }}>
+            <div style={{ fontSize: fs(36), fontWeight: 800, color: p.primary }}>
               {aggregates.donationCount}
             </div>
           </div>

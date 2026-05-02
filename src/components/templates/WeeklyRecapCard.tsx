@@ -105,8 +105,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               fontWeight: 900,
               letterSpacing: '-3px',
               lineHeight: 1,
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
             }}
           >

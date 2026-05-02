@@ -12,9 +12,11 @@ interface ProgressCardProps {
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fs = (n: number) => isStory ? Math.round(n * 1.6) : n;
+    const fh = (n: number) => isStory ? Math.round(n * 1.35) : n;
 
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
@@ -89,29 +91,29 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                width: 56,
-                height: 56,
+                width: fs(56),
+                height: fs(56),
                 background: p.logoGradient,
                 borderRadius: 14,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 28,
+                fontSize: fs(28),
                 color: '#fff',
               }}
             >
               ₴
             </div>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 700, letterSpacing: '-0.5px' }}>
+              <div style={{ fontSize: fs(28), fontWeight: 700, letterSpacing: '-0.5px' }}>
                 {tx('title', 'Збори')}
               </div>
-              <div style={{ fontSize: 18, color: p.secondary, marginTop: 2 }}>
+              <div style={{ fontSize: fs(18), color: p.secondary, marginTop: 2 }}>
                 {tx('subtitle', 'Звіт про збір')}
               </div>
             </div>
           </div>
-          <div style={{ textAlign: 'right', color: p.secondary, fontSize: 20 }}>
+          <div style={{ textAlign: 'right', color: p.secondary, fontSize: fs(20) }}>
             <div>{formatUkrainianDate(aggregates.firstDate)}</div>
             <div style={{ marginTop: 4 }}>— {formatUkrainianDate(aggregates.lastDate)}</div>
           </div>
@@ -119,17 +121,16 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ color: p.secondary, fontSize: 28, marginBottom: 16 }}>
+          <div style={{ color: p.secondary, fontSize: fs(28), marginBottom: 16 }}>
             {tx('collectedLabel', 'Зібрано')}
           </div>
           <div
             style={{
-              fontSize: 112,
+              fontSize: fh(112),
               fontWeight: 800,
               letterSpacing: '-3px',
               lineHeight: 1,
-              background: p.accentGradient,
-              WebkitBackgroundClip: 'text',
+              background: `${p.accentGradient} text`,
               WebkitTextFillColor: 'transparent',
             }}
           >
@@ -137,7 +138,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           </div>
           <div
             style={{
-              fontSize: 48,
+              fontSize: fs(48),
               fontWeight: 600,
               color: p.secondary,
               marginTop: 8,
@@ -150,12 +151,12 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           {progressPct !== null && (
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: 22, color: p.secondary }}>
+                <span style={{ fontSize: fs(22), color: p.secondary }}>
                   {tx('goalLabel', 'Ціль:')} {formattedGoal} ₴
                 </span>
                 <span
                   style={{
-                    fontSize: 22,
+                    fontSize: fs(22),
                     fontWeight: 700,
                     color: progressPct > 100 ? '#22d3ee' : progressPct === 100 ? '#4ade80' : '#fbbf24',
                   }}
@@ -205,8 +206,8 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             },
           ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>{stat.value}</div>
-              <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>{stat.label}</div>
+              <div style={{ fontSize: fs(36), fontWeight: 700 }}>{stat.value}</div>
+              <div style={{ fontSize: fs(20), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
             </div>
           ))}
         </div>
