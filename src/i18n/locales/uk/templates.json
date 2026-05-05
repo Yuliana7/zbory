@@ -1,0 +1,80 @@
+{
+    "progress": {
+        "title": "Збори",
+        "subtitle": "Аналітика збору",
+        "collectedLabel": "Зібрано",
+        "currencyLabel": "гривень",
+        "goalLabel": "Ціль",
+        "statDonations": "Донатів",
+        "statAverage": "Середній",
+        "statMax": "Найбільший",
+        "targetSurplus": "— мету перевиконано! 🎉"
+    },
+    "daily-activity": {
+        "title": "",
+        "subtitle": "",
+        "totalLabel": "",
+        "chartLabel": "",
+        "barsLabel": "",
+        "bestDayLabel": "",
+        "statDonations": "",
+        "statAverage": ""
+    },
+    "thank-you": {
+        "title": "",
+        "amountLabel": "",
+        "message": "",
+        "donorsLabel": "",
+        "branding": ""
+    },
+    "milestone": {
+        "title": "",
+        "subtitle": "",
+        "achievedLabel": "",
+        "collectedLabel": "",
+        "goalLabel": "",
+        "donationsLabel": ""
+    },
+    "top-donors": {
+        "title": "",
+        "subtitle": "",
+        "anonymousLabel": "",
+        "donationsLabel": "",
+        "totalDonorsLabel": ""
+    },
+    "donors-count": {
+        "title": "",
+        "subtitle": "",
+        "donorsLabel": "",
+        "avgLabel": "",
+        "maxLabel": "",
+        "totalLabel": "",
+        "smallLabel": "",
+        "mediumLabel": "",
+        "largeLabel": ""
+    },
+    "urgency": {
+        "title": "",
+        "subtitle": "",
+        "remainingLabel": "",
+        "callToAction": "",
+        "collectedLabel": "",
+        "goalLabel": ""
+    },
+    "weekly-recap": {
+        "title": "",
+        "subtitle": "",
+        "thisWeekLabel": "",
+        "prevWeekLabel": "",
+        "bestDayLabel": "",
+        "donationsLabel": ""
+    },
+    "speed": {
+        "title": "",
+        "subtitle": "",
+        "totalLabel": "",
+        "donationsLabel": "",
+        "peakLabel": "",
+        "hourlyLabel": ""
+    }
+}

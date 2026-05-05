@@ -47,7 +47,7 @@ export function ExportPage() {
 }
 
 function ExportPageInner() {
-  const { t } = useTranslation('export');
+  const { t } = useTranslation(['export', 'templates']);
   const { state, dispatch } = useAppContext();
   const { app } = state;
 
@@ -333,35 +333,35 @@ function ExportPageInner() {
             </button>
             {textEditorOpen && (
               <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
-                {textFields.map((field) => (
-                  <div key={field.key}>
-                    <label className="block text-xs text-gray-500 mb-1">{field.label}</label>
-                    {field.multiline ? (
-                      <textarea
-                        value={textOverrides[field.key] ?? ''}
-                        onChange={e =>
-                          setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))
-                        }
-                        placeholder={t('textEditor.defaultPlaceholder')}
-                        rows={3}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                                   resize-none"
-                      />
-                    ) : (
-                      <input
-                        type="text"
-                        value={textOverrides[field.key] ?? ''}
-                        onChange={e =>
-                          setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))
-                        }
-                        placeholder={t('textEditor.defaultPlaceholder')}
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                      />
-                    )}
-                  </div>
-                ))}
+                {textFields.map((field) => {
+                  const defaultValue = t(`templates:${templateId}.${field.key}`);
+                  const currentValue = textOverrides[field.key] ?? defaultValue;
+                  return (
+                    <div key={field.key}>
+                      <label className="block text-xs text-gray-500 mb-1">{field.label}</label>
+                      {field.multiline ? (
+                        <textarea
+                          value={currentValue}
+                          onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          placeholder={t('textEditor.defaultPlaceholder')}
+                          rows={3}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
+                                     resize-none"
+                        />
+                      ) : (
+                        <input
+                          type="text"
+                          value={currentValue}
+                          onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))}
+                          placeholder={t('textEditor.defaultPlaceholder')}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
+                                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                      )}
+                    </div>
+                  );
+                })}
                 {Object.keys(textOverrides).some(k => textOverrides[k]) && (
                   <button
                     onClick={() => setTextOverrides({})}
