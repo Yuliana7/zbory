@@ -11,70 +11,70 @@
         "targetSurplus": "— мету перевиконано! 🎉"
     },
     "daily-activity": {
-        "title": "",
-        "subtitle": "",
-        "totalLabel": "",
-        "chartLabel": "",
-        "barsLabel": "",
-        "bestDayLabel": "",
-        "statDonations": "",
-        "statAverage": ""
+        "title": "Збори",
+        "subtitle": "Активність збору",
+        "totalLabel": "Загальна сума",
+        "chartLabel": "Наростаючий підсумок",
+        "barsLabel": "Останні 14 днів",
+        "bestDayLabel": "Найкращий день",
+        "statDonations": "Донатів",
+        "statAverage": "Середній"
     },
     "thank-you": {
-        "title": "",
-        "amountLabel": "",
+        "title": "Дякуємо",
+        "amountLabel": "зібрано разом",
         "message": "",
-        "donorsLabel": "",
-        "branding": ""
+        "donorsLabel": "Небайдужих людей:",
+        "branding": "ZBORY • ЗБОРИ"
     },
     "milestone": {
-        "title": "",
-        "subtitle": "",
-        "achievedLabel": "",
-        "collectedLabel": "",
-        "goalLabel": "",
-        "donationsLabel": ""
+        "title": "Збори",
+        "subtitle": "Дякуємо кожному, хто долучився!",
+        "achievedLabel": "Збір іде повним ходом!",
+        "collectedLabel": "Зібрано",
+        "goalLabel": "Ціль",
+        "donationsLabel": "Донатів"
     },
     "top-donors": {
-        "title": "",
-        "subtitle": "",
-        "anonymousLabel": "",
-        "donationsLabel": "",
-        "totalDonorsLabel": ""
+        "title": "Збори",
+        "subtitle": "Люди",
+        "anonymousLabel": "Анонімно",
+        "donationsLabel": "донати",
+        "totalDonorsLabel": "Усього підтримали:"
     },
     "donors-count": {
-        "title": "",
-        "subtitle": "",
-        "donorsLabel": "",
-        "avgLabel": "",
-        "maxLabel": "",
-        "totalLabel": "",
-        "smallLabel": "",
-        "mediumLabel": "",
-        "largeLabel": ""
+        "title": "Збори",
+        "subtitle": "Наша спільнота",
+        "donorsLabel": "людини підтримали збір",
+        "avgLabel": "Середній донат",
+        "maxLabel": "Найбільший",
+        "totalLabel": "Зібрано",
+        "smallLabel": "до 100 ₴",
+        "mediumLabel": "100–1000 ₴",
+        "largeLabel": "понад 1000 ₴"
     },
     "urgency": {
-        "title": "",
-        "subtitle": "",
-        "remainingLabel": "",
-        "callToAction": "",
-        "collectedLabel": "",
-        "goalLabel": ""
+        "title": "Збори",
+        "subtitle": "Останній ривок!",
+        "remainingLabel": "Залишилось до цілі",
+        "callToAction": "🔥 Підтримай прямо зараз!",
+        "collectedLabel": "Зібрано:",
+        "goalLabel": "Ціль:"
     },
     "weekly-recap": {
-        "title": "",
-        "subtitle": "",
-        "thisWeekLabel": "",
-        "prevWeekLabel": "",
-        "bestDayLabel": "",
-        "donationsLabel": ""
+        "title": "Збори",
+        "subtitle": "Тижневий звіт",
+        "thisWeekLabel": "Цей тиждень",
+        "prevWeekLabel": "vs минулий тиждень",
+        "bestDayLabel": "Найкращий день тижня",
+        "donationsLabel": "Донатів за тиждень"
     },
     "speed": {
-        "title": "",
-        "subtitle": "",
-        "totalLabel": "",
-        "donationsLabel": "",
-        "peakLabel": "",
-        "hourlyLabel": ""
+        "title": "Збори",
+        "subtitle": "Активність кампанії",
+        "totalLabel": "Зібрано за 7 днів",
+        "donationsLabel": "донатів",
+        "peakLabel": "Пік активності",
+        "hourlyLabel": "Погодинна активність"
     }
 }

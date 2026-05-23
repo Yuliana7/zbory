@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { generateThankYouMessage } from '../../utils/insightGenerator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface ThankYouCardProps {
   aggregates: Aggregates;
@@ -14,10 +15,11 @@ interface ThankYouCardProps {
 
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`thank-you.${key}`);
 
     const message = tx('message', generateThankYouMessage(aggregates.totalAmount, aggregates.donationCount));
     const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount));
@@ -103,14 +105,14 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             marginBottom: 24,
           }}
         >
-          {tx('title', 'Дякуємо')}
+          {tx('title')}
         </div>
 
         <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8 }}>
           {formattedTotal} ₴
         </div>
         <div style={{ fontSize: fz(30), color: p.secondary, marginBottom: 48 }}>
-          {tx('amountLabel', 'зібрано разом')}
+          {tx('amountLabel')}
         </div>
 
         <div
@@ -136,7 +138,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             padding: '20px 48px',
           }}
         >
-          <span style={{ fontSize: fz(28), color: p.secondary }}>{tx('donorsLabel', 'Небайдужих людей:')}</span>
+          <span style={{ fontSize: fz(28), color: p.secondary }}>{tx('donorsLabel')}</span>
           <span style={{ fontSize: fz(40), fontWeight: 800, color: p.accent }}>
             {aggregates.donationCount}
           </span>
@@ -151,7 +153,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             letterSpacing: '2px',
           }}
         >
-          {tx('branding', 'ZBORY • ЗБОРИ')}
+          {tx('branding')}
         </div>
 
         <div

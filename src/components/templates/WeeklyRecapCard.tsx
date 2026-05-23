@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface WeeklyRecapCardProps {
   aggregates: Aggregates;
@@ -15,10 +16,11 @@ const UA_DAYS = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string) => textOverrides[key] ?? t(`weekly-recap.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
@@ -38,7 +40,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
 
     const maxBar = Math.max(...thisWeek.map(([, v]) => v.amount), 1);
 
-    const svgW = 920;
+    const svgW = 870;
     const svgH = isStory ? 400 : 300;
     const barW = Math.floor((svgW - 40) / Math.max(thisWeek.length, 1)) - 12;
     const barMaxH = svgH - 60;
@@ -92,15 +94,15 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             ₴
           </div>
           <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Тижневий звіт')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
           </div>
         </div>
 
         {/* This week total */}
         <div style={{ marginBottom: isStory ? 60 : 40 }}>
           <div style={{ fontSize: fz(26), color: p.secondary, marginBottom: 8 }}>
-            {tx('thisWeekLabel', 'Цей тиждень')}
+            {tx('thisWeekLabel')}
           </div>
           <div
             style={{
@@ -127,7 +129,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
                 {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
               </span>
               <span style={{ fontSize: fz(24), color: p.secondary }}>
-                {tx('prevWeekLabel', 'vs минулий тиждень')} ({fmt(prevWeekTotal)} ₴)
+                {tx('prevWeekLabel')} ({fmt(prevWeekTotal)} ₴)
               </span>
             </div>
           )}
@@ -188,7 +190,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
         </div>
 
         {/* Best day */}
-        {thisWeek.length > 0 && (() => {
+        {thisWeek.length > 0 && isStory && (() => {
           const best = thisWeek.reduce((a, b) => b[1].amount > a[1].amount ? b : a);
           const d = new Date(best[0]);
           return (
@@ -206,7 +208,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             >
               <span style={{ fontSize: fz(48) }}>🔥</span>
               <div>
-                <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день тижня')}</div>
+                <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('bestDayLabel')}</div>
                 <div style={{ fontSize: fz(32), fontWeight: 700, color: p.primary, marginTop: 4 }}>
                   {UA_DAYS[d.getDay()]} — {fmt(best[1].amount)} ₴
                 </div>
@@ -226,7 +228,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
           }}
         >
           {[
-            { label: tx('donationsLabel', 'Донатів за тиждень'), value: String(thisWeek.reduce((s, [, v]) => s + v.count, 0)) },
+            { label: tx('donationsLabel'), value: String(thisWeek.reduce((s, [, v]) => s + v.count, 0)) },
             { label: 'Всього за кампанію', value: fmt(aggregates.totalAmount) + ' ₴' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>

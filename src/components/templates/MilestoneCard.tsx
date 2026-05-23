@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface MilestoneCardProps {
   aggregates: Aggregates;
@@ -14,10 +15,11 @@ interface MilestoneCardProps {
 
 export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
   ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`milestone.${key}`);
 
     const total = aggregates.totalAmount;
     const progressPct = goal ? (total / goal) * 100 : null;
@@ -86,7 +88,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
 
         {/* Title */}
         <div style={{ fontSize: fz(36), color: p.secondary, marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase' }}>
-          {tx('title', 'Збори')}
+          {tx('title')}
         </div>
 
         {displayPct !== null ? (
@@ -133,7 +135,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
 
         {/* Subtitle */}
         <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 56 }}>
-          {tx('subtitle', 'Дякуємо кожному, хто долучився!')}
+          {tx('subtitle')}
         </div>
 
         {/* Progress bar */}
@@ -178,7 +180,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
             }}
           >
             <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-              {tx('collectedLabel', 'Зібрано')}
+              {tx('collectedLabel')}
             </div>
             <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</div>
           </div>
@@ -193,7 +195,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
               }}
             >
               <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-                {tx('goalLabel', 'Ціль')}
+                {tx('goalLabel')}
               </div>
               <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>{formattedGoal} ₴</div>
             </div>
@@ -208,7 +210,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
             }}
           >
             <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-              {tx('donationsLabel', 'Донатів')}
+              {tx('donationsLabel')}
             </div>
             <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>
               {aggregates.donationCount}

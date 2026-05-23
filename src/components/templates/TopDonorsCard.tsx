@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface TopDonorsCardProps {
   aggregates: Aggregates;
@@ -15,10 +16,11 @@ const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string) => textOverrides[key] ?? t(`top-donors.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
@@ -75,8 +77,8 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
               ₴
             </div>
             <div>
-              <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-              <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Люди')}</div>
+              <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
+              <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
             </div>
           </div>
         </div>
@@ -131,11 +133,11 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {donor.name || tx('anonymousLabel', 'Анонімно')}
+                        {donor.name || tx('anonymousLabel')}
                       </div>
                       {donor.count > 1 && (
                         <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>
-                          {donor.count} {tx('donationsLabel', 'донати')}
+                          {donor.count} {tx('donationsLabel')}
                         </div>
                       )}
                     </div>
@@ -162,7 +164,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
           }}
         >
           <div style={{ fontSize: fz(24), color: p.secondary }}>
-            {tx('totalDonorsLabel', 'Усього підтримали:')}
+            {tx('totalDonorsLabel')}
           </div>
           <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>
             {aggregates.donationCount}

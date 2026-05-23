@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface UrgencyCardProps {
   aggregates: Aggregates;
@@ -14,10 +15,11 @@ interface UrgencyCardProps {
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
   ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string) => textOverrides[key] ?? t(`urgency.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
@@ -79,8 +81,8 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             ₴
           </div>
           <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Останній ривок!')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
           </div>
         </div>
 
@@ -89,7 +91,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           {remainingFormatted !== null ? (
             <>
               <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 12 }}>
-                {tx('remainingLabel', 'Залишилось до цілі')}
+                {tx('remainingLabel')}
               </div>
               <div
                 style={{
@@ -128,10 +130,10 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             {goalFormatted && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('collectedLabel', 'Зібрано:')} {fmt(total)} ₴
+                  {tx('collectedLabel')} {fmt(total)} ₴
                 </span>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('goalLabel', 'Ціль:')} {goalFormatted} ₴
+                  {tx('goalLabel')} {goalFormatted} ₴
                 </span>
               </div>
             )}
@@ -170,7 +172,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             }}
           >
             <div style={{ fontSize: fz(40), fontWeight: 800, color: p.primary, lineHeight: 1.2 }}>
-              {tx('callToAction', '🔥 Підтримай прямо зараз!')}
+              {tx('callToAction')}
             </div>
           </div>
         </div>

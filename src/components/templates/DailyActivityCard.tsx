@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
@@ -14,10 +15,11 @@ interface DailyActivityCardProps {
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isPost = format === 'post';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`daily-activity.${key}`);
 
     const bestDay = findBestDay(aggregates);
 
@@ -25,7 +27,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
     const step = Math.max(1, Math.floor(cumulative.length / 30));
     const chartPoints = cumulative.filter((_, i) => i % step === 0 || i === cumulative.length - 1);
 
-    const svgW = 920;
+    const svgW = 870;
     const svgH = isPost ? 300 : 520;
     const padX = 40;
     const padY = 40;
@@ -106,15 +108,15 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             ₴
           </div>
           <div>
-            <div style={{ fontSize: fz(32), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('subtitle', 'Активність збору')}</div>
+            <div style={{ fontSize: fz(32), fontWeight: 700 }}>{tx('title')}</div>
+            <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('subtitle')}</div>
           </div>
         </div>
 
         {/* Total */}
         <div style={{ marginBottom: isPost ? 32 : 60 }}>
           <div style={{ fontSize: fz(26), color: p.secondary, marginBottom: 8 }}>
-            {tx('totalLabel', 'Загальна сума')}
+            {tx('totalLabel')}
           </div>
           <div
             style={{
@@ -140,7 +142,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           }}
         >
           <div style={{ fontSize: fz(24), color: p.secondary, marginBottom: 16 }}>
-            {tx('chartLabel', 'Наростаючий підсумок')}
+            {tx('chartLabel')}
           </div>
           <svg
             width={svgW}
@@ -193,7 +195,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             }}
           >
             <div style={{ fontSize: fz(24), color: p.secondary, marginBottom: 24 }}>
-              {tx('barsLabel', 'Останні 14 днів')}
+              {tx('barsLabel')}
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-end', gap: 10, height: 120 }}>
               {dayEntries.map(([date, val]) => {
@@ -244,7 +246,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           >
             <span style={{ fontSize: fz(56) }}>🔥</span>
             <div>
-              <div style={{ fontSize: fz(24), color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день')}</div>
+              <div style={{ fontSize: fz(24), color: p.secondary }}>{tx('bestDayLabel')}</div>
               <div style={{ fontSize: fz(40), fontWeight: 700, marginTop: 4, color: p.primary }}>
                 {formatUkrainianDate(new Date(bestDay.date))}
               </div>
@@ -266,9 +268,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           }}
         >
           {[
-            { label: tx('statDonations', 'Донатів'), value: String(aggregates.donationCount) },
+            { label: tx('statDonations'), value: String(aggregates.donationCount) },
             {
-              label: tx('statAverage', 'Середній'),
+              label: tx('statAverage'),
               value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.avgDonation)) + ' ₴',
             },
           ].map((stat) => (

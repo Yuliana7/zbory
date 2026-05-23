@@ -2,6 +2,7 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface DonorsCountCardProps {
   aggregates: Aggregates;
@@ -13,10 +14,11 @@ interface DonorsCountCardProps {
 
 export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string) => textOverrides[key] ?? t(`donors-count.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
@@ -74,8 +76,8 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             ₴
           </div>
           <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Наша спільнота')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
           </div>
         </div>
 
@@ -95,16 +97,16 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             {fmt(aggregates.donationCount)}
           </div>
           <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
-            {tx('donorsLabel', 'людини підтримали збір')}
+            {tx('donorsLabel')}
           </div>
         </div>
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 20, marginBottom: 40 }}>
           {[
-            { label: tx('avgLabel', 'Середній донат'), value: fmt(aggregates.avgDonation) + ' ₴' },
-            { label: tx('maxLabel', 'Найбільший'), value: fmt(aggregates.maxDonation) + ' ₴' },
-            { label: tx('totalLabel', 'Зібрано'), value: fmt(aggregates.totalAmount) + ' ₴' },
+            { label: tx('avgLabel'), value: fmt(aggregates.avgDonation) + ' ₴' },
+            { label: tx('maxLabel'), value: fmt(aggregates.maxDonation) + ' ₴' },
+            { label: tx('totalLabel'), value: fmt(aggregates.totalAmount) + ' ₴' },
           ].map((s) => (
             <div
               key={s.label}
@@ -133,9 +135,9 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
           }}
         >
           {[
-            { label: tx('smallLabel', 'до 100 ₴'), pct: smallPct, count: aggregates.smallDonations },
-            { label: tx('mediumLabel', '100–1000 ₴'), pct: medPct, count: aggregates.mediumDonations },
-            { label: tx('largeLabel', 'понад 1000 ₴'), pct: largePct, count: aggregates.largeDonations },
+            { label: tx('smallLabel'), pct: smallPct, count: aggregates.smallDonations },
+            { label: tx('mediumLabel'), pct: medPct, count: aggregates.mediumDonations },
+            { label: tx('largeLabel'), pct: largePct, count: aggregates.largeDonations },
           ].map((row) => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
               <div style={{ width: 180, fontSize: fz(20), color: p.secondary, flexShrink: 0 }}>{row.label}</div>
