@@ -185,11 +185,7 @@ export function formatCurrency(amount: number): string {
 export function formatUkrainianDate(date: Date | string): string {
   const d = typeof date === 'string' ? new Date(date) : date;
 
-  const day = d.getDate();
-  const month = d.toLocaleDateString('uk-UA', { month: 'long' });
-  const year = d.getFullYear();
-
-  return `${day} ${month} ${year}`;
+  return d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 }
 
 /**

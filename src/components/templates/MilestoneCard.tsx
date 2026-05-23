@@ -29,18 +29,19 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
     const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(total));
     const formattedGoal = goal ? new Intl.NumberFormat('uk-UA').format(Math.round(goal)) : null;
 
-    const defaultAchieved =
+    const achievedKey =
       progressPct === null
-        ? 'Збір іде повним ходом!'
+        ? 'achievedLabel_noGoal'
         : progressPct >= 100
-        ? 'Ціль досягнуто! 🎉'
+        ? 'achievedLabel_100'
         : progressPct >= 75
-        ? 'Ми на фінішній прямій!'
+        ? 'achievedLabel_75'
         : progressPct >= 50
-        ? 'Половину пройдено!'
+        ? 'achievedLabel_50'
         : progressPct >= 25
-        ? 'Вже чверть шляху!'
-        : 'Збір розпочато!';
+        ? 'achievedLabel_25'
+        : 'achievedLabel_0';
+    const defaultAchieved = t(`milestone.${achievedKey}`);
 
     const stars = ['✦', '✧', '✦', '✧', '✦', '✧', '✦', '✧'];
 

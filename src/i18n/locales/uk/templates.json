@@ -31,6 +31,12 @@
         "title": "Збори",
         "subtitle": "Дякуємо кожному, хто долучився!",
         "achievedLabel": "Збір іде повним ходом!",
+        "achievedLabel_noGoal": "Збір іде повним ходом!",
+        "achievedLabel_100": "Ціль досягнуто! 🎉",
+        "achievedLabel_75": "Ми на фінішній прямій!",
+        "achievedLabel_50": "Половину пройдено!",
+        "achievedLabel_25": "Вже чверть шляху!",
+        "achievedLabel_0": "Збір розпочато!",
         "collectedLabel": "Зібрано",
         "goalLabel": "Ціль",
         "donationsLabel": "Донатів"

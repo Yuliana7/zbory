@@ -114,6 +114,16 @@ function ExportPageInner() {
 
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
+  const milestoneAchievedKey = (() => {
+    const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
+    if (pct === null) return 'achievedLabel_noGoal';
+    if (pct >= 100) return 'achievedLabel_100';
+    if (pct >= 75) return 'achievedLabel_75';
+    if (pct >= 50) return 'achievedLabel_50';
+    if (pct >= 25) return 'achievedLabel_25';
+    return 'achievedLabel_0';
+  })();
+
   const handleExport = async () => {
     if (!templateRef.current) return;
     setIsExporting(true);
@@ -357,7 +367,10 @@ function ExportPageInner() {
             {textEditorOpen && (
               <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
                 {textFields.map((field) => {
-                  const defaultValue = t(`templates:${templateId}.${field.key}`);
+                  const defaultValue =
+                    field.key === 'achievedLabel' && templateId === 'milestone'
+                      ? t(`templates:milestone.${milestoneAchievedKey}`)
+                      : t(`templates:${templateId}.${field.key}`);
                   const currentValue = textOverrides[field.key] ?? defaultValue;
                   return (
                     <div key={field.key}>
@@ -385,7 +398,7 @@ function ExportPageInner() {
                     </div>
                   );
                 })}
-                {Object.keys(textOverrides).some(k => textOverrides[k]) && (
+                {Object.keys(textOverrides).length > 0 && (
                   <button
                     onClick={() => setTextOverrides({})}
                     className="text-xs text-gray-400 hover:text-gray-600 underline"
