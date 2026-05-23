@@ -1,20 +1,23 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface WeeklyRecapCardProps {
   aggregates: Aggregates;
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 const UA_DAYS = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -82,26 +85,26 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
+              fontSize: fz(28),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: 18, color: p.secondary }}>{tx('subtitle', 'Тижневий звіт')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Тижневий звіт')}</div>
           </div>
         </div>
 
         {/* This week total */}
         <div style={{ marginBottom: isStory ? 60 : 40 }}>
-          <div style={{ fontSize: 26, color: p.secondary, marginBottom: 8 }}>
+          <div style={{ fontSize: fz(26), color: p.secondary, marginBottom: 8 }}>
             {tx('thisWeekLabel', 'Цей тиждень')}
           </div>
           <div
             style={{
-              fontSize: isStory ? 100 : 80,
+              fontSize: fz(80),
               fontWeight: 900,
               letterSpacing: '-3px',
               lineHeight: 1,
@@ -116,14 +119,14 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12 }}>
               <span
                 style={{
-                  fontSize: 28,
+                  fontSize: fz(28),
                   fontWeight: 700,
                   color: delta >= 0 ? '#4ade80' : '#f87171',
                 }}
               >
                 {delta >= 0 ? '↑' : '↓'} {Math.abs(delta)}%
               </span>
-              <span style={{ fontSize: 24, color: p.secondary }}>
+              <span style={{ fontSize: fz(24), color: p.secondary }}>
                 {tx('prevWeekLabel', 'vs минулий тиждень')} ({fmt(prevWeekTotal)} ₴)
               </span>
             </div>
@@ -178,7 +181,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               })}
             </svg>
           ) : (
-            <div style={{ textAlign: 'center', color: p.secondary, fontSize: 28, padding: '40px 0' }}>
+            <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(28), padding: '40px 0' }}>
               Недостатньо даних
             </div>
           )}
@@ -201,10 +204,10 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
                 marginBottom: isStory ? 40 : 32,
               }}
             >
-              <span style={{ fontSize: 48 }}>🔥</span>
+              <span style={{ fontSize: fz(48) }}>🔥</span>
               <div>
-                <div style={{ fontSize: 22, color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день тижня')}</div>
-                <div style={{ fontSize: 32, fontWeight: 700, color: p.primary, marginTop: 4 }}>
+                <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('bestDayLabel', 'Найкращий день тижня')}</div>
+                <div style={{ fontSize: fz(32), fontWeight: 700, color: p.primary, marginTop: 4 }}>
                   {UA_DAYS[d.getDay()]} — {fmt(best[1].amount)} ₴
                 </div>
               </div>
@@ -227,8 +230,8 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             { label: 'Всього за кампанію', value: fmt(aggregates.totalAmount) + ' ₴' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>{s.value}</div>
-              <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
+              <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>

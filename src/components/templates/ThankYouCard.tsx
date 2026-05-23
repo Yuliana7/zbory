@@ -2,20 +2,21 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { generateThankYouMessage } from '../../utils/insightGenerator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface ThankYouCardProps {
   aggregates: Aggregates;
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
-    const fs = (n: number) => isStory ? Math.round(n * 1.6) : n;
-    const fh = (n: number) => isStory ? Math.round(n * 1.35) : n;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const message = tx('message', generateThankYouMessage(aggregates.totalAmount, aggregates.donationCount));
@@ -88,11 +89,11 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
           </div>
         ))}
 
-        <div style={{ fontSize: fs(80), lineHeight: 1, marginBottom: 32 }}>💙💛</div>
+        <div style={{ fontSize: fz(80), lineHeight: 1, marginBottom: 32 }}>💙💛</div>
 
         <div
           style={{
-            fontSize: fh(96),
+            fontSize: fz(96),
             fontWeight: 900,
             letterSpacing: '8px',
             textTransform: 'uppercase',
@@ -105,16 +106,16 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
           {tx('title', 'Дякуємо')}
         </div>
 
-        <div style={{ fontSize: fh(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8 }}>
+        <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8 }}>
           {formattedTotal} ₴
         </div>
-        <div style={{ fontSize: fs(30), color: p.secondary, marginBottom: 48 }}>
+        <div style={{ fontSize: fz(30), color: p.secondary, marginBottom: 48 }}>
           {tx('amountLabel', 'зібрано разом')}
         </div>
 
         <div
           style={{
-            fontSize: fs(32),
+            fontSize: fz(32),
             lineHeight: 1.5,
             color: p.secondary,
             maxWidth: 840,
@@ -135,8 +136,8 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             padding: '20px 48px',
           }}
         >
-          <span style={{ fontSize: fs(28), color: p.secondary }}>{tx('donorsLabel', 'Небайдужих людей:')}</span>
-          <span style={{ fontSize: fs(40), fontWeight: 800, color: p.accent }}>
+          <span style={{ fontSize: fz(28), color: p.secondary }}>{tx('donorsLabel', 'Небайдужих людей:')}</span>
+          <span style={{ fontSize: fz(40), fontWeight: 800, color: p.accent }}>
             {aggregates.donationCount}
           </span>
         </div>
@@ -145,7 +146,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
           style={{
             position: 'absolute',
             bottom: 56,
-            fontSize: fs(22),
+            fontSize: fz(22),
             color: p.secondary,
             letterSpacing: '2px',
           }}

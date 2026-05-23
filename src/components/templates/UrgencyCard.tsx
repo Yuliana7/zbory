@@ -1,6 +1,7 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface UrgencyCardProps {
   aggregates: Aggregates;
@@ -8,13 +9,14 @@ interface UrgencyCardProps {
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
-    const fs = (n: number) => isStory ? Math.round(n * 1.55) : n;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -70,15 +72,15 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
+              fontSize: fz(28),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: 18, color: p.secondary }}>{tx('subtitle', 'Останній ривок!')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Останній ривок!')}</div>
           </div>
         </div>
 
@@ -86,32 +88,30 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {remainingFormatted !== null ? (
             <>
-              <div style={{ fontSize: 28, color: p.secondary, marginBottom: 12 }}>
+              <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 12 }}>
                 {tx('remainingLabel', 'Залишилось до цілі')}
               </div>
               <div
                 style={{
-                  fontSize: isStory ? 120 : 108,
+                  fontSize: fz(108),
                   fontWeight: 900,
                   letterSpacing: '-4px',
                   lineHeight: 1,
                   background: `${p.accentGradient} text`,
-                  // background: p.accentGradient,
-                  // WebkitBackgroundClip: 'text',
                   WebkitTextFillColor: 'transparent',
                   marginBottom: 8,
                 }}
               >
                 {remainingFormatted}
               </div>
-              <div style={{ fontSize: 48, fontWeight: 600, color: p.secondary, letterSpacing: '-1px', marginBottom: 56 }}>
+              <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px', marginBottom: 56 }}>
                 гривень
               </div>
             </>
           ) : (
             <div
               style={{
-                fontSize: 80,
+                fontSize: fz(80),
                 fontWeight: 900,
                 lineHeight: 1,
                 background: `${p.accentGradient} text`,
@@ -127,10 +127,10 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           <div style={{ marginBottom: 56 }}>
             {goalFormatted && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: 22, color: p.secondary }}>
+                <span style={{ fontSize: fz(22), color: p.secondary }}>
                   {tx('collectedLabel', 'Зібрано:')} {fmt(total)} ₴
                 </span>
-                <span style={{ fontSize: 22, color: p.secondary }}>
+                <span style={{ fontSize: fz(22), color: p.secondary }}>
                   {tx('goalLabel', 'Ціль:')} {goalFormatted} ₴
                 </span>
               </div>
@@ -153,7 +153,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
               />
             </div>
             {progressPct !== null && (
-              <div style={{ textAlign: 'right', marginTop: 8, fontSize: 22, fontWeight: 700, color: p.accent }}>
+              <div style={{ textAlign: 'right', marginTop: 8, fontSize: fz(22), fontWeight: 700, color: p.accent }}>
                 {Math.round(progressPct)}%
               </div>
             )}
@@ -169,7 +169,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
               textAlign: 'center',
             }}
           >
-            <div style={{ fontSize: 40, fontWeight: 800, color: p.primary, lineHeight: 1.2 }}>
+            <div style={{ fontSize: fz(40), fontWeight: 800, color: p.primary, lineHeight: 1.2 }}>
               {tx('callToAction', '🔥 Підтримай прямо зараз!')}
             </div>
           </div>
@@ -189,8 +189,8 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             { label: 'Донатів', value: String(aggregates.donationCount) },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 36, fontWeight: 700 }}>{s.value}</div>
-              <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>{s.label}</div>
+              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
+              <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
         </div>

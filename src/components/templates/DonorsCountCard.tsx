@@ -1,19 +1,21 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface DonorsCountCardProps {
   aggregates: Aggregates;
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
-    const fs = (n: number) => isStory ? Math.round(n * 1.55) : n;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -65,15 +67,15 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: fs(28),
+              fontSize: fz(28),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: fs(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: fs(18), color: p.secondary }}>{tx('subtitle', 'Наша спільнота')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Наша спільнота')}</div>
           </div>
         </div>
 
@@ -81,7 +83,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div
             style={{
-              fontSize: isStory ? 200 : 160,
+              fontSize: fz(160),
               fontWeight: 900,
               lineHeight: 0.9,
               letterSpacing: '-6px',
@@ -92,7 +94,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
           >
             {fmt(aggregates.donationCount)}
           </div>
-          <div style={{ fontSize: fs(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
+          <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
             {tx('donorsLabel', 'людини підтримали збір')}
           </div>
         </div>
@@ -115,8 +117,8 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: fs(30), fontWeight: 800, color: p.primary }}>{s.value}</div>
-              <div style={{ fontSize: fs(18), color: p.secondary, marginTop: 6 }}>{s.label}</div>
+              <div style={{ fontSize: fz(30), fontWeight: 800, color: p.primary }}>{s.value}</div>
+              <div style={{ fontSize: fz(18), color: p.secondary, marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
         </div>
@@ -136,7 +138,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             { label: tx('largeLabel', 'понад 1000 ₴'), pct: largePct, count: aggregates.largeDonations },
           ].map((row) => (
             <div key={row.label} style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-              <div style={{ width: 180, fontSize: fs(20), color: p.secondary, flexShrink: 0 }}>{row.label}</div>
+              <div style={{ width: 180, fontSize: fz(20), color: p.secondary, flexShrink: 0 }}>{row.label}</div>
               <div
                 style={{
                   flex: 1,
@@ -155,7 +157,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
                   }}
                 />
               </div>
-              <div style={{ width: 80, textAlign: 'right', fontSize: fs(20), fontWeight: 700, color: p.primary }}>
+              <div style={{ width: 80, textAlign: 'right', fontSize: fz(20), fontWeight: 700, color: p.primary }}>
                 {row.count}
               </div>
             </div>

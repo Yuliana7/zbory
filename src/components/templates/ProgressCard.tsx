@@ -2,6 +2,8 @@ import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
+import { useTranslation } from 'react-i18next';
 
 interface ProgressCardProps {
   aggregates: Aggregates;
@@ -9,15 +11,15 @@ interface ProgressCardProps {
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
-    const fs = (n: number) => isStory ? Math.round(n * 1.6) : n;
-    const fh = (n: number) => isStory ? Math.round(n * 1.35) : n;
-
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const total = aggregates.totalAmount;
@@ -91,29 +93,29 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
             <div
               style={{
-                width: fs(56),
-                height: fs(56),
+                width: 56,
+                height: 56,
                 background: p.logoGradient,
                 borderRadius: 14,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: fs(28),
+                fontSize: fz(28),
                 color: '#fff',
               }}
             >
               ₴
             </div>
             <div>
-              <div style={{ fontSize: fs(28), fontWeight: 700, letterSpacing: '-0.5px' }}>
-                {tx('title', 'Збори')}
+              <div style={{ fontSize: fz(28), fontWeight: 700, letterSpacing: '-0.5px' }}>
+                {tx('title', t('progress.title'))}
               </div>
-              <div style={{ fontSize: fs(18), color: p.secondary, marginTop: 2 }}>
-                {tx('subtitle', 'Звіт про збір')}
+              <div style={{ fontSize: fz(18), color: p.secondary, marginTop: 2 }}>
+                {tx('subtitle', t('progress.subtitle'))}
               </div>
             </div>
           </div>
-          <div style={{ textAlign: 'right', color: p.secondary, fontSize: fs(20) }}>
+          <div style={{ textAlign: 'right', color: p.secondary, fontSize: fz(20) }}>
             <div>{formatUkrainianDate(aggregates.firstDate)}</div>
             <div style={{ marginTop: 4 }}>— {formatUkrainianDate(aggregates.lastDate)}</div>
           </div>
@@ -121,12 +123,12 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div style={{ color: p.secondary, fontSize: fs(28), marginBottom: 16 }}>
-            {tx('collectedLabel', 'Зібрано')}
+          <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
+            {tx('collectedLabel', t('progress.collectedLabel'))}
           </div>
           <div
             style={{
-              fontSize: fh(112),
+              fontSize: fz(112),
               fontWeight: 800,
               letterSpacing: '-3px',
               lineHeight: 1,
@@ -138,7 +140,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           </div>
           <div
             style={{
-              fontSize: fs(48),
+              fontSize: fz(48),
               fontWeight: 600,
               color: p.secondary,
               marginTop: 8,
@@ -151,12 +153,12 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           {progressPct !== null && (
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: fs(22), color: p.secondary }}>
-                  {tx('goalLabel', 'Ціль:')} {formattedGoal} ₴
+                <span style={{ fontSize: fz(22), color: p.secondary }}>
+                  {tx('goalLabel', t('progress.goalLabel'))}: {formattedGoal} ₴
                 </span>
                 <span
                   style={{
-                    fontSize: fs(22),
+                    fontSize: fz(22),
                     fontWeight: 700,
                     color: progressPct > 100 ? '#22d3ee' : progressPct === 100 ? '#4ade80' : '#fbbf24',
                   }}
@@ -206,8 +208,8 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             },
           ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: fs(36), fontWeight: 700 }}>{stat.value}</div>
-              <div style={{ fontSize: fs(20), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
+              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{stat.value}</div>
+              <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
             </div>
           ))}
         </div>

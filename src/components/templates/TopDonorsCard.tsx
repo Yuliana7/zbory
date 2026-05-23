@@ -1,20 +1,23 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface TopDonorsCardProps {
   aggregates: Aggregates;
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -65,15 +68,15 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                fontSize: 28,
+                fontSize: fz(28),
                 color: '#fff',
               }}
             >
               ₴
             </div>
             <div>
-              <div style={{ fontSize: 28, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-              <div style={{ fontSize: 18, color: p.secondary }}>{tx('subtitle', 'Наші герої 💛')}</div>
+              <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+              <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Люди')}</div>
             </div>
           </div>
         </div>
@@ -81,7 +84,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
         {/* Donors list */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {donors.length === 0 ? (
-            <div style={{ textAlign: 'center', color: p.secondary, fontSize: 32, marginTop: 80 }}>
+            <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(32), marginTop: 80 }}>
               Немає даних про донорів
             </div>
           ) : (
@@ -114,13 +117,13 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                   />
 
                   <div style={{ position: 'relative', display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <div style={{ fontSize: isTop3 ? 44 : 32, width: 56, textAlign: 'center', flexShrink: 0 }}>
+                    <div style={{ fontSize: fz(isTop3 ? 44 : 32), width: 56, textAlign: 'center', flexShrink: 0 }}>
                       {MEDALS[i] ?? `${i + 1}.`}
                     </div>
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div
                         style={{
-                          fontSize: isTop3 ? 32 : 28,
+                          fontSize: fz(isTop3 ? 32 : 28),
                           fontWeight: 700,
                           color: p.primary,
                           overflow: 'hidden',
@@ -131,13 +134,13 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                         {donor.name || tx('anonymousLabel', 'Анонімно')}
                       </div>
                       {donor.count > 1 && (
-                        <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>
+                        <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>
                           {donor.count} {tx('donationsLabel', 'донати')}
                         </div>
                       )}
                     </div>
                     <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: isTop3 ? 32 : 28, fontWeight: 800, color: p.accent }}>
+                      <div style={{ fontSize: fz(isTop3 ? 32 : 28), fontWeight: 800, color: p.accent }}>
                         {fmt(donor.amount)} ₴
                       </div>
                     </div>
@@ -158,10 +161,10 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             alignItems: 'center',
           }}
         >
-          <div style={{ fontSize: 24, color: p.secondary }}>
+          <div style={{ fontSize: fz(24), color: p.secondary }}>
             {tx('totalDonorsLabel', 'Усього підтримали:')}
           </div>
-          <div style={{ fontSize: 36, fontWeight: 800, color: p.primary }}>
+          <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>
             {aggregates.donationCount}
           </div>
         </div>

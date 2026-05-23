@@ -1,23 +1,25 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
+import { rem } from '../../utils/units';
 
 interface SpeedCardProps {
   aggregates: Aggregates;
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
+  fontScale?: 1 | 1.5 | 2 | 2.5;
 }
 
 export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {} }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
     const isStory = format === 'story';
     const p = palette;
+    const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, def: string) => textOverrides[key] ?? def;
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-    // Build 24-hour distribution
     const hours = Array.from({ length: 24 }, (_, h) => ({
       hour: h,
       count: aggregates.byHour.get(h) ?? 0,
@@ -31,7 +33,6 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
     const barW = Math.floor(svgW / 24) - 4;
     const barMaxH = svgH - 48;
 
-    // Recent 7-day totals for activity indicator
     const recentDays = Array.from(aggregates.byDate.entries())
       .sort(([a], [b]) => a.localeCompare(b))
       .slice(-7);
@@ -82,27 +83,27 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: 28,
+              fontSize: fz(28),
               color: '#fff',
             }}
           >
             ₴
           </div>
           <div>
-            <div style={{ fontSize: 28, fontWeight: 700 }}>{tx('title', 'Збори')}</div>
-            <div style={{ fontSize: 18, color: p.secondary }}>{tx('subtitle', 'Активність кампанії')}</div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title', 'Збори')}</div>
+            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle', 'Активність кампанії')}</div>
           </div>
         </div>
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 24, marginBottom: isStory ? 60 : 40 }}>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 24, color: p.secondary, marginBottom: 8 }}>
+            <div style={{ fontSize: fz(24), color: p.secondary, marginBottom: 8 }}>
               {tx('totalLabel', 'Зібрано за 7 днів')}
             </div>
             <div
               style={{
-                fontSize: isStory ? 72 : 64,
+                fontSize: fz(64),
                 fontWeight: 900,
                 letterSpacing: '-2px',
                 lineHeight: 1,
@@ -123,8 +124,8 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
               minWidth: 180,
             }}
           >
-            <div style={{ fontSize: 48, fontWeight: 800, color: p.primary }}>{recentCount}</div>
-            <div style={{ fontSize: 20, color: p.secondary, marginTop: 6 }}>
+            <div style={{ fontSize: fz(48), fontWeight: 800, color: p.primary }}>{recentCount}</div>
+            <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 6 }}>
               {tx('donationsLabel', 'донатів')}
             </div>
           </div>
@@ -141,7 +142,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             flex: isStory ? 0 : 1,
           }}
         >
-          <div style={{ fontSize: 24, color: p.secondary, marginBottom: 20 }}>
+          <div style={{ fontSize: fz(24), color: p.secondary, marginBottom: 20 }}>
             {tx('hourlyLabel', 'Погодинна активність')}
           </div>
           <svg
@@ -196,10 +197,10 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             marginBottom: isStory ? 40 : 0,
           }}
         >
-          <span style={{ fontSize: 48 }}>⚡</span>
+          <span style={{ fontSize: fz(48) }}>⚡</span>
           <div>
-            <div style={{ fontSize: 22, color: p.secondary }}>{tx('peakLabel', 'Пік активності')}</div>
-            <div style={{ fontSize: 36, fontWeight: 700, color: p.primary, marginTop: 4 }}>
+            <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('peakLabel', 'Пік активності')}</div>
+            <div style={{ fontSize: fz(36), fontWeight: 700, color: p.primary, marginTop: 4 }}>
               {formatHour(peakHour.hour)} — {formatHour(peakHour.hour + 1)} · {peakHour.count} донатів
             </div>
           </div>
@@ -220,8 +221,8 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
               { label: 'Донатів', value: String(aggregates.donationCount) },
             ].map((s) => (
               <div key={s.label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: 36, fontWeight: 700 }}>{s.value}</div>
-                <div style={{ fontSize: 20, color: p.secondary, marginTop: 4 }}>{s.label}</div>
+                <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
+                <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
               </div>
             ))}
           </div>

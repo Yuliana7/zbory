@@ -17,6 +17,7 @@ import { PALETTES, DEFAULT_PALETTE, type Palette } from '../utils/palettes';
 import { TEMPLATE_TEXT_FIELDS, TEMPLATE_SUPPORTS_DATE_RANGE, TEMPLATE_REQUIRES_GOAL } from '../utils/templateConfig';
 
 type Format = 'post' | 'story';
+type FontScale = 1 | 1.5 | 2 | 2.5;
 
 const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
   post: { width: 1080, height: 1080, label: '1080×1080' },
@@ -69,6 +70,7 @@ function ExportPageInner() {
   const [textEditorOpen, setTextEditorOpen] = useState(false);
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
+  const [fontScale, setFontScale] = useState<FontScale>(1);
 
   useEffect(() => {
     setFormat(DEFAULT_FORMAT[templateId]);
@@ -139,6 +141,7 @@ function ExportPageInner() {
     format,
     palette,
     textOverrides,
+    fontScale,
   };
 
   return (
@@ -242,6 +245,26 @@ function ExportPageInner() {
                       </svg>
                     </span>
                   )}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Font scale */}
+          <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <p className="text-sm font-semibold text-gray-700 mb-3">{t('fontScale.label')}</p>
+            <div className="grid grid-cols-4 gap-2">
+              {([1, 1.5, 2, 2.5] as FontScale[]).map((scale) => (
+                <button
+                  key={scale}
+                  onClick={() => setFontScale(scale)}
+                  className={`py-2 rounded-lg text-sm font-medium border transition-all ${
+                    fontScale === scale
+                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  }`}
+                >
+                  {scale}×
                 </button>
               ))}
             </div>
@@ -431,10 +454,11 @@ interface RendererProps {
   format: Format;
   palette: Palette;
   textOverrides: Record<string, string>;
+  fontScale: FontScale;
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides }: RendererProps) {
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides };
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale }: RendererProps) {
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale };
   switch (templateId) {
     case 'progress':        return <ProgressCard {...shared} goal={goal} />;
     case 'daily-activity':  return <DailyActivityCard {...shared} />;
