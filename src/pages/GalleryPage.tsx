@@ -11,6 +11,7 @@ import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
+import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 
 const NATIVE = 1080;
 
@@ -21,17 +22,26 @@ interface TemplateGroup {
 }
 
 const GROUPS: TemplateGroup[] = [
-  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency'] },
+  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'funds-flow'] },
   { label: 'Активність', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
-  { label: 'Люди', icon: '💛', ids: ['thank-you', 'donors-count', 'top-donors'] },
+  { label: 'Люди', icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors'] },
 ];
 
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
   const { state, dispatch, handleTemplateSelect } = useAppContext();
   const { app } = state;
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set([GROUPS[0].label]));
 
   if (!app.aggregates) return null;
+
+  function toggleGroup(label: string) {
+    setOpenGroups((prev) => {
+      const next = new Set(prev);
+      next.has(label) ? next.delete(label) : next.add(label);
+      return next;
+    });
+  }
 
   return (
     <div>
@@ -50,35 +60,53 @@ export function GalleryPage() {
         </button>
       </div>
 
-      <div className="space-y-10">
-        {GROUPS.map((group) => (
-          <div key={group.label}>
-            <div className="flex items-center gap-2 mb-4">
-              <span className="text-xl">{group.icon}</span>
-              <h3 className="text-lg font-semibold text-gray-700">{group.label}</h3>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {group.ids.map((id) => (
-                <button
-                  key={id}
-                  onClick={() => handleTemplateSelect(id)}
-                  className="group bg-white rounded-2xl border border-gray-100 shadow-sm text-left
-                             hover:border-indigo-300 hover:shadow-lg transition-all duration-150 overflow-hidden
-                             flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+      <div className="space-y-3">
+        {GROUPS.map((group) => {
+          const isOpen = openGroups.has(group.label);
+          return (
+            <div key={group.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+              <button
+                onClick={() => toggleGroup(group.label)}
+                className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className="text-xl">{group.icon}</span>
+                  <h3 className="text-base font-semibold text-gray-800">{group.label}</h3>
+                  <span className="text-xs text-gray-400 font-medium">{group.ids.length}</span>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
                 >
-                  <TemplatePreview id={id} aggregates={app.aggregates!} goal={app.goal} />
-                  <div className="p-5 flex flex-col gap-2 flex-1">
-                    <p className="font-semibold text-gray-900 text-base">{t(`templates.${id}.name`)}</p>
-                    <p className="text-sm text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
-                    <p className="mt-auto text-sm font-semibold text-indigo-600 group-hover:text-indigo-700">
-                      {t('useTemplate')}
-                    </p>
-                  </div>
-                </button>
-              ))}
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+
+              {isOpen && (
+                <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-gray-100">
+                  {group.ids.map((id) => (
+                    <button
+                      key={id}
+                      onClick={() => handleTemplateSelect(id)}
+                      className="group bg-gray-50 rounded-xl border border-gray-100 text-left mt-4
+                                 hover:border-indigo-300 hover:shadow-md transition-all duration-150 overflow-hidden
+                                 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    >
+                      <TemplatePreview id={id} aggregates={app.aggregates!} goal={app.goal} />
+                      <div className="p-4 flex flex-col gap-1.5 flex-1">
+                        <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
+                        <p className="text-xs text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
+                        <p className="mt-auto pt-1 text-xs font-semibold text-indigo-600 group-hover:text-indigo-700">
+                          {t('useTemplate')}
+                        </p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -136,6 +164,7 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
           {id === 'top-donors' && <TopDonorsCard aggregates={aggregates} format="post" />}
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
+          {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
         </div>
       )}
     </div>

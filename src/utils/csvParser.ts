@@ -1,5 +1,11 @@
 import Papa from 'papaparse';
-import type { RawDonation, Donation } from '../types';
+import type { RawDonation, Donation, Withdrawal } from '../types';
+
+export interface NormalizeResult {
+  donations: Donation[];
+  withdrawals: Withdrawal[];
+  currentBalance: number;
+}
 
 /**
  * Parses Ukrainian CSV format from Monobank Jar
@@ -44,47 +50,59 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
   });
 }
 
+const WITHDRAWAL_CATEGORIES = new Set(['Часткове зняття']);
+
 /**
- * Normalizes raw donation data into typed Donation objects
- * Handles Ukrainian number format (comma as decimal separator)
+ * Normalizes raw donation data, separating donations from partial withdrawals.
+ * currentBalance is taken from the most-recent row's Залишок (CSV is newest-first).
  */
-export function normalizeDonations(rawDonations: RawDonation[]): Donation[] {
-  return rawDonations
-    .map((raw) => {
-      try {
-        // Parse Ukrainian date format: "DD.MM.YYYY HH:mm"
-        const timestamp = parseUkrainianDate(raw.date);
-        if (!timestamp || isNaN(timestamp.getTime())) {
-          console.warn('Invalid date:', raw.date);
-          return null;
-        }
+export function normalizeDonations(rawDonations: RawDonation[]): NormalizeResult {
+  const donations: Donation[] = [];
+  const withdrawals: Withdrawal[] = [];
 
-        // Parse amount (handle comma as decimal separator)
-        const amount = parseUkrainianNumber(raw.amount);
-        if (isNaN(amount) || amount <= 0) {
-          console.warn('Invalid amount:', raw.amount);
-          return null;
-        }
+  // The CSV is sorted newest-first, so the first row's Залишок is the current balance.
+  let currentBalance = 0;
+  const firstWithBalance = rawDonations.find((r) => r.balance && r.balance !== '0');
+  if (firstWithBalance) {
+    currentBalance = parseUkrainianNumber(firstWithBalance.balance);
+  }
 
-        // Extract donor name from "additionalInfo" field
-        // Format: "Від: Name" or just "Name"
-        const donor = extractDonorName(raw.additionalInfo);
+  for (const raw of rawDonations) {
+    try {
+      const timestamp = parseUkrainianDate(raw.date);
+      if (!timestamp || isNaN(timestamp.getTime())) {
+        console.warn('Invalid date:', raw.date);
+        continue;
+      }
 
-        const donation: Donation = {
+      const amount = parseUkrainianNumber(raw.amount);
+      if (isNaN(amount) || amount <= 0) {
+        console.warn('Invalid amount:', raw.amount);
+        continue;
+      }
+
+      if (WITHDRAWAL_CATEGORIES.has(raw.category)) {
+        withdrawals.push({
           timestamp,
           amount,
-          donor,
+          destination: raw.additionalInfo || undefined,
+          balanceAfter: parseUkrainianNumber(raw.balance),
+        });
+      } else {
+        donations.push({
+          timestamp,
+          amount,
+          donor: extractDonorName(raw.additionalInfo),
           category: raw.category,
           comment: raw.comment || undefined,
-        };
-
-        return donation;
-      } catch (error) {
-        console.error('Error normalizing donation:', error, raw);
-        return null;
+        });
       }
-    })
-    .filter((d): d is Donation => d !== null);
+    } catch (error) {
+      console.error('Error normalizing row:', error, raw);
+    }
+  }
+
+  return { donations, withdrawals, currentBalance };
 }
 
 /**

@@ -10,6 +10,7 @@ import type {
   AppState,
   RawDonation,
   Donation,
+  Withdrawal,
   Aggregates,
   Insight,
   CommentInsights,
@@ -32,6 +33,8 @@ const INITIAL_APP_STATE: AppState = {
   step: 'upload',
   rawData: null,
   donations: null,
+  withdrawals: null,
+  currentBalance: 0,
   aggregates: null,
   insights: null,
   commentInsights: null,
@@ -47,7 +50,7 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[] } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
       payload: {
@@ -94,8 +97,8 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     case 'TEMPLATE_SELECTED': {
       const id = action.payload;
-      const defaultStory = new Set(['daily-activity', 'top-donors', 'weekly-recap']);
-      const needsGoal = new Set(['progress', 'milestone', 'urgency']);
+      const defaultStory = new Set<TemplateType>(['daily-activity', 'top-donors', 'weekly-recap']);
+      const needsGoal = new Set<TemplateType>(['milestone', 'urgency']);
       return {
         ...state,
         app: {
@@ -149,13 +152,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (rawData.length === 0)
         throw new Error('CSV файл порожній або не містить даних');
 
-      const donations = normalizeDonations(rawData);
+      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0)
         throw new Error(
           'Не вдалося обробити дані з CSV файлу. Переконайтеся, що формат файлу правильний',
         );
 
-      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations } });
+      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
@@ -168,7 +171,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (goal?: number) => {
       if (!state.app.donations) return;
       try {
-        const aggregates = aggregateDonations(state.app.donations);
+        const aggregates = aggregateDonations(
+          state.app.donations,
+          state.app.withdrawals ?? [],
+          state.app.currentBalance,
+        );
         const insights = generateInsights(aggregates);
         const commentInsights = analyzeComments(state.app.donations);
         dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { aggregates, insights, commentInsights, goal } });

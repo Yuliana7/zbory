@@ -84,6 +84,16 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'peakLabel', label: 'Підпис піку' },
     { key: 'hourlyLabel', label: 'Підпис погодинного графіку' },
   ],
+  'funds-flow': [
+    { key: 'title', label: 'Заголовок' },
+    { key: 'subtitle', label: 'Підзаголовок' },
+    { key: 'raisedLabel', label: 'Мітка "Зібрано"' },
+    { key: 'spentLabel', label: 'Мітка "Витрачено"' },
+    { key: 'balanceLabel', label: 'Мітка "На рахунку"' },
+    { key: 'refundsLabel', label: 'Мітка повернень' },
+    { key: 'donationsLabel', label: 'Мітка кількості донатів' },
+    { key: 'noWithdrawalsNote', label: 'Текст якщо зняття не було' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -96,6 +106,7 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   urgency: true,
   'weekly-recap': true,
   speed: true,
+  'funds-flow': false, // always shows the full campaign picture
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -108,6 +119,7 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   urgency: true,
   'weekly-recap': false,
   speed: false,
+  'funds-flow': false,
 };
 
 export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
@@ -120,4 +132,5 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   urgency: 'post',
   'weekly-recap': 'story',
   speed: 'post',
+  'funds-flow': 'post',
 };

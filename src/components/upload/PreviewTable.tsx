@@ -102,11 +102,6 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
                 ₴
               </span>
             </div>
-            {parsedGoal !== null && (
-              <span className="text-xs text-indigo-700 font-medium whitespace-nowrap">
-                = {new Intl.NumberFormat('uk-UA').format(parsedGoal)} ₴
-              </span>
-            )}
           </div>
           {goalInput && parsedGoal === null && (
             <p className="mt-1 text-xs text-red-500">{t('preview.goal.invalidNumber')}</p>

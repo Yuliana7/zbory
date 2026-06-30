@@ -11,6 +11,7 @@ import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
+import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 import { exportToPNG } from '../utils/exportPNG';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { PALETTES, DEFAULT_PALETTE, type Palette } from '../utils/palettes';
@@ -34,6 +35,7 @@ const DEFAULT_FORMAT: Record<TemplateType, Format> = {
   urgency: 'post',
   'weekly-recap': 'story',
   speed: 'post',
+  'funds-flow': 'post',
 };
 
 function toDateInput(d: Date): string {
@@ -71,6 +73,7 @@ function ExportPageInner() {
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [fontScale, setFontScale] = useState<FontScale>(1);
+  const [showRefunds, setShowRefunds] = useState(false);
 
   useEffect(() => {
     setFormat(DEFAULT_FORMAT[templateId]);
@@ -152,6 +155,7 @@ function ExportPageInner() {
     palette,
     textOverrides,
     fontScale,
+    showRefunds,
   };
 
   return (
@@ -326,6 +330,39 @@ function ExportPageInner() {
             </div>
           )}
 
+          {/* Refunds explainer — funds-flow only, only when implied refunds are meaningful */}
+          {templateId === 'funds-flow' && filteredAggregates.impliedRefunds > 500 && (
+            <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
+              <div className="flex items-start gap-2">
+                <span className="text-lg leading-none mt-0.5">↩️</span>
+                <p className="text-sm font-semibold text-purple-900">{t('refundsPanel.title')}</p>
+              </div>
+              <p className="text-xs text-purple-700 leading-relaxed">
+                {t('refundsPanel.description', {
+                  amount: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.impliedRefunds)),
+                })}
+              </p>
+              <label className="flex items-center gap-3 cursor-pointer group">
+                <div
+                  onClick={() => setShowRefunds(v => !v)}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                    showRefunds ? 'bg-purple-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                      showRefunds ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </div>
+                <span className="text-xs font-medium text-purple-800 group-hover:text-purple-900">
+                  {t('refundsPanel.toggle')}
+                </span>
+              </label>
+              <p className="text-xs text-purple-500 italic">{t('refundsPanel.note')}</p>
+            </div>
+          )}
+
           {/* Goal input */}
           {showGoal && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -468,9 +505,10 @@ interface RendererProps {
   palette: Palette;
   textOverrides: Record<string, string>;
   fontScale: FontScale;
+  showRefunds: boolean;
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale }: RendererProps) {
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds }: RendererProps) {
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale };
   switch (templateId) {
     case 'progress':        return <ProgressCard {...shared} goal={goal} />;
@@ -482,5 +520,6 @@ function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, p
     case 'top-donors':      return <TopDonorsCard {...shared} />;
     case 'weekly-recap':    return <WeeklyRecapCard {...shared} />;
     case 'speed':           return <SpeedCard {...shared} />;
+    case 'funds-flow':      return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
   }
 }
