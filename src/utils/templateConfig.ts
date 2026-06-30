@@ -92,7 +92,7 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'balanceLabel', label: 'Мітка "На рахунку"' },
     { key: 'refundsLabel', label: 'Мітка повернень' },
     { key: 'donationsLabel', label: 'Мітка кількості донатів' },
-    { key: 'noWithdrawalsNote', label: 'Текст якщо знять не було' },
+    { key: 'noWithdrawalsNote', label: 'Текст якщо зняття не було' },
   ],
 };
 
