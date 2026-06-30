@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppContext } from './context/AppContext'
 import type { AppState } from './types'
@@ -22,6 +23,10 @@ function App() {
   const { state, handleReset, goToStep } = useAppContext()
   const { app, error } = state
   const currentStepIdx = STEP_INDEX[app.step]
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }, [app.step])
 
   const stepLabels = [
     t('steps.upload'),

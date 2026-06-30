@@ -15,6 +15,18 @@
     "whatNext": "Що робити далі?",
     "comments": "Коментарі донатерів"
   },
+  "charts": {
+    "raised": "Зібрано",
+    "withdrawn": "Витрачено",
+    "balance": "На рахунку",
+    "refunds": "Повернуто",
+    "dailyLabel": "Донати по днях",
+    "donationsBar": "Донати за день",
+    "bestDay": "Найкращий день",
+    "withdrawalDay": "День зняття",
+    "withdrawalsLabel": "Зняття коштів",
+    "totalWithdrawn": "Знято всього"
+  },
   "comments": {
     "topEmojis": "🎭 Найпопулярніші емоджі",
     "emojiUsageFrom": "З {{count}} особистих коментарів",

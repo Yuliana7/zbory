@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { Insight, Aggregates, CommentInsights } from '../../types';
 import { generateActionableInsights } from '../../utils/insightGenerator';
 import { formatCurrency } from '../../utils/dataAggregator';
+import { CampaignCharts } from './CampaignCharts';
 
 interface InsightsPanelProps {
   insights: Insight[];
@@ -25,13 +26,16 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
       <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
         <p className="text-indigo-200 text-sm font-medium mb-1">{t('totalAmount')}</p>
         <p className="text-4xl font-bold tracking-tight">
-          {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount))} ₴
+          {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.currentBalance + aggregates.totalWithdrawn))} ₴
         </p>
         <p className="mt-2 text-indigo-200 text-sm">
           {t('donationsCount', { count: aggregates.donationCount })}{' '}
           {t('duration', { count: duration })} 💙💛
         </p>
       </div>
+      
+      {/* Charts section */}
+      <CampaignCharts aggregates={aggregates} />
 
       {/* Regular insight cards */}
       {insights.slice(1).map((insight, i) => (
