@@ -1,9 +1,15 @@
-import type { Donation, Aggregates } from '../types';
+import type { Donation, Withdrawal, Aggregates } from '../types';
 
 /**
- * Aggregates donation data into useful statistics
+ * Aggregates donation data into useful statistics.
+ * withdrawals and currentBalance are optional — callers that don't have them
+ * (e.g. date-range re-aggregation in ExportPage) get sensible zero defaults.
  */
-export function aggregateDonations(donations: Donation[]): Aggregates {
+export function aggregateDonations(
+  donations: Donation[],
+  withdrawals: Withdrawal[] = [],
+  currentBalance = 0,
+): Aggregates {
   if (donations.length === 0) {
     throw new Error('No donations to aggregate');
   }
@@ -14,7 +20,10 @@ export function aggregateDonations(donations: Donation[]): Aggregates {
   );
 
   // Basic statistics
-  const totalAmount = donations.reduce((sum, d) => sum + d.amount, 0);
+  const totalRaised = donations.reduce((sum, d) => sum + d.amount, 0);
+  const totalAmount = totalRaised; // kept for backward-compat with existing templates
+  const totalWithdrawn = withdrawals.reduce((sum, w) => sum + w.amount, 0);
+  const impliedRefunds = Math.max(0, totalRaised - totalWithdrawn - currentBalance);
   const donationCount = donations.length;
   const avgDonation = totalAmount / donationCount;
 
@@ -103,10 +112,15 @@ export function aggregateDonations(donations: Donation[]): Aggregates {
 
   return {
     totalAmount,
+    totalRaised,
     donationCount,
     avgDonation,
     minDonation,
     maxDonation,
+    withdrawals,
+    totalWithdrawn,
+    currentBalance,
+    impliedRefunds,
     byDay,
     byHour,
     byDate,

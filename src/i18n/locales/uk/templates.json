@@ -82,5 +82,17 @@
         "donationsLabel": "донатів",
         "peakLabel": "Пік активності",
         "hourlyLabel": "Погодинна активність"
+    },
+    "funds-flow": {
+        "title": "Збори",
+        "subtitle": "Гроші в дії",
+        "raisedLabel": "Зібрано",
+        "spentLabel": "Витрачено",
+        "balanceLabel": "На рахунку",
+        "refundsLabel": "Повернуто",
+        "donationsLabel": "Донатів",
+        "withdrawalsLabel": "Зняттів",
+        "currencyLabel": "гривень",
+        "noWithdrawalsNote": "Кошти ще не витрачались"
     }
 }

@@ -11,6 +11,7 @@ import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
+import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 
 const NATIVE = 1080;
 
@@ -21,7 +22,7 @@ interface TemplateGroup {
 }
 
 const GROUPS: TemplateGroup[] = [
-  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency'] },
+  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'funds-flow'] },
   { label: 'Активність', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
   { label: 'Люди', icon: '💛', ids: ['thank-you', 'donors-count', 'top-donors'] },
 ];
@@ -136,6 +137,7 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
           {id === 'top-donors' && <TopDonorsCard aggregates={aggregates} format="post" />}
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
+          {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
         </div>
       )}
     </div>

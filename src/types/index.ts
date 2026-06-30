@@ -19,13 +19,28 @@ export interface Donation {
   comment?: string;
 }
 
+// A partial withdrawal from the jar (Часткове зняття)
+export interface Withdrawal {
+  timestamp: Date;
+  amount: number;
+  destination?: string; // "На білу картку" etc.
+  balanceAfter: number; // Залишок after this withdrawal
+}
+
 // Aggregated statistics
 export interface Aggregates {
-  totalAmount: number;
+  totalAmount: number; // gross donations (alias for totalRaised)
+  totalRaised: number; // gross sum of all inbound donations
   donationCount: number;
   avgDonation: number;
   minDonation: number;
   maxDonation: number;
+
+  // Withdrawal / balance tracking (Option C)
+  withdrawals: Withdrawal[];
+  totalWithdrawn: number;
+  currentBalance: number; // last Залишок from the raw CSV
+  impliedRefunds: number; // max(0, totalRaised - totalWithdrawn - currentBalance)
 
   // Time-based aggregates
   byDay: Map<string, number>; // key: "YYYY-MM-DD", value: total amount
@@ -67,7 +82,8 @@ export type TemplateType =
   | 'donors-count'
   | 'urgency'
   | 'weekly-recap'
-  | 'speed';
+  | 'speed'
+  | 'funds-flow';
 
 export interface Template {
   id: TemplateType;
@@ -82,6 +98,8 @@ export interface AppState {
   step: 'upload' | 'insights' | 'gallery' | 'export';
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
+  withdrawals: Withdrawal[] | null;
+  currentBalance: number;
   aggregates: Aggregates | null;
   insights: Insight[] | null;
   commentInsights: CommentInsights | null;
