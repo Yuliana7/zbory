@@ -109,18 +109,18 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel, onEdi
           )}
         </div>
 
-        <div className="mt-4 flex justify-between items-center">
+        <div className="mt-4 flex flex-col gap-3">
           <div className="flex gap-3">
-            <button onClick={onCancel} className="btn-secondary">
+            <button onClick={onCancel} className="btn-secondary flex-1">
               {t('preview.cancelButton')}
             </button>
             {onEdit && (
-              <button onClick={onEdit} className="btn-secondary">
+              <button onClick={onEdit} className="btn-secondary flex-1">
                 {t('preview.editButton')}
               </button>
             )}
           </div>
-          <button onClick={handleProceed} className="btn-primary">
+          <button onClick={handleProceed} className="btn-primary w-full">
             {t('preview.proceedButton')}
           </button>
         </div>
