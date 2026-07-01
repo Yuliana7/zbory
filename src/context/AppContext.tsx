@@ -218,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const goToStep = useCallback(
     (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4, 'custom-builder': 4 };
+      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
       if (idx[step] < idx[state.app.step]) {
         dispatch({ type: 'GO_TO_STEP', payload: step });
       }
