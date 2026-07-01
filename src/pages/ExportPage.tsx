@@ -74,6 +74,7 @@ function ExportPageInner() {
   const [dateTo, setDateTo] = useState('');
   const [fontScale, setFontScale] = useState<FontScale>(1);
   const [showRefunds, setShowRefunds] = useState(false);
+  const [hideSums, setHideSums] = useState(false);
 
   useEffect(() => {
     setFormat(DEFAULT_FORMAT[templateId]);
@@ -156,6 +157,7 @@ function ExportPageInner() {
     textOverrides,
     fontScale,
     showRefunds,
+    hideSums,
   };
 
   return (
@@ -363,6 +365,28 @@ function ExportPageInner() {
             </div>
           )}
 
+          {/* Hide sums toggle — top-donors only */}
+          {templateId === 'top-donors' && (
+            <div className="bg-white rounded-xl border border-gray-200 p-5">
+              <label className="flex items-center justify-between gap-3 cursor-pointer">
+                <span className="text-sm font-semibold text-gray-700">Показати лише кількість</span>
+                <div
+                  onClick={() => setHideSums(v => !v)}
+                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
+                    hideSums ? 'bg-indigo-600' : 'bg-gray-300'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
+                      hideSums ? 'translate-x-5' : 'translate-x-1'
+                    }`}
+                  />
+                </div>
+              </label>
+              <p className="mt-2 text-xs text-gray-400">Приховати суму, середній та максимальний донат</p>
+            </div>
+          )}
+
           {/* Goal input */}
           {showGoal && (
             <div className="bg-white rounded-xl border border-gray-200 p-5">
@@ -506,9 +530,10 @@ interface RendererProps {
   textOverrides: Record<string, string>;
   fontScale: FontScale;
   showRefunds: boolean;
+  hideSums: boolean;
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds }: RendererProps) {
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, hideSums }: RendererProps) {
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale };
   switch (templateId) {
     case 'progress':        return <ProgressCard {...shared} goal={goal} />;
@@ -517,7 +542,7 @@ function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, p
     case 'milestone':       return <MilestoneCard {...shared} goal={goal} />;
     case 'donors-count':    return <DonorsCountCard {...shared} />;
     case 'urgency':         return <UrgencyCard {...shared} goal={goal} />;
-    case 'top-donors':      return <TopDonorsCard {...shared} />;
+    case 'top-donors':      return <TopDonorsCard {...shared} hideSums={hideSums} />;
     case 'weekly-recap':    return <WeeklyRecapCard {...shared} />;
     case 'speed':           return <SpeedCard {...shared} />;
     case 'funds-flow':      return <FundsFlowCard {...shared} showRefunds={showRefunds} />;

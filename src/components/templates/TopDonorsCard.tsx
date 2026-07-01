@@ -10,12 +10,13 @@ interface TopDonorsCardProps {
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: 1 | 1.5 | 2 | 2.5;
+  hideSums?: boolean;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, hideSums = false }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -141,11 +142,13 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                         </div>
                       )}
                     </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <div style={{ fontSize: fz(isTop3 ? 32 : 28), fontWeight: 800, color: p.accent }}>
-                        {fmt(donor.amount)} ₴
+                    {!hideSums && (
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontSize: fz(isTop3 ? 32 : 28), fontWeight: 800, color: p.accent }}>
+                          {fmt(donor.amount)} ₴
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
               );
