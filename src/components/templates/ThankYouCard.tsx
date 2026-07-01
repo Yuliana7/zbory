@@ -10,11 +10,12 @@ interface ThankYouCardProps {
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
-  fontScale?: 1 | 1.5 | 2 | 2.5;
+  fontScale?: number;
+  bgOverride?: string;
 }
 
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -30,7 +31,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
         style={{
           width: 1080,
           height: isStory ? 1920 : 1080,
-          background: p.background,
+          background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',

@@ -18,7 +18,7 @@ import { PALETTES, DEFAULT_PALETTE, type Palette } from '../utils/palettes';
 import { TEMPLATE_TEXT_FIELDS, TEMPLATE_SUPPORTS_DATE_RANGE, TEMPLATE_REQUIRES_GOAL } from '../utils/templateConfig';
 
 type Format = 'post' | 'story';
-type FontScale = 1 | 1.5 | 2 | 2.5;
+type FontScale = number;
 
 const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
   post: { width: 1080, height: 1080, label: '1080×1080' },
@@ -61,6 +61,7 @@ function ExportPageInner() {
   const templateId: TemplateType = selectedTemplate.id;
 
   const templateRef = useRef<HTMLDivElement>(null);
+  const exportRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
 
   const [scale, setScale] = useState(0.5);
@@ -75,11 +76,40 @@ function ExportPageInner() {
   const [fontScale, setFontScale] = useState<FontScale>(1);
   const [showRefunds, setShowRefunds] = useState(false);
   const [hideSums, setHideSums] = useState(false);
+  const [formatOpen, setFormatOpen] = useState(true);
+  const [bgOpen, setBgOpen] = useState(false);
+  const [fontOpen, setFontOpen] = useState(true);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [refundsOpen, setRefundsOpen] = useState(true);
+  const [hideSumsOpen, setHideSumsOpen] = useState(true);
+  const [goalOpen, setGoalOpen] = useState(true);
+  const [statsOpen, setStatsOpen] = useState(false);
+  const [bgImage, setBgImage] = useState<string | null>(null);
+  const [bgColor, setBgColor] = useState<string | null>(null);
+  const [bgTransparent, setBgTransparent] = useState(false);
+  const [bgBrightness, setBgBrightness] = useState(1);
+  const [bgOpacity, setBgOpacity] = useState(1);
+  const bgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setFormat(DEFAULT_FORMAT[templateId]);
     setTextOverrides({});
   }, [templateId]);
+
+  const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setBgImage(ev.target?.result as string); setBgTransparent(false); setBgColor(null); };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  // Image is rendered as a separate overlay div (with filter/opacity controls),
+  // so the template itself gets 'transparent' when an image is active.
+  const bgOverride = bgTransparent || bgImage
+    ? 'transparent'
+    : bgColor ?? undefined;
 
   const dims = FORMAT_DIMS[format];
 
@@ -129,11 +159,12 @@ function ExportPageInner() {
   })();
 
   const handleExport = async () => {
-    if (!templateRef.current) return;
+    const exportEl = exportRef.current ?? templateRef.current;
+    if (!exportEl) return;
     setIsExporting(true);
     try {
       const filename = `zbory-${templateId}-${format}-${Date.now()}.png`;
-      await exportToPNG(templateRef.current, filename, dims.width, dims.height);
+      await exportToPNG(exportEl, filename, dims.width, dims.height);
     } catch (err) {
       console.error('Export failed:', err);
     } finally {
@@ -158,6 +189,7 @@ function ExportPageInner() {
     fontScale,
     showRefunds,
     hideSums,
+    bgOverride,
   };
 
   return (
@@ -202,289 +234,269 @@ function ExportPageInner() {
                 transformOrigin: 'top left',
               }}
             >
-              <TemplateRenderer templateId={templateId} templateRef={templateRef} {...templateProps} />
+              {/* exportRef wrapper captures template + image overlay for PNG export */}
+              <div
+                ref={exportRef}
+                style={{
+                  position: 'relative',
+                  width: dims.width,
+                  height: dims.height,
+                  overflow: 'hidden',
+                  // palette bg shows through semi-transparent image when opacity < 1
+                  background: bgImage ? palette.background : undefined,
+                }}
+              >
+                {bgImage && (
+                  <div
+                    style={{
+                      position: 'absolute',
+                      inset: 0,
+                      backgroundImage: `url("${bgImage}")`,
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center',
+                      filter: `brightness(${bgBrightness})`,
+                      opacity: bgOpacity,
+                    }}
+                  />
+                )}
+                <TemplateRenderer templateId={templateId} templateRef={templateRef} {...templateProps} />
+              </div>
             </div>
           </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Format toggle */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-3">{t('format.label')}</p>
-            <div className="grid grid-cols-2 gap-2">
+          {/* Reusable chevron */}
+          {/* Format — collapsible */}
+          <Collapsible label={t('format.label')} open={formatOpen} onToggle={() => setFormatOpen(o => !o)}>
+            <div className="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm w-fit">
               {(['post', 'story'] as Format[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => setFormat(f)}
-                  className={`py-2.5 px-3 rounded-lg text-sm font-medium border transition-all ${
-                    format === f
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${
+                    format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {f === 'post' ? t('format.post') : t('format.story')}
-                  <span className={`block text-xs mt-0.5 ${format === f ? 'text-indigo-200' : 'text-gray-400'}`}>
-                    {FORMAT_DIMS[f].label}
-                  </span>
+                  {f === 'post' ? '1:1 Пост' : '9:16 Сторіс'}
                 </button>
               ))}
             </div>
-          </div>
+          </Collapsible>
 
-          {/* Palette picker */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-3">{t('palette.label')}</p>
-            <div className="grid grid-cols-3 gap-2">
-              {PALETTES.map((pal) => (
-                <button
-                  key={pal.id}
-                  onClick={() => setPalette(pal)}
-                  title={pal.name}
-                  className={`relative rounded-lg overflow-hidden h-14 transition-all ${
-                    palette.id === pal.id
-                      ? 'ring-2 ring-indigo-500 ring-offset-1 scale-105'
-                      : 'hover:scale-102 hover:ring-1 hover:ring-gray-300'
-                  }`}
-                  style={{ background: pal.background }}
-                >
-                  <span
-                    className="absolute inset-0 flex items-end justify-start p-1.5"
-                    style={{ color: pal.primary, fontSize: 10, fontWeight: 600, opacity: 0.8 }}
-                  >
-                    {pal.name}
-                  </span>
-                  {palette.id === pal.id && (
-                    <span className="absolute top-1 right-1 w-3 h-3 bg-white rounded-full flex items-center justify-center">
-                      <svg className="w-2 h-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Font scale */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5">
-            <p className="text-sm font-semibold text-gray-700 mb-3">{t('fontScale.label')}</p>
-            <div className="grid grid-cols-4 gap-2">
-              {([1, 1.5, 2, 2.5] as FontScale[]).map((scale) => (
-                <button
-                  key={scale}
-                  onClick={() => setFontScale(scale)}
-                  className={`py-2 rounded-lg text-sm font-medium border transition-all ${
-                    fontScale === scale
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
-                      : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-300'
-                  }`}
-                >
-                  {scale}×
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Date range */}
-          {supportsDateRange && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <p className="text-sm font-semibold text-gray-700 mb-3">{t('dateRange.label')}</p>
-              <div className="space-y-2">
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">{t('dateRange.from')}</label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    min={campaignMin}
-                    max={dateTo || campaignMax}
-                    onChange={e => setDateFrom(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
+          {/* Background + palette — collapsible */}
+          <Collapsible label="Фон та стиль" open={bgOpen} onToggle={() => setBgOpen(o => !o)}>
+            <div className="space-y-4">
+              {/* Palette swatches */}
+              <div>
+                <p className="text-xs font-medium text-gray-500 mb-2">{t('palette.label')}</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {PALETTES.map((pal) => (
+                    <button
+                      key={pal.id}
+                      onClick={() => setPalette(pal)}
+                      title={pal.name}
+                      className={`relative rounded-lg overflow-hidden h-10 transition-all ${
+                        palette.id === pal.id
+                          ? 'ring-2 ring-indigo-500 ring-offset-1 scale-105'
+                          : 'hover:ring-1 hover:ring-gray-300'
+                      }`}
+                      style={{ background: pal.background }}
+                    >
+                      <span className="absolute inset-0 flex items-end justify-start p-1" style={{ color: pal.primary, fontSize: 8, fontWeight: 600, opacity: 0.85 }}>
+                        {pal.name}
+                      </span>
+                      {palette.id === pal.id && (
+                        <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-white rounded-full flex items-center justify-center">
+                          <svg className="w-2 h-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </span>
+                      )}
+                    </button>
+                  ))}
                 </div>
-                <div>
-                  <label className="block text-xs text-gray-500 mb-1">{t('dateRange.to')}</label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    min={dateFrom || campaignMin}
-                    max={campaignMax}
-                    onChange={e => setDateTo(e.target.value)}
-                    className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                               focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                  />
-                </div>
-                {(dateFrom || dateTo) && (
+              </div>
+
+              {/* Background override */}
+              <div className="border-t border-gray-100 pt-3">
+                <p className="text-xs font-medium text-gray-500 mb-2">Свій фон</p>
+                <div className="flex gap-2 flex-wrap">
                   <button
-                    onClick={() => { setDateFrom(''); setDateTo(''); }}
-                    className="text-xs text-gray-400 hover:text-gray-600 underline"
+                    onClick={() => { setBgTransparent(v => !v); setBgImage(null); setBgColor(null); }}
+                    title="Прозорий фон"
+                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${bgTransparent ? 'border-indigo-500 scale-105' : 'border-gray-200 hover:border-gray-400'}`}
                   >
-                    {t('dateRange.reset')}
+                    <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+                      <rect width="40" height="40" fill="#fff"/>
+                      <rect x="0" y="0" width="10" height="10" fill="#ccc"/><rect x="20" y="0" width="10" height="10" fill="#ccc"/>
+                      <rect x="10" y="10" width="10" height="10" fill="#ccc"/><rect x="30" y="10" width="10" height="10" fill="#ccc"/>
+                      <rect x="0" y="20" width="10" height="10" fill="#ccc"/><rect x="20" y="20" width="10" height="10" fill="#ccc"/>
+                      <rect x="10" y="30" width="10" height="10" fill="#ccc"/><rect x="30" y="30" width="10" height="10" fill="#ccc"/>
+                    </svg>
+                  </button>
+                  <label title="Свій колір" className="relative w-10 h-10 rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:border-indigo-400 border-gray-200">
+                    <input type="color" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" value={bgColor ?? '#ffffff'} onChange={(e) => { setBgColor(e.target.value); setBgImage(null); setBgTransparent(false); }} />
+                    <div className="w-full h-full" style={{ background: bgColor ?? 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }} />
+                  </label>
+                  <button
+                    onClick={() => bgInputRef.current?.click()}
+                    title="Завантажити фото"
+                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden flex items-center justify-center transition-all ${bgImage ? 'border-indigo-500' : 'border-gray-200 hover:border-gray-400'}`}
+                    style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                  >
+                    {!bgImage && <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                  </button>
+                  <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
+                </div>
+                {bgImage && (
+                  <div className="mt-3 space-y-3">
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Яскравість</span><span>{Math.round(bgBrightness * 100)}%</span></div>
+                      <input type="range" min={0.1} max={1.5} step={0.05} value={bgBrightness} onChange={e => setBgBrightness(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Непрозорість</span><span>{Math.round(bgOpacity * 100)}%</span></div>
+                      <input type="range" min={0.05} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                    </div>
+                  </div>
+                )}
+                {(bgImage || bgColor || bgTransparent) && (
+                  <button onClick={() => { setBgImage(null); setBgColor(null); setBgTransparent(false); setBgBrightness(1); setBgOpacity(1); }} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
+                    Скинути фон
                   </button>
                 )}
               </div>
-              {(dateFrom || dateTo) && (
-                <p className="mt-2 text-xs text-indigo-600 font-medium">
-                  {t('dateRange.filtered', { count: filteredAggregates.donationCount })}
-                </p>
-              )}
             </div>
+          </Collapsible>
+
+          {/* Font scale — collapsible */}
+          <Collapsible
+            label={t('fontScale.label')}
+            badge={`${fontScale.toFixed(2)}×`}
+            open={fontOpen}
+            onToggle={() => setFontOpen(o => !o)}
+          >
+            <input type="range" min={0.75} max={2.5} step={0.05} value={fontScale} onChange={(e) => setFontScale(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+            <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+              <span>0.75×</span><span>1×</span><span>2.5×</span>
+            </div>
+          </Collapsible>
+
+          {/* Date range — collapsible, conditional */}
+          {supportsDateRange && (
+            <Collapsible
+              label={t('dateRange.label')}
+              badge={(dateFrom || dateTo) ? t('dateRange.filtered', { count: filteredAggregates.donationCount }) : undefined}
+              badgeColor="indigo"
+              open={dateOpen}
+              onToggle={() => setDateOpen(o => !o)}
+            >
+              <div className="space-y-2">
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">{t('dateRange.from')}</label>
+                  <input type="date" value={dateFrom} min={campaignMin} max={dateTo || campaignMax} onChange={e => setDateFrom(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">{t('dateRange.to')}</label>
+                  <input type="date" value={dateTo} min={dateFrom || campaignMin} max={campaignMax} onChange={e => setDateTo(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                </div>
+                {(dateFrom || dateTo) && (
+                  <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('dateRange.reset')}</button>
+                )}
+              </div>
+            </Collapsible>
           )}
 
-          {/* Refunds explainer — funds-flow only, only when implied refunds are meaningful */}
+          {/* Refunds — collapsible, conditional */}
           {templateId === 'funds-flow' && filteredAggregates.impliedRefunds > 500 && (
-            <div className="bg-purple-50 border border-purple-200 rounded-xl p-5 space-y-3">
-              <div className="flex items-start gap-2">
-                <span className="text-lg leading-none mt-0.5">↩️</span>
-                <p className="text-sm font-semibold text-purple-900">{t('refundsPanel.title')}</p>
-              </div>
-              <p className="text-xs text-purple-700 leading-relaxed">
-                {t('refundsPanel.description', {
-                  amount: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.impliedRefunds)),
-                })}
+            <Collapsible label={t('refundsPanel.title')} icon="↩️" open={refundsOpen} onToggle={() => setRefundsOpen(o => !o)} purple>
+              <p className="text-xs text-purple-700 leading-relaxed mb-3">
+                {t('refundsPanel.description', { amount: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.impliedRefunds)) })}
               </p>
               <label className="flex items-center gap-3 cursor-pointer group">
-                <div
-                  onClick={() => setShowRefunds(v => !v)}
-                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-                    showRefunds ? 'bg-purple-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      showRefunds ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
+                <div onClick={() => setShowRefunds(v => !v)} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${showRefunds ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${showRefunds ? 'translate-x-5' : 'translate-x-1'}`} />
                 </div>
-                <span className="text-xs font-medium text-purple-800 group-hover:text-purple-900">
-                  {t('refundsPanel.toggle')}
-                </span>
+                <span className="text-xs font-medium text-purple-800 group-hover:text-purple-900">{t('refundsPanel.toggle')}</span>
               </label>
-              <p className="text-xs text-purple-500 italic">{t('refundsPanel.note')}</p>
-            </div>
+              <p className="text-xs text-purple-500 italic mt-2">{t('refundsPanel.note')}</p>
+            </Collapsible>
           )}
 
-          {/* Hide sums toggle — top-donors only */}
+          {/* Hide sums — collapsible, conditional */}
           {templateId === 'top-donors' && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
+            <Collapsible label="Відображення" open={hideSumsOpen} onToggle={() => setHideSumsOpen(o => !o)}>
               <label className="flex items-center justify-between gap-3 cursor-pointer">
-                <span className="text-sm font-semibold text-gray-700">Показати лише кількість</span>
-                <div
-                  onClick={() => setHideSums(v => !v)}
-                  className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${
-                    hideSums ? 'bg-indigo-600' : 'bg-gray-300'
-                  }`}
-                >
-                  <span
-                    className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${
-                      hideSums ? 'translate-x-5' : 'translate-x-1'
-                    }`}
-                  />
+                <span className="text-sm text-gray-700">Показати лише кількість</span>
+                <div onClick={() => setHideSums(v => !v)} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${hideSums ? 'bg-indigo-600' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${hideSums ? 'translate-x-5' : 'translate-x-1'}`} />
                 </div>
               </label>
               <p className="mt-2 text-xs text-gray-400">Приховати суму, середній та максимальний донат</p>
-            </div>
+            </Collapsible>
           )}
 
-          {/* Goal input */}
+          {/* Goal — collapsible, conditional */}
           {showGoal && (
-            <div className="bg-white rounded-xl border border-gray-200 p-5">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                {t('goal.label')}
-                {requiresGoal && <span className="text-red-500 ml-1">*</span>}
-              </label>
+            <Collapsible label={t('goal.label')} open={goalOpen} onToggle={() => setGoalOpen(o => !o)}>
               <div className="relative">
                 <input
                   type="text"
                   value={goal}
                   onChange={(e) => setGoal(e.target.value)}
                   placeholder={t('goal.placeholder')}
-                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm
-                             focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  className="w-full border border-gray-300 rounded-lg px-4 py-2.5 pr-10 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
                 />
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₴</span>
               </div>
               <p className="mt-1.5 text-xs text-gray-400">{t('goal.hint')}</p>
-            </div>
+              {requiresGoal && !goal && <p className="mt-1 text-xs text-red-500">Обов'язкове поле</p>}
+            </Collapsible>
           )}
 
-          {/* Text editor */}
-          <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-            <button
-              onClick={() => setTextEditorOpen(o => !o)}
-              className="w-full flex items-center justify-between p-5 text-left hover:bg-gray-50 transition-colors"
-            >
-              <p className="text-sm font-semibold text-gray-700">{t('textEditor.label')}</p>
-              <svg
-                className={`w-4 h-4 text-gray-400 transition-transform ${textEditorOpen ? 'rotate-180' : ''}`}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-              </svg>
-            </button>
-            {textEditorOpen && (
-              <div className="px-5 pb-5 space-y-3 border-t border-gray-100">
-                {textFields.map((field) => {
-                  const defaultValue =
-                    field.key === 'achievedLabel' && templateId === 'milestone'
-                      ? t(`templates:milestone.${milestoneAchievedKey}`)
-                      : t(`templates:${templateId}.${field.key}`);
-                  const currentValue = textOverrides[field.key] ?? defaultValue;
-                  return (
-                    <div key={field.key}>
-                      <label className="block text-xs text-gray-500 mb-1">{field.label}</label>
-                      {field.multiline ? (
-                        <textarea
-                          value={currentValue}
-                          onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          placeholder={t('textEditor.defaultPlaceholder')}
-                          rows={3}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent
-                                     resize-none"
-                        />
-                      ) : (
-                        <input
-                          type="text"
-                          value={currentValue}
-                          onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))}
-                          placeholder={t('textEditor.defaultPlaceholder')}
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm
-                                     focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
-                        />
-                      )}
-                    </div>
-                  );
-                })}
-                {Object.keys(textOverrides).length > 0 && (
-                  <button
-                    onClick={() => setTextOverrides({})}
-                    className="text-xs text-gray-400 hover:text-gray-600 underline"
-                  >
-                    {t('textEditor.reset')}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {/* Text editor — collapsible */}
+          <Collapsible label={t('textEditor.label')} open={textEditorOpen} onToggle={() => setTextEditorOpen(o => !o)}>
+            <div className="space-y-3">
+              {textFields.map((field) => {
+                const defaultValue =
+                  field.key === 'achievedLabel' && templateId === 'milestone'
+                    ? t(`templates:milestone.${milestoneAchievedKey}`)
+                    : t(`templates:${templateId}.${field.key}`);
+                const currentValue = textOverrides[field.key] ?? defaultValue;
+                return (
+                  <div key={field.key}>
+                    <label className="block text-xs text-gray-500 mb-1">{field.label}</label>
+                    {field.multiline ? (
+                      <textarea value={currentValue} onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
+                    ) : (
+                      <input type="text" value={currentValue} onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))} placeholder={t('textEditor.defaultPlaceholder')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                    )}
+                  </div>
+                );
+              })}
+              {Object.keys(textOverrides).length > 0 && (
+                <button onClick={() => setTextOverrides({})} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('textEditor.reset')}</button>
+              )}
+            </div>
+          </Collapsible>
 
-          {/* Stats summary */}
-          <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-3">
-            <p className="text-sm font-semibold text-gray-700">{t('stats.title')}</p>
-            {[
-              { label: t('stats.collected'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.totalAmount)) + ' ₴' },
-              { label: t('stats.donations'), value: String(filteredAggregates.donationCount) },
-              { label: t('stats.average'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.avgDonation)) + ' ₴' },
-            ].map((s) => (
-              <div key={s.label} className="flex justify-between text-sm">
-                <span className="text-gray-500">{s.label}</span>
-                <span className="font-medium text-gray-900">{s.value}</span>
-              </div>
-            ))}
-          </div>
+          {/* Stats — collapsible */}
+          <Collapsible label={t('stats.title')} open={statsOpen} onToggle={() => setStatsOpen(o => !o)}>
+            <div className="space-y-3">
+              {[
+                { label: t('stats.collected'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.totalAmount)) + ' ₴' },
+                { label: t('stats.donations'), value: String(filteredAggregates.donationCount) },
+                { label: t('stats.average'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.avgDonation)) + ' ₴' },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between text-sm">
+                  <span className="text-gray-500">{s.label}</span>
+                  <span className="font-medium text-gray-900">{s.value}</span>
+                </div>
+              ))}
+            </div>
+          </Collapsible>
 
           {/* Download button */}
           <button
@@ -531,10 +543,11 @@ interface RendererProps {
   fontScale: FontScale;
   showRefunds: boolean;
   hideSums: boolean;
+  bgOverride?: string;
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, hideSums }: RendererProps) {
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale };
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, hideSums, bgOverride }: RendererProps) {
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride };
   switch (templateId) {
     case 'progress':        return <ProgressCard {...shared} goal={goal} />;
     case 'daily-activity':  return <DailyActivityCard {...shared} />;
@@ -547,4 +560,50 @@ function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, p
     case 'speed':           return <SpeedCard {...shared} />;
     case 'funds-flow':      return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
   }
+}
+
+// ─── Collapsible sidebar section ─────────────────────────────────────────────
+
+function Collapsible({
+  label, open, onToggle, children,
+  badge, badgeColor, icon, purple,
+}: {
+  label: string;
+  open: boolean;
+  onToggle: () => void;
+  children?: React.ReactNode;
+  badge?: string;
+  badgeColor?: 'indigo' | 'gray';
+  icon?: string;
+  purple?: boolean;
+}) {
+  return (
+    <div className={`rounded-xl border overflow-hidden ${purple ? 'bg-purple-50 border-purple-200' : 'bg-white border-gray-200'}`}>
+      <button
+        onClick={onToggle}
+        className={`w-full flex items-center justify-between p-4 text-left transition-colors ${purple ? 'hover:bg-purple-100' : 'hover:bg-gray-50'}`}
+      >
+        <div className="flex items-center gap-2">
+          {icon && <span className="text-base leading-none">{icon}</span>}
+          <span className={`text-sm font-semibold ${purple ? 'text-purple-900' : 'text-gray-700'}`}>{label}</span>
+          {badge && (
+            <span className={`text-xs font-medium ${badgeColor === 'indigo' ? 'text-indigo-600' : 'text-gray-400 font-mono'}`}>
+              {badge}
+            </span>
+          )}
+        </div>
+        <svg
+          className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''} ${purple ? 'text-purple-400' : 'text-gray-400'}`}
+          fill="none" viewBox="0 0 24 24" stroke="currentColor"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+      {open && (
+        <div className={`px-4 pb-4 pt-3 border-t ${purple ? 'border-purple-200' : 'border-gray-100'}`}>
+          {children}
+        </div>
+      )}
+    </div>
+  );
 }
