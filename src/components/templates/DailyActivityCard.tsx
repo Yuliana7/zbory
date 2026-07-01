@@ -10,11 +10,12 @@ interface DailyActivityCardProps {
   format?: 'post' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
-  fontScale?: 1 | 1.5 | 2 | 2.5;
+  fontScale?: number;
+  bgOverride?: string;
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1 }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
     const { t } = useTranslation('templates');
     const isPost = format === 'post';
     const p = palette;
@@ -66,7 +67,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         style={{
           width: 1080,
           height: isPost ? 1080 : 1920,
-          background: p.background,
+          background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
           padding: '80px',
