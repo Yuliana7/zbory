@@ -95,7 +95,7 @@ export interface Template {
 
 // App state
 export interface AppState {
-  step: 'upload' | 'insights' | 'gallery' | 'export' | 'custom-builder';
+  step: 'upload' | 'insights' | 'gallery' | 'export';
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   withdrawals: Withdrawal[] | null;
