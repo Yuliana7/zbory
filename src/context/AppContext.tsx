@@ -15,8 +15,10 @@ import type {
   Insight,
   CommentInsights,
   TemplateType,
+  ManualRow,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
+import { manualRowsToRawDonations } from '../utils/csvExporter';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
@@ -39,6 +41,7 @@ const INITIAL_APP_STATE: AppState = {
   insights: null,
   commentInsights: null,
   selectedTemplate: null,
+  originalFileName: null,
 };
 
 const INITIAL_STATE: FullState = {
@@ -50,7 +53,7 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
       payload: {
@@ -86,7 +89,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
         ...state,
         isLoading: false,
         error: null,
-        app: { ...state.app, ...action.payload },
+        app: { ...state.app, ...action.payload, originalFileName: action.payload.originalFileName ?? null },
       };
 
     case 'PROCEED_TO_INSIGHTS':
@@ -132,6 +135,7 @@ interface AppContextValue {
   state: FullState;
   dispatch: Dispatch<AppAction>;
   handleFileSelect: (file: File) => Promise<void>;
+  handleManualDataProceed: (rows: ManualRow[]) => void;
   handleProceedToInsights: (goal?: number) => void;
   handleTemplateSelect: (templateId: TemplateType) => void;
   handleReset: () => void;
@@ -158,11 +162,28 @@ export function AppProvider({ children }: { children: ReactNode }) {
           'Не вдалося обробити дані з CSV файлу. Переконайтеся, що формат файлу правильний',
         );
 
-      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
+      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance, originalFileName: file.name } });
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
         payload: err instanceof Error ? err.message : 'Помилка при обробці файлу',
+      });
+    }
+  }, []);
+
+  const handleManualDataProceed = useCallback((rows: ManualRow[]) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const rawData = manualRowsToRawDonations(rows);
+      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
+      if (donations.length === 0) {
+        throw new Error('Не вдалося розпізнати жодного донату. Перевірте введені дані');
+      }
+      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : 'Помилка при обробці даних',
       });
     }
   }, []);
@@ -197,7 +218,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const goToStep = useCallback(
     (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
+      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4, 'custom-builder': 4 };
       if (idx[step] < idx[state.app.step]) {
         dispatch({ type: 'GO_TO_STEP', payload: step });
       }
@@ -207,7 +228,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleProceedToInsights, handleTemplateSelect, handleReset, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleReset, goToStep }}
     >
       {children}
     </AppContext.Provider>

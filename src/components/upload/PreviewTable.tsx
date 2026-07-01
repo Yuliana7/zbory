@@ -8,9 +8,10 @@ interface PreviewTableProps {
   totalCount: number;
   onProceed: (goal?: number) => void;
   onCancel: () => void;
+  onEdit?: () => void;
 }
 
-export function PreviewTable({ donations, totalCount, onProceed, onCancel }: PreviewTableProps) {
+export function PreviewTable({ donations, totalCount, onProceed, onCancel, onEdit }: PreviewTableProps) {
   const { t } = useTranslation('upload');
   const [goalInput, setGoalInput] = useState('');
 
@@ -108,10 +109,17 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel }: Pre
           )}
         </div>
 
-        <div className="mt-4 flex justify-end space-x-3">
-          <button onClick={onCancel} className="btn-secondary">
-            {t('preview.cancelButton')}
-          </button>
+        <div className="mt-4 flex justify-between items-center">
+          <div className="flex gap-3">
+            <button onClick={onCancel} className="btn-secondary">
+              {t('preview.cancelButton')}
+            </button>
+            {onEdit && (
+              <button onClick={onEdit} className="btn-secondary">
+                {t('preview.editButton')}
+              </button>
+            )}
+          </div>
           <button onClick={handleProceed} className="btn-primary">
             {t('preview.proceedButton')}
           </button>

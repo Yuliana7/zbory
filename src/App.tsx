@@ -14,6 +14,7 @@ const STEP_INDEX: Record<AppState['step'], number> = {
   insights: 2,
   gallery: 3,
   export: 4,
+  'custom-builder': 4,
 }
 
 const STEP_KEYS: AppState['step'][] = ['upload', 'insights', 'gallery', 'export']

@@ -357,7 +357,7 @@ function ExportPageInner() {
                       <input type="range" min={0.1} max={1.5} step={0.05} value={bgBrightness} onChange={e => setBgBrightness(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Непрозорість</span><span>{Math.round(bgOpacity * 100)}%</span></div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Прозорість</span><span>{Math.round(bgOpacity * 100)}%</span></div>
                       <input type="range" min={0.05} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
                     </div>
                   </div>
