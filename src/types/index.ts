@@ -105,6 +105,7 @@ export interface AppState {
   commentInsights: CommentInsights | null;
   selectedTemplate: Template | null;
   goal?: number;
+  originalFileName: string | null;
 }
 
 // Comment analysis results
@@ -120,6 +121,18 @@ export interface CommentInsights {
   repeatDonors: RepeatDonor[];                    // identities with 2+ donations
   communities: string[];                          // detected group links / mentions
   hasEnoughData: boolean;                         // false when <3% of donations have comments
+}
+
+// A single row in the manual statement editor
+export interface ManualRow {
+  id: string;        // React key (crypto.randomUUID)
+  date: string;      // YYYY-MM-DD (from <input type="date">)
+  time: string;      // HH:mm  (from <input type="time">, optional)
+  name: string;      // donor name — required
+  amount: string;    // positive number string — required
+  category?: string; // defaults to "За посиланням"
+  comment: string;   // optional
+  balance: string;   // Залишок — shown auto-computed; user may override; empty = use computed
 }
 
 // Export options
