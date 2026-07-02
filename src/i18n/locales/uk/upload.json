@@ -1,6 +1,6 @@
 {
   "title": "Завантажте CSV файл з виписки",
-  "subtitle": "Підтримуються файли з Monobank Jar",
+  "subtitle": "Підтримуються файли з банок Monobank.",
   "manualTitle": "Введіть дані вручну",
   "tabs": {
     "upload": "Завантажити CSV",
@@ -48,8 +48,14 @@
       "placeholder": "Наприклад: 100000",
       "invalidNumber": "Введіть коректне число"
     },
+    "invalidRows_one": "{{count}} рядок не вдалося розпізнати",
+    "invalidRows_few": "{{count}} рядки не вдалося розпізнати",
+    "invalidRows_many": "{{count}} рядків не вдалося розпізнати",
+    "invalidRows_other": "{{count}} рядки не вдалося розпізнати",
+    "invalidRowsHint": "Відредагуйте дані перед продовженням",
     "cancelButton": "Обрати інший файл",
     "editButton": "Редагувати дані",
-    "proceedButton": "Продовжити до аналітики →"
+    "proceedButton": "Продовжити до аналітики →",
+    "proceedAnywayButton": "Продовжити без виправлень →"
   }
 }

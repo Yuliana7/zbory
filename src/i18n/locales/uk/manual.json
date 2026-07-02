@@ -37,5 +37,16 @@
   "empty": {
     "title": "Таблиця порожня",
     "description": "Натисніть «Додати рядок», щоб розпочати"
+  },
+  "pagination": {
+    "goto": "Стор.:",
+    "prevError": "← Попередня",
+    "nextError": "Наступна →",
+    "errorOf": "з",
+    "row": "рядок",
+    "rowsWithErrors_one": "{{count}} рядок з помилкою",
+    "rowsWithErrors_few": "{{count}} рядки з помилками",
+    "rowsWithErrors_many": "{{count}} рядків з помилками",
+    "rowsWithErrors_other": "{{count}} рядки з помилками"
   }
 }

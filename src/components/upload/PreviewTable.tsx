@@ -6,19 +6,25 @@ import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
 interface PreviewTableProps {
   donations: Donation[];
   totalCount: number;
+  invalidRowCount?: number;
   onProceed: (goal?: number) => void;
   onCancel: () => void;
   onEdit?: () => void;
 }
 
-export function PreviewTable({ donations, totalCount, onProceed, onCancel, onEdit }: PreviewTableProps) {
+export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit }: PreviewTableProps) {
   const { t } = useTranslation('upload');
   const [goalInput, setGoalInput] = useState('');
+  const [showErrors, setShowErrors] = useState(false);
 
   const previewDonations = donations.slice(0, 10);
   const parsedGoal = parseGoal(goalInput);
 
   function handleProceed() {
+    if (invalidRowCount > 0 && !showErrors) {
+      setShowErrors(true);
+      return;
+    }
     onProceed(parsedGoal ?? undefined);
   }
 
@@ -80,6 +86,27 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel, onEdi
           </div>
         )}
 
+        {/* Invalid rows warning — shown only after a proceed attempt */}
+        {showErrors && invalidRowCount > 0 && (
+          <div className="mt-4 flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium text-amber-800">
+                {t('preview.invalidRows', { count: invalidRowCount })}
+              </p>
+              <p className="text-xs text-amber-600 mt-0.5">{t('preview.invalidRowsHint')}</p>
+            </div>
+            {onEdit && (
+              <button
+                onClick={onEdit}
+                className="shrink-0 px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors"
+              >
+                {t('preview.editButton')}
+              </button>
+            )}
+          </div>
+        )}
+
         {/* Goal input */}
         <div className="mt-6 p-4 bg-indigo-50 rounded-xl border border-indigo-100">
           <label className="block text-sm font-semibold text-indigo-900 mb-1">
@@ -121,7 +148,9 @@ export function PreviewTable({ donations, totalCount, onProceed, onCancel, onEdi
             )}
           </div>
           <button onClick={handleProceed} className="btn-primary w-full">
-            {t('preview.proceedButton')}
+            {showErrors && invalidRowCount > 0
+              ? t('preview.proceedAnywayButton')
+              : t('preview.proceedButton')}
           </button>
         </div>
       </div>

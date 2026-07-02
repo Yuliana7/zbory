@@ -125,7 +125,7 @@ export interface CommentInsights {
 
 // A single row in the manual statement editor
 export interface ManualRow {
-  id: string;        // React key (crypto.randomUUID)
+  id: string;        // React key (generateId)
   date: string;      // YYYY-MM-DD (from <input type="date">)
   time: string;      // HH:mm  (from <input type="time">, optional)
   name: string;      // donor name — required

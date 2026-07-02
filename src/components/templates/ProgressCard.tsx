@@ -154,7 +154,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           {progressPct !== null && (
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
-                <span style={{ fontSize: fz(22), color: p.secondary }}>
+                <span style={{ fontSize: fz(22), color: p.secondary, whiteSpace: 'nowrap' }}>
                   {tx('goalLabel')}: {formattedGoal} ₴
                 </span>
                 <span

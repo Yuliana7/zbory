@@ -1,4 +1,5 @@
 import type { ManualRow, RawDonation } from '../types';
+import { generateId } from './id';
 
 const CSV_HEADERS =
   'Дата та час операції,Категорія операції,Сума,Валюта,Додаткова інформація,Коментар до платежу,Залишок,Валюта залишку';
@@ -94,7 +95,7 @@ export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
     }
 
     return {
-      id: crypto.randomUUID(),
+      id: generateId(),
       date: yyyy && mm && dd ? `${yyyy}-${mm}-${dd}` : '',
       time: timePart,
       name,
