@@ -17,12 +17,13 @@ interface ThankYouCardProps {
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
     const { t } = useTranslation('templates');
+    const { t: tInsights } = useTranslation('insights');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`thank-you.${key}`);
 
-    const message = tx('message', generateThankYouMessage(aggregates.totalAmount, aggregates.donationCount));
+    const message = tx('message', generateThankYouMessage(aggregates.totalAmount, aggregates.donationCount, tInsights));
     const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount));
 
     return (

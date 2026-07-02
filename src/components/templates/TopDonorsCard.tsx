@@ -89,7 +89,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {donors.length === 0 ? (
             <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(32), marginTop: 80 }}>
-              Немає даних про донорів
+              {tx('noDataLabel')}
             </div>
           ) : (
             donors.map((donor, i) => {

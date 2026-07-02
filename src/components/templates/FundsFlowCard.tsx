@@ -40,7 +40,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
       { label: tx('donationsLabel'), value: String(donationCount) },
       { label: tx('withdrawalsLabel'), value: String(withdrawals.length) },
       {
-        label: 'Середній донат',
+        label: tx('avgLabel'),
         value: fmt(donationCount > 0 ? totalRaised / donationCount : 0) + ' ₴',
       },
     ];

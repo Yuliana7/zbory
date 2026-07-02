@@ -18,7 +18,7 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
     (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24),
   );
 
-  const actionableInsights = generateActionableInsights(aggregates, goal);
+  const actionableInsights = generateActionableInsights(aggregates, t, goal);
 
   return (
     <div className="space-y-4">

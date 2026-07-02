@@ -21,7 +21,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string, def: string) => textOverrides[key] ?? def;
+    const tx = (key: string) => textOverrides[key] ?? t(`progress.${key}`);
 
     const total = aggregates.totalAmount;
     const progressPct = goal ? Math.round((total / goal) * 100) : null;
@@ -44,7 +44,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
       progressPct === null
         ? ''
         : progressPct > 100
-        ? `${progressPct}% — мету перевиконано! 🎉`
+        ? `${progressPct}% ${t('progress.targetSurplus')}`
         : `${progressPct}%`;
 
     return (
@@ -109,10 +109,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             </div>
             <div>
               <div style={{ fontSize: fz(28), fontWeight: 700, letterSpacing: '-0.5px' }}>
-                {tx('title', t('progress.title'))}
+                {tx('title')}
               </div>
               <div style={{ fontSize: fz(18), color: p.secondary, marginTop: 2 }}>
-                {tx('subtitle', t('progress.subtitle'))}
+                {tx('subtitle')}
               </div>
             </div>
           </div>
@@ -125,7 +125,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
-            {tx('collectedLabel', t('progress.collectedLabel'))}
+            {tx('collectedLabel')}
           </div>
           <div
             style={{
@@ -148,14 +148,14 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               letterSpacing: '-1px',
             }}
           >
-            {tx('currencyLabel', 'гривень')}
+            {tx('currencyLabel')}
           </div>
 
           {progressPct !== null && (
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('goalLabel', t('progress.goalLabel'))}: {formattedGoal} ₴
+                  {tx('goalLabel')}: {formattedGoal} ₴
                 </span>
                 <span
                   style={{
@@ -198,13 +198,13 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           }}
         >
           {[
-            { label: tx('statDonations', 'Донатів'), value: String(aggregates.donationCount) },
+            { label: tx('statDonations'), value: String(aggregates.donationCount) },
             {
-              label: tx('statAverage', 'Середній'),
+              label: tx('statAverage'),
               value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.avgDonation)) + ' ₴',
             },
             {
-              label: tx('statMax', 'Найбільший'),
+              label: tx('statMax'),
               value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.maxDonation)) + ' ₴',
             },
           ].map((stat) => (

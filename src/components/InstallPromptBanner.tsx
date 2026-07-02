@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>
@@ -10,6 +11,7 @@ interface BeforeInstallPromptEvent extends Event {
  * when the browser's native prompt is available.
  */
 export function InstallPromptBanner() {
+  const { t } = useTranslation('common')
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null)
   const [showBanner, setShowBanner] = useState(false)
   const [isInstalled, setIsInstalled] = useState(false)
@@ -81,9 +83,9 @@ export function InstallPromptBanner() {
             </div>
           </div>
           <div className="flex-1">
-            <h3 className="font-semibold text-gray-900">Збори на екрані</h3>
+            <h3 className="font-semibold text-gray-900">{t('install.title')}</h3>
             <p className="text-sm text-gray-600 mt-1">
-              Встановіть застосунок на домашній екран для швидкого доступу
+              {t('install.subtitle')}
             </p>
           </div>
         </div>
@@ -92,13 +94,13 @@ export function InstallPromptBanner() {
             onClick={handleInstall}
             className="flex-1 px-4 py-2 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors text-sm"
           >
-            Встановити
+            {t('install.install')}
           </button>
           <button
             onClick={handleDismiss}
             className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 font-medium rounded-lg hover:bg-gray-200 transition-colors text-sm"
           >
-            Пізніше
+            {t('install.later')}
           </button>
         </div>
       </div>

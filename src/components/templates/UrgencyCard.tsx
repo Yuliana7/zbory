@@ -108,7 +108,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
                 {remainingFormatted}
               </div>
               <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px', marginBottom: 56 }}>
-                гривень
+                {tx('currencyLabel')}
               </div>
             </>
           ) : (
@@ -122,7 +122,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
                 marginBottom: 56,
               }}
             >
-              Підтримай збір!
+              {tx('ctaNoGoal')}
             </div>
           )}
 
@@ -188,8 +188,8 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           }}
         >
           {[
-            { label: 'Зібрано', value: fmt(total) + ' ₴' },
-            { label: 'Донатів', value: String(aggregates.donationCount) },
+            { label: tx('statRaisedLabel'), value: fmt(total) + ' ₴' },
+            { label: tx('statDonationsLabel'), value: String(aggregates.donationCount) },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>

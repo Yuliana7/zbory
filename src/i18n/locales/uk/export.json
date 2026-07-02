@@ -3,11 +3,29 @@
   "format": {
     "label": "Формат",
     "post": "Пост 1:1",
-    "story": "Сторіс 9:16"
+    "story": "Сторіс 9:16",
+    "postShort": "1:1 Пост",
+    "storyShort": "9:16 Сторіс"
   },
   "palette": {
     "label": "Колірна схема"
   },
+  "background": {
+    "label": "Фон та стиль",
+    "ownLabel": "Свій фон",
+    "transparent": "Прозорий фон",
+    "customColor": "Свій колір",
+    "uploadPhoto": "Завантажити фото",
+    "brightness": "Яскравість",
+    "opacity": "Прозорість",
+    "reset": "Скинути фон"
+  },
+  "hideSums": {
+    "sectionLabel": "Відображення",
+    "toggle": "Показати лише кількість",
+    "hint": "Приховати суму, середній та максимальний донат"
+  },
+  "requiredField": "Обов'язкове поле",
   "dateRange": {
     "label": "Діапазон дат",
     "from": "Від",
@@ -53,5 +71,94 @@
     "description": "Розрахункова різниця між сумою донатів, зняттями та поточним балансом становить {{amount}} ₴. Найімовірніше, один або кілька донаторів скасували переказ після відправки, або банк зробив технічну корекцію. Монобанк не відображає повернення окремим рядком у виписці — ми вираховуємо цю суму з балансу.",
     "toggle": "Показати «Повернуто» на картці",
     "note": "Якщо ви не впевнені, що відбулося, — радимо звернутися у підтримку Монобанку."
+  },
+  "fieldLabels": {
+    "progress": {
+      "title": "Назва",
+      "subtitle": "Підзаголовок",
+      "collectedLabel": "Мітка «Зібрано»",
+      "currencyLabel": "Назва валюти",
+      "goalLabel": "Мітка цілі",
+      "statDonations": "Мітка «Донатів»",
+      "statAverage": "Мітка «Середній»",
+      "statMax": "Мітка «Найбільший»"
+    },
+    "daily-activity": {
+      "title": "Назва",
+      "subtitle": "Підзаголовок",
+      "totalLabel": "Мітка суми",
+      "chartLabel": "Підпис графіку",
+      "barsLabel": "Підпис стовпчиків",
+      "bestDayLabel": "Підпис найкращого дня",
+      "statDonations": "Мітка «Донатів»",
+      "statAverage": "Мітка «Середній»"
+    },
+    "thank-you": {
+      "title": "Заголовок",
+      "amountLabel": "Підпис суми",
+      "message": "Повідомлення",
+      "donorsLabel": "Підпис донорів",
+      "branding": "Брендинг внизу"
+    },
+    "milestone": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "achievedLabel": "Текст досягнення",
+      "collectedLabel": "Мітка зібраного",
+      "goalLabel": "Мітка цілі",
+      "donationsLabel": "Мітка донатів"
+    },
+    "top-donors": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "anonymousLabel": "Текст анонімного",
+      "donationsLabel": "Підпис (донат/донати)",
+      "totalDonorsLabel": "Підпис загальної кількості"
+    },
+    "donors-count": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "donorsLabel": "Підпис під числом",
+      "avgLabel": "Мітка середнього",
+      "maxLabel": "Мітка максимального",
+      "totalLabel": "Мітка суми",
+      "smallLabel": "Мітка малих (<100 ₴)",
+      "mediumLabel": "Мітка середніх (100–1000 ₴)",
+      "largeLabel": "Мітка великих (>1000 ₴)"
+    },
+    "urgency": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "remainingLabel": "Підпис залишку",
+      "callToAction": "Заклик до дії",
+      "collectedLabel": "Мітка зібраного",
+      "goalLabel": "Мітка цілі"
+    },
+    "weekly-recap": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "thisWeekLabel": "Мітка цього тижня",
+      "prevWeekLabel": "Мітка попереднього тижня",
+      "bestDayLabel": "Підпис найкращого дня",
+      "donationsLabel": "Мітка донатів"
+    },
+    "speed": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "totalLabel": "Мітка суми",
+      "donationsLabel": "Мітка донатів",
+      "peakLabel": "Підпис піку",
+      "hourlyLabel": "Підпис погодинного графіку"
+    },
+    "funds-flow": {
+      "title": "Заголовок",
+      "subtitle": "Підзаголовок",
+      "raisedLabel": "Мітка «Зібрано»",
+      "spentLabel": "Мітка «Витрачено»",
+      "balanceLabel": "Мітка «На рахунку»",
+      "refundsLabel": "Мітка повернень",
+      "donationsLabel": "Мітка кількості донатів",
+      "noWithdrawalsNote": "Текст якщо зняття не було"
+    }
   }
 }

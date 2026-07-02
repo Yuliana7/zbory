@@ -118,7 +118,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
               marginBottom: 24,
             }}
           >
-            Збір іде!
+            {tx('ongoingLabel')}
           </div>
         )}
 
