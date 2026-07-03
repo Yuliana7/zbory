@@ -13,6 +13,12 @@ function quoteField(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
 }
 
+// Some exports use a comma decimal separator (e.g. "2938,11"); normalize to a dot
+// so numeric <input> fields in the editor render and parse correctly.
+function normalizeDecimal(value: string): string {
+  return value.trim().replace(',', '.');
+}
+
 /**
  * Sorts rows oldest-to-newest and computes a cumulative running balance.
  * Helper jars have no withdrawals, so balance = running sum of all donations.
@@ -99,10 +105,10 @@ export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
       date: yyyy && mm && dd ? `${yyyy}-${mm}-${dd}` : '',
       time: timePart,
       name,
-      amount: raw.amount,
+      amount: normalizeDecimal(raw.amount),
       category: raw.category || undefined,
       comment: raw.comment || '',
-      balance: raw.balance || '',
+      balance: raw.balance ? normalizeDecimal(raw.balance) : '',
     };
   });
 }

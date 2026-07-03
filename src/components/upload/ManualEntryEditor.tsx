@@ -61,6 +61,10 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
   const [errors, setErrors] = useState<Record<string, RowErrors>>({});
   const [globalError, setGlobalError] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
+  // Row whose balance input is currently focused — while focused, an empty
+  // value stays blank instead of snapping back to the auto-computed number,
+  // so the user can actually clear the field to type an override.
+  const [focusedBalanceId, setFocusedBalanceId] = useState<string | null>(null);
   // Tracks the global row index (position in `rows`) the user last navigated to
   const [anchorRowIdx, setAnchorRowIdx] = useState(-1);
   const [jumpInput, setJumpInput] = useState('');
@@ -203,7 +207,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
     const now = new Date();
     const pad = (n: number) => String(n).padStart(2, '0');
     const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    downloadCSV(csv, `jar_statement_manual_${stamp}.csv`);
+    downloadCSV(csv, `jar_statement_${stamp}.csv`);
   };
 
   const handleJumpCommit = () => {
@@ -343,6 +347,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       type="number"
                       min="0.01"
                       step="0.01"
+                      lang="en"
                       value={row.amount}
                       onChange={(e) => updateRow(row.id, 'amount', e.target.value)}
                       placeholder={t('placeholders.amount')}
@@ -358,8 +363,17 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       type="number"
                       min="0"
                       step="0.01"
-                      value={row.balance !== '' ? row.balance : (computedBalances.get(row.id)?.toFixed(2) ?? '')}
+                      lang="en"
+                      value={
+                        row.balance !== ''
+                          ? row.balance
+                          : focusedBalanceId === row.id
+                            ? ''
+                            : (computedBalances.get(row.id)?.toFixed(2) ?? '')
+                      }
                       onChange={(e) => updateRow(row.id, 'balance', e.target.value)}
+                      onFocus={() => setFocusedBalanceId(row.id)}
+                      onBlur={() => setFocusedBalanceId((current) => (current === row.id ? null : current))}
                       className={`w-28 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         row.balance === '' ? 'text-gray-400' : 'text-gray-900'
                       }`}
