@@ -6,6 +6,7 @@ import {
   type ReactNode,
   type Dispatch,
 } from 'react';
+import { useTranslation } from 'react-i18next';
 import type {
   AppState,
   RawDonation,
@@ -148,25 +149,25 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, INITIAL_STATE);
+  const { t } = useTranslation('common');
+  const { t: tInsights } = useTranslation('insights');
 
   const handleFileSelect = useCallback(async (file: File) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const rawData = await parseCSV(file);
       if (rawData.length === 0)
-        throw new Error('CSV файл порожній або не містить даних');
+        throw new Error(t('errors.csvEmpty'));
 
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0)
-        throw new Error(
-          'Не вдалося обробити дані з CSV файлу. Переконайтеся, що формат файлу правильний',
-        );
+        throw new Error(t('errors.csvParseError'));
 
       dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance, originalFileName: file.name } });
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Помилка при обробці файлу',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
       });
     }
   }, []);
@@ -177,13 +178,13 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const rawData = manualRowsToRawDonations(rows);
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0) {
-        throw new Error('Не вдалося розпізнати жодного донату. Перевірте введені дані');
+        throw new Error(t('errors.manualProcessError'));
       }
       dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : 'Помилка при обробці даних',
+        payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
   }, []);
@@ -197,12 +198,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           state.app.withdrawals ?? [],
           state.app.currentBalance,
         );
-        const insights = generateInsights(aggregates);
+        const insights = generateInsights(aggregates, tInsights);
         const commentInsights = analyzeComments(state.app.donations);
         dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { aggregates, insights, commentInsights, goal } });
       } catch (err) {
         console.error(err);
-        dispatch({ type: 'SET_ERROR', payload: 'Помилка при генерації аналітики' });
+        dispatch({ type: 'SET_ERROR', payload: t('errors.insightsError') });
       }
     },
     [state.app.donations],

@@ -16,29 +16,30 @@ import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 const NATIVE = 1080;
 
 interface TemplateGroup {
-  label: string;
+  id: string;
+  labelKey: string;
   icon: string;
   ids: TemplateType[];
 }
 
 const GROUPS: TemplateGroup[] = [
-  { label: 'Прогрес', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'funds-flow'] },
-  { label: 'Активність', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
-  { label: 'Люди', icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors'] },
+  { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'funds-flow'] },
+  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
+  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors'] },
 ];
 
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
   const { state, dispatch, handleTemplateSelect } = useAppContext();
   const { app } = state;
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set([GROUPS[0].label]));
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
 
   if (!app.aggregates) return null;
 
-  function toggleGroup(label: string) {
+  function toggleGroup(id: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
-      next.has(label) ? next.delete(label) : next.add(label);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }
@@ -62,16 +63,16 @@ export function GalleryPage() {
 
       <div className="space-y-3">
         {GROUPS.map((group) => {
-          const isOpen = openGroups.has(group.label);
+          const isOpen = openGroups.has(group.id);
           return (
-            <div key={group.label} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div key={group.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <button
-                onClick={() => toggleGroup(group.label)}
+                onClick={() => toggleGroup(group.id)}
                 className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
               >
                 <div className="flex items-center gap-2.5">
                   <span className="text-xl">{group.icon}</span>
-                  <h3 className="text-base font-semibold text-gray-800">{group.label}</h3>
+                  <h3 className="text-base font-semibold text-gray-800">{t(group.labelKey)}</h3>
                   <span className="text-xs text-gray-400 font-medium">{group.ids.length}</span>
                 </div>
                 <svg

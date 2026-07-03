@@ -14,11 +14,20 @@ interface InsightsPanelProps {
 export function InsightsPanel({ insights, aggregates, goal, commentInsights }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
-  const duration = Math.ceil(
-    (aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / (1000 * 60 * 60 * 24),
+  const msPerDay = 1000 * 60 * 60 * 24;
+  const firstDay = new Date(
+    aggregates.firstDate.getFullYear(),
+    aggregates.firstDate.getMonth(),
+    aggregates.firstDate.getDate(),
   );
+  const lastDay = new Date(
+    aggregates.lastDate.getFullYear(),
+    aggregates.lastDate.getMonth(),
+    aggregates.lastDate.getDate(),
+  );
+  const duration = Math.round((lastDay.getTime() - firstDay.getTime()) / msPerDay) + 1;
 
-  const actionableInsights = generateActionableInsights(aggregates, goal);
+  const actionableInsights = generateActionableInsights(aggregates, t, goal);
 
   return (
     <div className="space-y-4">

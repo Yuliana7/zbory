@@ -279,14 +279,14 @@ function ExportPageInner() {
                     format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                   }`}
                 >
-                  {f === 'post' ? '1:1 Пост' : '9:16 Сторіс'}
+                  {f === 'post' ? t('format.postShort') : t('format.storyShort')}
                 </button>
               ))}
             </div>
           </Collapsible>
 
           {/* Background + palette — collapsible */}
-          <Collapsible label="Фон та стиль" open={bgOpen} onToggle={() => setBgOpen(o => !o)}>
+          <Collapsible label={t('background.label')} open={bgOpen} onToggle={() => setBgOpen(o => !o)}>
             <div className="space-y-4">
               {/* Palette swatches */}
               <div>
@@ -321,11 +321,11 @@ function ExportPageInner() {
 
               {/* Background override */}
               <div className="border-t border-gray-100 pt-3">
-                <p className="text-xs font-medium text-gray-500 mb-2">Свій фон</p>
+                <p className="text-xs font-medium text-gray-500 mb-2">{t('background.ownLabel')}</p>
                 <div className="flex gap-2 flex-wrap">
                   <button
                     onClick={() => { setBgTransparent(v => !v); setBgImage(null); setBgColor(null); }}
-                    title="Прозорий фон"
+                    title={t('background.transparent')}
                     className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${bgTransparent ? 'border-indigo-500 scale-105' : 'border-gray-200 hover:border-gray-400'}`}
                   >
                     <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
@@ -336,13 +336,13 @@ function ExportPageInner() {
                       <rect x="10" y="30" width="10" height="10" fill="#ccc"/><rect x="30" y="30" width="10" height="10" fill="#ccc"/>
                     </svg>
                   </button>
-                  <label title="Свій колір" className="relative w-10 h-10 rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:border-indigo-400 border-gray-200">
+                  <label title={t('background.customColor')} className="relative w-10 h-10 rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:border-indigo-400 border-gray-200">
                     <input type="color" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" value={bgColor ?? '#ffffff'} onChange={(e) => { setBgColor(e.target.value); setBgImage(null); setBgTransparent(false); }} />
                     <div className="w-full h-full" style={{ background: bgColor ?? 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }} />
                   </label>
                   <button
                     onClick={() => bgInputRef.current?.click()}
-                    title="Завантажити фото"
+                    title={t('background.uploadPhoto')}
                     className={`w-10 h-10 rounded-lg border-2 overflow-hidden flex items-center justify-center transition-all ${bgImage ? 'border-indigo-500' : 'border-gray-200 hover:border-gray-400'}`}
                     style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
                   >
@@ -353,18 +353,18 @@ function ExportPageInner() {
                 {bgImage && (
                   <div className="mt-3 space-y-3">
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Яскравість</span><span>{Math.round(bgBrightness * 100)}%</span></div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.brightness')}</span><span>{Math.round(bgBrightness * 100)}%</span></div>
                       <input type="range" min={0.1} max={1.5} step={0.05} value={bgBrightness} onChange={e => setBgBrightness(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>Прозорість</span><span>{Math.round(bgOpacity * 100)}%</span></div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.opacity')}</span><span>{Math.round(bgOpacity * 100)}%</span></div>
                       <input type="range" min={0.05} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
                     </div>
                   </div>
                 )}
                 {(bgImage || bgColor || bgTransparent) && (
                   <button onClick={() => { setBgImage(null); setBgColor(null); setBgTransparent(false); setBgBrightness(1); setBgOpacity(1); }} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
-                    Скинути фон
+                    {t('background.reset')}
                   </button>
                 )}
               </div>
@@ -427,14 +427,14 @@ function ExportPageInner() {
 
           {/* Hide sums — collapsible, conditional */}
           {templateId === 'top-donors' && (
-            <Collapsible label="Відображення" open={hideSumsOpen} onToggle={() => setHideSumsOpen(o => !o)}>
+            <Collapsible label={t('hideSums.sectionLabel')} open={hideSumsOpen} onToggle={() => setHideSumsOpen(o => !o)}>
               <label className="flex items-center justify-between gap-3 cursor-pointer">
-                <span className="text-sm text-gray-700">Показати лише кількість</span>
+                <span className="text-sm text-gray-700">{t('hideSums.toggle')}</span>
                 <div onClick={() => setHideSums(v => !v)} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${hideSums ? 'bg-indigo-600' : 'bg-gray-300'}`}>
                   <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${hideSums ? 'translate-x-5' : 'translate-x-1'}`} />
                 </div>
               </label>
-              <p className="mt-2 text-xs text-gray-400">Приховати суму, середній та максимальний донат</p>
+              <p className="mt-2 text-xs text-gray-400">{t('hideSums.hint')}</p>
             </Collapsible>
           )}
 
@@ -452,7 +452,7 @@ function ExportPageInner() {
                 <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">₴</span>
               </div>
               <p className="mt-1.5 text-xs text-gray-400">{t('goal.hint')}</p>
-              {requiresGoal && !goal && <p className="mt-1 text-xs text-red-500">Обов'язкове поле</p>}
+              {requiresGoal && !goal && <p className="mt-1 text-xs text-red-500">{t('requiredField')}</p>}
             </Collapsible>
           )}
 
@@ -467,7 +467,7 @@ function ExportPageInner() {
                 const currentValue = textOverrides[field.key] ?? defaultValue;
                 return (
                   <div key={field.key}>
-                    <label className="block text-xs text-gray-500 mb-1">{field.label}</label>
+                    <label className="block text-xs text-gray-500 mb-1">{t(`fieldLabels.${templateId}.${field.key}`)}</label>
                     {field.multiline ? (
                       <textarea value={currentValue} onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
                     ) : (

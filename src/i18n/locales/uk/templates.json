@@ -14,7 +14,7 @@
         "title": "Збори",
         "subtitle": "Активність збору",
         "totalLabel": "Загальна сума",
-        "chartLabel": "Наростаючий підсумок",
+        "chartLabel": "Прогрес збору",
         "barsLabel": "Останні 14 днів",
         "bestDayLabel": "Найкращий день",
         "statDonations": "Донатів",
@@ -30,8 +30,9 @@
     "milestone": {
         "title": "Збори",
         "subtitle": "Дякуємо кожному, хто долучився!",
-        "achievedLabel": "Збір іде повним ходом!",
-        "achievedLabel_noGoal": "Збір іде повним ходом!",
+        "ongoingLabel": "Збір триває!",
+        "achievedLabel": "Збір триває!",
+        "achievedLabel_noGoal": "Збір триває!",
         "achievedLabel_100": "Ціль досягнуто! 🎉",
         "achievedLabel_75": "Ми на фінішній прямій!",
         "achievedLabel_50": "Половину пройдено!",
@@ -46,7 +47,8 @@
         "subtitle": "Люди",
         "anonymousLabel": "Анонімно",
         "donationsLabel": "донати",
-        "totalDonorsLabel": "Усього підтримали:"
+        "totalDonorsLabel": "Усього підтримали:",
+        "noDataLabel": "Немає даних про донорів"
     },
     "donors-count": {
         "title": "Збори",
@@ -64,8 +66,12 @@
         "subtitle": "Останній ривок!",
         "remainingLabel": "Залишилось до цілі",
         "callToAction": "🔥 Підтримай прямо зараз!",
+        "ctaNoGoal": "Підтримай збір!",
+        "currencyLabel": "гривень",
         "collectedLabel": "Зібрано:",
-        "goalLabel": "Ціль:"
+        "goalLabel": "Ціль:",
+        "statRaisedLabel": "Зібрано",
+        "statDonationsLabel": "Донатів"
     },
     "weekly-recap": {
         "title": "Збори",
@@ -73,19 +79,24 @@
         "thisWeekLabel": "Цей тиждень",
         "prevWeekLabel": "vs минулий тиждень",
         "bestDayLabel": "Найкращий день тижня",
-        "donationsLabel": "Донатів за тиждень"
+        "donationsLabel": "Донатів за тиждень",
+        "totalCampaignLabel": "Всього за кампанію",
+        "insufficientData": "Недостатньо даних",
+        "days": ["Нд", "Пн", "Вт", "Ср", "Чт", "Пт", "Сб"]
     },
     "speed": {
         "title": "Збори",
-        "subtitle": "Активність кампанії",
+        "subtitle": "Активність",
         "totalLabel": "Зібрано за 7 днів",
         "donationsLabel": "донатів",
+        "totalCampaignLabel": "Всього за кампанію",
+        "donationsCountLabel": "Донатів",
         "peakLabel": "Пік активності",
         "hourlyLabel": "Погодинна активність"
     },
     "funds-flow": {
         "title": "Збори",
-        "subtitle": "Гроші в дії",
+        "subtitle": "Розподіл коштів",
         "raisedLabel": "Зібрано",
         "spentLabel": "Витрачено",
         "balanceLabel": "На рахунку",
@@ -93,6 +104,7 @@
         "donationsLabel": "Донатів",
         "withdrawalsLabel": "Зняттів",
         "currencyLabel": "гривень",
+        "avgLabel": "Середній донат",
         "noWithdrawalsNote": "Кошти ще не витрачались"
     }
 }

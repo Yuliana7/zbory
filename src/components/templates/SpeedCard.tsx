@@ -204,7 +204,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
           <div>
             <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('peakLabel')}</div>
             <div style={{ fontSize: fz(36), fontWeight: 700, color: p.primary, marginTop: 4 }}>
-              {formatHour(peakHour.hour)} — {formatHour(peakHour.hour + 1)} · {peakHour.count} донатів
+              {formatHour(peakHour.hour)} — {formatHour(peakHour.hour + 1)} · {peakHour.count} {tx('donationsLabel')}
             </div>
           </div>
         </div>
@@ -220,8 +220,8 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             }}
           >
             {[
-              { label: 'Всього за кампанію', value: fmt(aggregates.totalAmount) + ' ₴' },
-              { label: 'Донатів', value: String(aggregates.donationCount) },
+              { label: tx('totalCampaignLabel'), value: fmt(aggregates.totalAmount) + ' ₴' },
+              { label: tx('donationsCountLabel'), value: String(aggregates.donationCount) },
             ].map((s) => (
               <div key={s.label} style={{ textAlign: 'center' }}>
                 <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>

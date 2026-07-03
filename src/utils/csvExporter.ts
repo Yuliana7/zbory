@@ -1,4 +1,5 @@
 import type { ManualRow, RawDonation } from '../types';
+import { generateId } from './id';
 
 const CSV_HEADERS =
   'Дата та час операції,Категорія операції,Сума,Валюта,Додаткова інформація,Коментар до платежу,Залишок,Валюта залишку';
@@ -10,6 +11,12 @@ function toDdMmYyyy(isoDate: string): string {
 
 function quoteField(value: string): string {
   return `"${value.replace(/"/g, '""')}"`;
+}
+
+// Some exports use a comma decimal separator (e.g. "2938,11"); normalize to a dot
+// so numeric <input> fields in the editor render and parse correctly.
+function normalizeDecimal(value: string): string {
+  return value.trim().replace(',', '.');
 }
 
 /**
@@ -94,14 +101,14 @@ export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
     }
 
     return {
-      id: crypto.randomUUID(),
+      id: generateId(),
       date: yyyy && mm && dd ? `${yyyy}-${mm}-${dd}` : '',
       time: timePart,
       name,
-      amount: raw.amount,
+      amount: normalizeDecimal(raw.amount),
       category: raw.category || undefined,
       comment: raw.comment || '',
-      balance: raw.balance || '',
+      balance: raw.balance ? normalizeDecimal(raw.balance) : '',
     };
   });
 }

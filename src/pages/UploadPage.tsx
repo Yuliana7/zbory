@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { FileUpload } from '../components/upload/FileUpload';
@@ -17,6 +17,17 @@ export function UploadPage() {
   const { app, isLoading } = state;
   const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
+
+  const invalidRowCount = useMemo(() => {
+    if (!app.rawData) return 0;
+    return rawDonationsToManualRows(app.rawData).filter((row) => {
+      if (!row.date || !row.name) return true;
+      const amount = parseFloat(row.amount);
+      return !row.amount || isNaN(amount) || amount <= 0;
+    }).length;
+  }, [app.rawData]);
+
+  console.log(invalidRowCount);
 
   const handleStartEdit = () => {
     if (!app.rawData) return;
@@ -39,7 +50,6 @@ export function UploadPage() {
         </h2>
         <ManualEntryEditor
           initialRows={editRows}
-          sourceFilename={app.originalFileName ?? undefined}
           onProceed={handleEditProceed}
           onCancel={handleCancelEdit}
           isLoading={isLoading}
@@ -55,6 +65,7 @@ export function UploadPage() {
         <PreviewTable
           donations={app.donations}
           totalCount={app.donations.length}
+          invalidRowCount={invalidRowCount}
           onProceed={handleProceedToInsights}
           onCancel={handleReset}
           onEdit={app.rawData ? handleStartEdit : undefined}

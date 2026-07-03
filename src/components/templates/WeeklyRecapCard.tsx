@@ -13,11 +13,10 @@ interface WeeklyRecapCardProps {
   bgOverride?: string;
 }
 
-const UA_DAYS = ['Нд', 'Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб'];
-
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
     const { t } = useTranslation('templates');
+    const UA_DAYS = t('weekly-recap.days', { returnObjects: true }) as string[];
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
@@ -185,7 +184,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             </svg>
           ) : (
             <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(28), padding: '40px 0' }}>
-              Недостатньо даних
+              {t('weekly-recap.insufficientData')}
             </div>
           )}
         </div>
@@ -230,7 +229,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
         >
           {[
             { label: tx('donationsLabel'), value: String(thisWeek.reduce((s, [, v]) => s + v.count, 0)) },
-            { label: 'Всього за кампанію', value: fmt(aggregates.totalAmount) + ' ₴' },
+            { label: tx('totalCampaignLabel'), value: fmt(aggregates.totalAmount) + ' ₴' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
               <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>

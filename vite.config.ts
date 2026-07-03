@@ -89,7 +89,7 @@ export default defineConfig({
             }
           }
         ],
-        skipWaiting: true,
+        skipWaiting: false,
         clientsClaim: true
       }
     })
