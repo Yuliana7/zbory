@@ -27,8 +27,6 @@ export function UploadPage() {
     }).length;
   }, [app.rawData]);
 
-  console.log(invalidRowCount);
-
   const handleStartEdit = () => {
     if (!app.rawData) return;
     setEditRows(rawDonationsToManualRows(app.rawData));

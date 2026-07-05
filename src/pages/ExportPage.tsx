@@ -85,6 +85,7 @@ function ExportPageInner() {
   const [bgZoom, setBgZoom] = useState(1);
   const [bgOffsetX, setBgOffsetX] = useState(0);
   const [bgOffsetY, setBgOffsetY] = useState(0);
+  const [bgRotate, setBgRotate] = useState(0);
   // Template section visibility (header / footer / daily-activity blocks)
   const [showHeader, setShowHeader] = useState(true);
   const [showFooter, setShowFooter] = useState(true);
@@ -270,8 +271,8 @@ function ExportPageInner() {
                       inset: 0,
                       width: '100%',
                       height: '100%',
-                      objectFit: 'cover',
-                      transform: `translate(${bgOffsetX}%, ${bgOffsetY}%) scale(${bgZoom})`,
+                      objectFit: 'contain',
+                      transform: `translate(${bgOffsetX}%, ${bgOffsetY}%) scale(${bgZoom}) rotate(${bgRotate}deg)`,
                       filter: `brightness(${bgBrightness})`,
                       opacity: bgOpacity,
                     }}
@@ -293,9 +294,8 @@ function ExportPageInner() {
                 <button
                   key={f}
                   onClick={() => setFormat(f)}
-                  className={`px-4 py-2 text-xs font-medium transition-colors ${
-                    format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
-                  }`}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                    }`}
                 >
                   {f === 'post' ? t('format.postShort') : t('format.storyShort')}
                 </button>
@@ -315,11 +315,10 @@ function ExportPageInner() {
                       key={pal.id}
                       onClick={() => setPalette(pal)}
                       title={pal.name}
-                      className={`relative rounded-lg overflow-hidden h-10 transition-all ${
-                        palette.id === pal.id
+                      className={`relative rounded-lg overflow-hidden h-10 transition-all ${palette.id === pal.id
                           ? 'ring-2 ring-indigo-500 ring-offset-1 scale-105'
                           : 'hover:ring-1 hover:ring-gray-300'
-                      }`}
+                        }`}
                       style={{ background: pal.background }}
                     >
                       <span className="absolute inset-0 flex items-end justify-start p-1" style={{ color: pal.primary, fontSize: 8, fontWeight: 600, opacity: 0.85 }}>
@@ -347,11 +346,11 @@ function ExportPageInner() {
                     className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${bgTransparent ? 'border-indigo-500 scale-105' : 'border-gray-200 hover:border-gray-400'}`}
                   >
                     <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
-                      <rect width="40" height="40" fill="#fff"/>
-                      <rect x="0" y="0" width="10" height="10" fill="#ccc"/><rect x="20" y="0" width="10" height="10" fill="#ccc"/>
-                      <rect x="10" y="10" width="10" height="10" fill="#ccc"/><rect x="30" y="10" width="10" height="10" fill="#ccc"/>
-                      <rect x="0" y="20" width="10" height="10" fill="#ccc"/><rect x="20" y="20" width="10" height="10" fill="#ccc"/>
-                      <rect x="10" y="30" width="10" height="10" fill="#ccc"/><rect x="30" y="30" width="10" height="10" fill="#ccc"/>
+                      <rect width="40" height="40" fill="#fff" />
+                      <rect x="0" y="0" width="10" height="10" fill="#ccc" /><rect x="20" y="0" width="10" height="10" fill="#ccc" />
+                      <rect x="10" y="10" width="10" height="10" fill="#ccc" /><rect x="30" y="10" width="10" height="10" fill="#ccc" />
+                      <rect x="0" y="20" width="10" height="10" fill="#ccc" /><rect x="20" y="20" width="10" height="10" fill="#ccc" />
+                      <rect x="10" y="30" width="10" height="10" fill="#ccc" /><rect x="30" y="30" width="10" height="10" fill="#ccc" />
                     </svg>
                   </button>
                   <label title={t('background.customColor')} className="relative w-10 h-10 rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:border-indigo-400 border-gray-200">
@@ -389,6 +388,10 @@ function ExportPageInner() {
                     <div>
                       <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetY')}</span><span>{bgOffsetY}%</span></div>
                       <input type="range" min={-50} max={50} step={1} value={bgOffsetY} onChange={e => setBgOffsetY(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.rotate')}</span><span>{bgRotate}%</span></div>
+                      <input type="range" min={0} max={360} step={1} value={bgRotate} onChange={e => setBgRotate(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
                     </div>
                   </div>
                 )}
@@ -504,8 +507,8 @@ function ExportPageInner() {
                   field.key === 'achievedLabel' && templateId === 'milestone'
                     ? t(`templates:milestone.${milestoneAchievedKey}`)
                     : field.key === 'dateRange'
-                    ? `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`
-                    : t(`templates:${templateId}.${field.key}`);
+                      ? `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`
+                      : t(`templates:${templateId}.${field.key}`);
                 const currentValue = textOverrides[field.key] ?? defaultValue;
                 return (
                   <div key={field.key}>
@@ -595,17 +598,17 @@ interface RendererProps {
 function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay }: RendererProps) {
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride };
   switch (templateId) {
-    case 'progress':         return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
-    case 'daily-activity':   return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
-    case 'thank-you':        return <ThankYouCard {...shared} />;
-    case 'milestone':        return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
-    case 'donors-count':     return <DonorsCountCard {...shared} />;
-    case 'urgency':          return <UrgencyCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
-    case 'top-donors':       return <TopDonorsCard {...shared} mode="sum" />;
+    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
+    case 'thank-you': return <ThankYouCard {...shared} />;
+    case 'milestone': return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'donors-count': return <DonorsCountCard {...shared} />;
+    case 'urgency': return <UrgencyCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'top-donors': return <TopDonorsCard {...shared} mode="sum" />;
     case 'top-donors-count': return <TopDonorsCard {...shared} mode="count" />;
-    case 'weekly-recap':     return <WeeklyRecapCard {...shared} showHeader={showHeader} />;
-    case 'speed':            return <SpeedCard {...shared} showHeader={showHeader} />;
-    case 'funds-flow':       return <FundsFlowCard {...shared} showRefunds={showRefunds} showHeader={showHeader} showFooter={showFooter} />;
+    case 'weekly-recap': return <WeeklyRecapCard {...shared} showHeader={showHeader} />;
+    case 'speed': return <SpeedCard {...shared} showHeader={showHeader} />;
+    case 'funds-flow': return <FundsFlowCard {...shared} showRefunds={showRefunds} showHeader={showHeader} showFooter={showFooter} />;
   }
 }
 
