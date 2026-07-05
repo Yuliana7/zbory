@@ -27,7 +27,7 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
       encoding: 'UTF-8',
       complete: (results) => {
         try {
-          const rawDonations: RawDonation[] = results.data.map((row: any) => ({
+          const rawDonations: RawDonation[] = (results.data as Record<string, string>[]).map((row) => ({
             date: row['Дата та час операції'] || '',
             category: row['Категорія операції'] || '',
             amount: row['Сума'] || '0',
@@ -39,7 +39,7 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
           }));
 
           resolve(rawDonations);
-        } catch (error) {
+        } catch {
           reject(new Error('Помилка при обробці CSV файлу'));
         }
       },
@@ -132,7 +132,7 @@ function parseUkrainianDate(dateStr: string): Date | null {
     const date = new Date(year, month - 1, day, hours, minutes);
 
     return date;
-  } catch (error) {
+  } catch {
     return null;
   }
 }

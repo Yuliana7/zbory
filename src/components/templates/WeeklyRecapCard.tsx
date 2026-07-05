@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, NoWrap } from './shared';
 
 interface WeeklyRecapCardProps {
   aggregates: Aggregates;
@@ -11,10 +12,11 @@ interface WeeklyRecapCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
 }
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true }, ref) => {
     const { t } = useTranslation('templates');
     const UA_DAYS = t('weekly-recap.days', { returnObjects: true }) as string[];
     const isStory = format === 'story';
@@ -77,27 +79,9 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 72 : 56 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              background: p.logoGradient,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: fz(28),
-              color: '#fff',
-            }}
-          >
-            ₴
-          </div>
-          <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
-          </div>
-        </div>
+        {showHeader && (
+          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 72 : 56} />
+        )}
 
         {/* This week total */}
         <div style={{ marginBottom: isStory ? 60 : 40 }}>
@@ -114,7 +98,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               WebkitTextFillColor: 'transparent',
             }}
           >
-            {fmt(thisWeekTotal)} ₴
+            <NoWrap>{fmt(thisWeekTotal)} ₴</NoWrap>
           </div>
 
           {delta !== null && (
@@ -210,7 +194,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               <div>
                 <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('bestDayLabel')}</div>
                 <div style={{ fontSize: fz(32), fontWeight: 700, color: p.primary, marginTop: 4 }}>
-                  {UA_DAYS[d.getDay()]} — {fmt(best[1].amount)} ₴
+                  {UA_DAYS[d.getDay()]} — <NoWrap>{fmt(best[1].amount)} ₴</NoWrap>
                 </div>
               </div>
             </div>
@@ -232,7 +216,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             { label: tx('totalCampaignLabel'), value: fmt(aggregates.totalAmount) + ' ₴' },
           ].map((s) => (
             <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
+              <div style={{ fontSize: fz(36), fontWeight: 700 }}><NoWrap>{s.value}</NoWrap></div>
               <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}

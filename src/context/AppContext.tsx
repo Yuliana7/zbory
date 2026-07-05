@@ -170,7 +170,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
       });
     }
-  }, []);
+  }, [t]);
 
   const handleManualDataProceed = useCallback((rows: ManualRow[]) => {
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -187,7 +187,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, []);
+  }, [t]);
 
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
@@ -206,7 +206,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         dispatch({ type: 'SET_ERROR', payload: t('errors.insightsError') });
       }
     },
-    [state.app.donations],
+    [state.app.donations, state.app.withdrawals, state.app.currentBalance, t, tInsights],
   );
 
   const handleTemplateSelect = useCallback((templateId: TemplateType) => {
@@ -238,6 +238,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
+// eslint-disable-next-line react-refresh/only-export-components -- context hook lives with its provider
 export function useAppContext(): AppContextValue {
   const ctx = useContext(AppContext);
   if (!ctx) throw new Error('useAppContext must be used within AppProvider');

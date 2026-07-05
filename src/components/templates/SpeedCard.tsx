@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, NoWrap } from './shared';
 
 interface SpeedCardProps {
   aggregates: Aggregates;
@@ -11,10 +12,11 @@ interface SpeedCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
 }
 
 export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -76,27 +78,9 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 72 : 56 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              background: p.logoGradient,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: fz(28),
-              color: '#fff',
-            }}
-          >
-            ₴
-          </div>
-          <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
-          </div>
-        </div>
+        {showHeader && (
+          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 72 : 56} />
+        )}
 
         {/* Stats row */}
         <div style={{ display: 'flex', gap: 24, marginBottom: isStory ? 60 : 40 }}>
@@ -114,7 +98,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
                 WebkitTextFillColor: 'transparent',
               }}
             >
-              {fmt(recentTotal)} ₴
+              <NoWrap>{fmt(recentTotal)} ₴</NoWrap>
             </div>
           </div>
           <div
@@ -204,7 +188,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
           <div>
             <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('peakLabel')}</div>
             <div style={{ fontSize: fz(36), fontWeight: 700, color: p.primary, marginTop: 4 }}>
-              {formatHour(peakHour.hour)} — {formatHour(peakHour.hour + 1)} · {peakHour.count} {tx('donationsLabel')}
+              {formatHour(peakHour.hour)} — {formatHour(peakHour.hour + 1)}
             </div>
           </div>
         </div>
@@ -224,7 +208,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
               { label: tx('donationsCountLabel'), value: String(aggregates.donationCount) },
             ].map((s) => (
               <div key={s.label} style={{ textAlign: 'center' }}>
-                <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
+                <div style={{ fontSize: fz(36), fontWeight: 700 }}><NoWrap>{s.value}</NoWrap></div>
                 <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
               </div>
             ))}

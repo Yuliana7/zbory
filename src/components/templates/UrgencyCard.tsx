@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, CardFooter, NoWrap } from './shared';
 
 interface UrgencyCardProps {
   aggregates: Aggregates;
@@ -12,10 +13,12 @@ interface UrgencyCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -65,27 +68,9 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 80 : 60 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              background: p.logoGradient,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: fz(28),
-              color: '#fff',
-            }}
-          >
-            ₴
-          </div>
-          <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
-          </div>
-        </div>
+        {showHeader && (
+          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 80 : 60} />
+        )}
 
         {/* Hero */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -131,10 +116,10 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             {goalFormatted && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('collectedLabel')} {fmt(total)} ₴
+                  {tx('collectedLabel')} <NoWrap>{fmt(total)} ₴</NoWrap>
                 </span>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('goalLabel')} {goalFormatted} ₴
+                  {tx('goalLabel')} <NoWrap>{goalFormatted} ₴</NoWrap>
                 </span>
               </div>
             )}
@@ -162,41 +147,41 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             )}
           </div>
 
-          {/* Call to action */}
-          <div
-            style={{
-              background: p.cardBg,
-              border: `1px solid ${p.cardBorder}`,
-              borderRadius: 24,
-              padding: '36px 48px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontSize: fz(40), fontWeight: 800, color: p.primary, lineHeight: 1.2 }}>
-              {tx('callToAction')}
+          {/* Jar link — rendered only when the volunteer pasted a URL */}
+          {textOverrides.linkUrl?.trim() && (
+            <div
+              style={{
+                background: p.cardBg,
+                border: `1px solid ${p.cardBorder}`,
+                borderRadius: 24,
+                padding: '36px 48px',
+                textAlign: 'center',
+              }}
+            >
+              <div
+                style={{
+                  fontSize: fz(36),
+                  fontWeight: 800,
+                  color: p.primary,
+                  lineHeight: 1.2,
+                  overflowWrap: 'break-word',
+                }}
+              >
+                🔗 {textOverrides.linkUrl.trim()}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Footer */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            paddingTop: 40,
-            borderTop: `1px solid ${p.cardBorder}`,
-          }}
-        >
-          {[
-            { label: tx('statRaisedLabel'), value: fmt(total) + ' ₴' },
-            { label: tx('statDonationsLabel'), value: String(aggregates.donationCount) },
-          ].map((s) => (
-            <div key={s.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{s.value}</div>
-              <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
+        {showFooter && (
+          <CardFooter
+            palette={p}
+            fz={fz}
+            aggregates={aggregates}
+            labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
+          />
+        )}
 
         <div
           style={{

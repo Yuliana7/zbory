@@ -19,24 +19,39 @@ function normalizeDecimal(value: string): string {
   return value.trim().replace(',', '.');
 }
 
-/**
- * Sorts rows oldest-to-newest and computes a cumulative running balance.
- * Helper jars have no withdrawals, so balance = running sum of all donations.
- */
-function sortedWithBalance(rows: ManualRow[]): Array<ManualRow & { balance: string }> {
-  const sorted = [...rows].sort((a, b) => {
+export function sortChronologically(rows: ManualRow[]): ManualRow[] {
+  return [...rows].sort((a, b) => {
     const da = `${a.date}T${a.time || '12:00'}`;
     const db = `${b.date}T${b.time || '12:00'}`;
     return da.localeCompare(db);
   });
+}
 
+/**
+ * Computes the running balance for every row, oldest-to-newest.
+ * A non-empty balance is treated as an authoritative baseline (banks can apply
+ * hidden refunds/corrections that never appear as separate transactions), so
+ * all later rows accumulate from the most recent baseline instead of a plain
+ * running sum of amounts.
+ */
+export function computeBalances(rows: ManualRow[]): Map<string, string> {
   let running = 0;
-  return sorted.map((row) => {
-    running += parseFloat(row.amount) || 0;
-    // User override takes priority; blank means use the running sum
-    const balance = row.balance.trim() ? row.balance.trim() : running.toFixed(2);
-    return { ...row, balance };
-  });
+  const map = new Map<string, string>();
+  for (const row of sortChronologically(rows)) {
+    const override = parseFloat(row.balance);
+    if (row.balance.trim() !== '' && !isNaN(override)) {
+      running = override;
+    } else {
+      running += parseFloat(row.amount) || 0;
+    }
+    map.set(row.id, running.toFixed(2));
+  }
+  return map;
+}
+
+function sortedWithBalance(rows: ManualRow[]): Array<ManualRow & { balance: string }> {
+  const balances = computeBalances(rows);
+  return sortChronologically(rows).map((row) => ({ ...row, balance: balances.get(row.id)! }));
 }
 
 /**

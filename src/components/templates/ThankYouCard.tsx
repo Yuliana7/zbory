@@ -110,7 +110,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
           {tx('title')}
         </div>
 
-        <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8 }}>
+        <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8, whiteSpace: 'nowrap' }}>
           {formattedTotal} ₴
         </div>
         <div style={{ fontSize: fz(30), color: p.secondary, marginBottom: 48 }}>

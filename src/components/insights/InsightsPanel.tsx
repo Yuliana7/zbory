@@ -53,11 +53,27 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
           className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-start gap-3"
         >
           <span className="text-2xl leading-none mt-0.5">{insight.icon}</span>
-          <div className="min-w-0">
+          <div className="min-w-0 flex-1">
             <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{insight.title}</p>
-            <p className="text-lg font-semibold text-gray-900 mt-0.5">{insight.value}</p>
+            {insight.value && (
+              <p className="text-lg font-semibold text-gray-900 mt-0.5">{insight.value}</p>
+            )}
+            {insight.stats && (
+              <div className="mt-2 space-y-1.5">
+                {insight.stats.map((stat, j) => (
+                  <div key={j} className="flex items-baseline justify-between gap-3 text-sm">
+                    <span className="text-gray-600">
+                      {stat.icon} {stat.label}
+                    </span>
+                    <span className="font-semibold text-gray-900 tabular-nums shrink-0">{stat.value}</span>
+                  </div>
+                ))}
+              </div>
+            )}
             {insight.description && (
-              <p className="text-xs text-gray-500 mt-0.5 leading-relaxed">{insight.description}</p>
+              <p className={`text-xs text-gray-500 leading-relaxed ${insight.stats ? 'mt-2' : 'mt-0.5'}`}>
+                {insight.description}
+              </p>
             )}
           </div>
         </div>
