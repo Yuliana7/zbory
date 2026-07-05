@@ -6,7 +6,9 @@ import {
   findBestDay,
   findPeakHour,
   getCampaignDuration,
+  getTimeBuckets,
 } from './dataAggregator';
+import type { TimeBucketKey } from './dataAggregator';
 
 type TFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -21,14 +23,7 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
     type: 'insight',
   });
 
-  const humanRange = getDonationRange(aggregates.avgDonation, t);
-  insights.push({
-    icon: '📊',
-    title: t('generated.avgTitle'),
-    value: humanRange,
-    description: buildAvgDescription(aggregates, t),
-    type: 'insight',
-  });
+  insights.push(buildTypicalDonationInsight(aggregates, t));
 
   const bestDay = findBestDay(aggregates);
   if (bestDay) {
@@ -43,16 +38,8 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
     });
   }
 
-  const peakHour = findPeakHour(aggregates);
-  if (peakHour) {
-    insights.push({
-      icon: '⏰',
-      title: t('generated.peakTitle'),
-      value: `${peakHour.hour}:00–${peakHour.hour + 1}:00`,
-      description: t('generated.peakDesc', { hour: peakHour.hour }),
-      type: 'insight',
-    });
-  }
+  const timeInsight = buildTimeBucketsInsight(aggregates, t);
+  if (timeInsight) insights.push(timeInsight);
 
   const duration = getCampaignDuration(aggregates);
   insights.push({
@@ -66,54 +53,83 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
     type: 'insight',
   });
 
-  const distributionInsight = generateDistributionInsight(aggregates, t);
-  if (distributionInsight) insights.push(distributionInsight);
-
   return insights;
 }
 
-function getDonationRange(avg: number, t: TFn): string {
-  if (avg < 50)   return t('generated.ranges.lt50');
-  if (avg < 100)  return t('generated.ranges.r50_100');
-  if (avg < 200)  return t('generated.ranges.r100_200');
-  if (avg < 500)  return t('generated.ranges.r200_500');
-  if (avg < 1000) return t('generated.ranges.r500_1000');
-  if (avg < 5000) return t('generated.ranges.r1000_5000');
-  return t('generated.ranges.gt5000');
+/** Rounds an amount to a "nice" human boundary for range descriptions */
+function roundNice(v: number): number {
+  if (v >= 5000) return Math.round(v / 1000) * 1000;
+  if (v >= 1000) return Math.round(v / 500) * 500;
+  if (v >= 200) return Math.round(v / 100) * 100;
+  if (v >= 50) return Math.round(v / 50) * 50;
+  return Math.max(5, Math.round(v / 10) * 10);
 }
 
-function buildAvgDescription(aggregates: Aggregates, t: TFn): string {
-  const { smallDonations, mediumDonations, largeDonations, donationCount } = aggregates;
-  const smallPct = Math.round((smallDonations / donationCount) * 100);
-  const mediumPct = Math.round((mediumDonations / donationCount) * 100);
-  const largePct = Math.round((largeDonations / donationCount) * 100);
+/**
+ * One rich card instead of the old "range + distribution" pair:
+ * mode / median / mean breakdown, plus an adaptive "where most donations fall"
+ * range (middle 50%, p25–p75) that scales with the campaign instead of the
+ * fixed 100–1000 ₴ buckets.
+ */
+function buildTypicalDonationInsight(aggregates: Aggregates, t: TFn): Insight {
+  const mean = aggregates.totalRaised / aggregates.donationCount;
+  const median = aggregates.medianDonation;
+  const mode = aggregates.modeDonation;
 
-  if (smallPct >= 60) return t('generated.avgDesc_small', { pct: smallPct });
-  if (largePct >= 30) return t('generated.avgDesc_large', { pct: largePct });
-  return t('generated.avgDesc_medium', { pct: mediumPct });
+  const lo = roundNice(aggregates.p25Donation);
+  const hi = roundNice(aggregates.p75Donation);
+  const rangeSentence =
+    lo === hi
+      ? t('generated.typical.rangeSingle', { amount: formatCurrency(lo) })
+      : t('generated.typical.range', { lo: formatCurrency(lo), hi: formatCurrency(hi) });
+
+  // A mean far above the median means a few generous donors pulled it up
+  const shapeSentence =
+    mean >= median * 1.4
+      ? t('generated.typical.generous', {
+          median: formatCurrency(Math.round(median)),
+          mode: formatCurrency(mode),
+          mean: formatCurrency(Math.round(mean)),
+        })
+      : t('generated.typical.steady', { mean: formatCurrency(Math.round(mean)) });
+
+  return {
+    icon: '💰',
+    title: t('generated.avgTitle'),
+    stats: [
+      { icon: '💰', label: t('generated.typical.mode'), value: formatCurrency(mode) },
+      { icon: '📊', label: t('generated.typical.median'), value: formatCurrency(Math.round(median)) },
+      { icon: '📈', label: t('generated.typical.mean'), value: formatCurrency(Math.round(mean)) },
+    ],
+    description: `${rangeSentence} ${shapeSentence}`,
+    type: 'insight',
+  };
 }
 
-function generateDistributionInsight(aggregates: Aggregates, t: TFn): Insight | null {
-  const total = aggregates.donationCount;
-  const smallPct = Math.round((aggregates.smallDonations / total) * 100);
-  const mediumPct = Math.round((aggregates.mediumDonations / total) * 100);
-  const largePct = Math.round((aggregates.largeDonations / total) * 100);
+const TIME_BUCKET_ICONS: Record<TimeBucketKey, string> = {
+  morning: '🌅',
+  afternoon: '☀️',
+  evening: '🌆',
+  night: '🌙',
+};
 
-  let value: string;
-  let description: string;
+function buildTimeBucketsInsight(aggregates: Aggregates, t: TFn): Insight | null {
+  const buckets = getTimeBuckets(aggregates).filter((b) => b.count > 0);
+  if (buckets.length === 0) return null;
 
-  if (smallPct > mediumPct && smallPct > largePct) {
-    value = t('generated.distribution_small', { pct: smallPct });
-    description = t('generated.distribution_small_desc');
-  } else if (largePct >= 20) {
-    value = t('generated.distribution_large', { pct: largePct });
-    description = t('generated.distribution_large_desc', { pct: largePct });
-  } else {
-    value = t('generated.distribution_medium', { pct: mediumPct });
-    description = t('generated.distribution_medium_desc');
-  }
+  const top = buckets.reduce((a, b) => (b.count > a.count ? b : a));
 
-  return { icon: '⚖️', title: t('generated.distributionTitle'), value, description, type: 'insight' };
+  return {
+    icon: '⏰',
+    title: t('generated.peakTitle'),
+    value: t(`generated.timeBuckets.dominant_${top.key}`),
+    stats: buckets.map((b) => ({
+      icon: TIME_BUCKET_ICONS[b.key],
+      label: t(`generated.timeBuckets.${b.key}`),
+      value: t('generated.timeBuckets.donations', { count: b.count }),
+    })),
+    type: 'insight',
+  };
 }
 
 export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?: number): Insight[] {
@@ -128,7 +144,13 @@ export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?
       icon: '⏰',
       title: t('generated.actionBestTimeTitle'),
       value: `${peakHour.hour}:00–${peakHour.hour + 1}:00`,
-      description: t(descKey, { hour: peakHour.hour }),
+      description: t(descKey, {
+        hour: peakHour.hour,
+        hourEnd: peakHour.hour + 1,
+        count: peakHour.count,
+        total: aggregates.donationCount,
+        pct: Math.round((peakHour.count / aggregates.donationCount) * 100),
+      }),
       type: 'action',
     });
   }
@@ -137,13 +159,19 @@ export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?
   if (momentumInsight) actions.push(momentumInsight);
 
   if (goal && aggregates.totalAmount < goal) {
-    const daysLeft = estimateDaysToGoal(aggregates, goal);
-    if (daysLeft !== null) {
+    const forecast = estimateDaysToGoal(aggregates, goal);
+    if (forecast !== null) {
+      const eta = new Date();
+      eta.setDate(eta.getDate() + forecast.days);
       actions.push({
         icon: '🎯',
         title: t('generated.actionGoalTitle'),
-        value: t('generated.actionGoalValue', { count: daysLeft }),
-        description: t('generated.actionGoalDesc', { count: daysLeft }),
+        value: t('generated.actionGoalValue', { count: forecast.days }),
+        description: t('generated.actionGoalDesc', {
+          remaining: formatCurrency(Math.round(forecast.remaining)),
+          rate: formatCurrency(Math.round(forecast.dailyRate)),
+          date: formatUkrainianDate(eta),
+        }),
         type: 'action',
       });
     }
@@ -156,7 +184,7 @@ export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?
       icon: '💸',
       title: t('generated.actionTipTitle'),
       value: t('generated.actionTipValue', { pct: Math.round(smallPct) }),
-      description: t('generated.actionTipDesc'),
+      description: t('generated.actionTipDesc', { count: aggregates.smallDonations, total }),
       type: 'action',
     });
   }
@@ -164,24 +192,36 @@ export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?
   return actions;
 }
 
+// Compares the last day against the average of up to 7 preceding days —
+// a single-day-to-single-day comparison was too noisy to act on.
 function buildMomentumInsight(aggregates: Aggregates, t: TFn): Insight | null {
   const sortedDates = [...aggregates.byDate.keys()].sort();
   if (sortedDates.length < 2) return null;
 
   const lastDate = sortedDates[sortedDates.length - 1];
-  const prevDate = sortedDates[sortedDates.length - 2];
   const lastAmount = aggregates.byDate.get(lastDate)!.amount;
-  const prevAmount = aggregates.byDate.get(prevDate)!.amount;
 
-  if (prevAmount === 0) return null;
-  const changePct = Math.round(((lastAmount - prevAmount) / prevAmount) * 100);
+  const prevDates = sortedDates.slice(Math.max(0, sortedDates.length - 8), -1);
+  const prevAvg =
+    prevDates.reduce((sum, d) => sum + aggregates.byDate.get(d)!.amount, 0) / prevDates.length;
+
+  if (prevAvg === 0) return null;
+  const changePct = Math.round(((lastAmount - prevAvg) / prevAvg) * 100);
+
+  // `count` drives the i18next plural form (1 previous day vs an average of N)
+  const proof = {
+    last: formatCurrency(Math.round(lastAmount)),
+    avg: formatCurrency(Math.round(prevAvg)),
+    days: prevDates.length,
+    count: prevDates.length,
+  };
 
   if (changePct <= -20) {
     return {
       icon: '🐢',
       title: t('generated.momentumDownTitle'),
-      value: t('generated.momentumDownValue', { pct: Math.abs(changePct) }),
-      description: t('generated.momentumDownDesc'),
+      value: t('generated.momentumDownValue', { pct: Math.abs(changePct), count: prevDates.length }),
+      description: t('generated.momentumDownDesc', proof),
       type: 'action',
     };
   }
@@ -190,8 +230,8 @@ function buildMomentumInsight(aggregates: Aggregates, t: TFn): Insight | null {
     return {
       icon: '🚀',
       title: t('generated.momentumUpTitle'),
-      value: t('generated.momentumUpValue', { pct: changePct }),
-      description: t('generated.momentumUpDesc'),
+      value: t('generated.momentumUpValue', { pct: changePct, count: prevDates.length }),
+      description: t('generated.momentumUpDesc', proof),
       type: 'action',
     };
   }
@@ -199,7 +239,10 @@ function buildMomentumInsight(aggregates: Aggregates, t: TFn): Insight | null {
   return null;
 }
 
-function estimateDaysToGoal(aggregates: Aggregates, goal: number): number | null {
+function estimateDaysToGoal(
+  aggregates: Aggregates,
+  goal: number,
+): { days: number; dailyRate: number; remaining: number } | null {
   const { cumulative, totalAmount } = aggregates;
   if (cumulative.length < 3) return null;
 
@@ -217,7 +260,7 @@ function estimateDaysToGoal(aggregates: Aggregates, goal: number): number | null
 
   const dailyRate = amountGain / daysDiff;
   const remaining = goal - totalAmount;
-  return Math.ceil(remaining / dailyRate);
+  return { days: Math.ceil(remaining / dailyRate), dailyRate, remaining };
 }
 
 export function generateThankYouMessage(totalAmount: number, donationCount: number, t: TFn): string {

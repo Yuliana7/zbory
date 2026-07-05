@@ -18,12 +18,18 @@
     "uploadPhoto": "Завантажити фото",
     "brightness": "Яскравість",
     "opacity": "Прозорість",
+    "zoom": "Масштаб фото",
+    "offsetX": "Зсув по горизонталі",
+    "offsetY": "Зсув по вертикалі",
     "reset": "Скинути фон"
   },
-  "hideSums": {
-    "sectionLabel": "Відображення",
-    "toggle": "Показати лише кількість",
-    "hint": "Приховати суму, середній та максимальний донат"
+  "layout": {
+    "label": "Елементи шаблону",
+    "header": "Шапка (₴ + назва)",
+    "footer": "Підсумки внизу",
+    "chart": "Графік прогресу",
+    "bars": "Стовпчики по днях",
+    "bestDay": "Найкращий день"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -61,7 +67,8 @@
     "milestone": "Рубіж досягнуто",
     "donors-count": "Люди підтримали",
     "urgency": "Ми майже там",
-    "top-donors": "Топ донатери",
+    "top-donors": "Топ донатери за сумою",
+    "top-donors-count": "Топ донатери за кількістю",
     "weekly-recap": "Тижневий звіт",
     "speed": "Активність збору",
     "funds-flow": "Гроші в дії"
@@ -75,17 +82,16 @@
   "fieldLabels": {
     "progress": {
       "title": "Назва",
-      "subtitle": "Підзаголовок",
+      "dateRange": "Діапазон дат на картці",
       "collectedLabel": "Мітка «Зібрано»",
       "currencyLabel": "Назва валюти",
       "goalLabel": "Мітка цілі",
-      "statDonations": "Мітка «Донатів»",
-      "statAverage": "Мітка «Середній»",
-      "statMax": "Мітка «Найбільший»"
+      "statCollected": "Підсумок: мітка «Зібрано»",
+      "statMedian": "Підсумок: мітка середнього",
+      "statMax": "Підсумок: мітка найбільшого"
     },
     "daily-activity": {
       "title": "Назва",
-      "subtitle": "Підзаголовок",
       "totalLabel": "Мітка суми",
       "chartLabel": "Підпис графіку",
       "barsLabel": "Підпис стовпчиків",
@@ -102,22 +108,27 @@
     },
     "milestone": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
       "achievedLabel": "Текст досягнення",
       "collectedLabel": "Мітка зібраного",
       "goalLabel": "Мітка цілі",
-      "donationsLabel": "Мітка донатів"
+      "statCollected": "Підсумок: мітка «Зібрано»",
+      "statMedian": "Підсумок: мітка середнього",
+      "statMax": "Підсумок: мітка найбільшого"
     },
     "top-donors": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
+      "anonymousLabel": "Текст анонімного",
+      "donationsLabel": "Підпис (донат/донати)",
+      "totalDonorsLabel": "Підпис загальної кількості"
+    },
+    "top-donors-count": {
+      "title": "Заголовок",
       "anonymousLabel": "Текст анонімного",
       "donationsLabel": "Підпис (донат/донати)",
       "totalDonorsLabel": "Підпис загальної кількості"
     },
     "donors-count": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
       "donorsLabel": "Підпис під числом",
       "avgLabel": "Мітка середнього",
       "maxLabel": "Мітка максимального",
@@ -128,15 +139,17 @@
     },
     "urgency": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
       "remainingLabel": "Підпис залишку",
-      "callToAction": "Заклик до дії",
+      "currencyLabel": "Назва валюти",
+      "linkUrl": "Посилання на банку — вставте URL",
       "collectedLabel": "Мітка зібраного",
-      "goalLabel": "Мітка цілі"
+      "goalLabel": "Мітка цілі",
+      "statCollected": "Підсумок: мітка «Зібрано»",
+      "statMedian": "Підсумок: мітка середнього",
+      "statMax": "Підсумок: мітка найбільшого"
     },
     "weekly-recap": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
       "thisWeekLabel": "Мітка цього тижня",
       "prevWeekLabel": "Мітка попереднього тижня",
       "bestDayLabel": "Підпис найкращого дня",
@@ -144,7 +157,6 @@
     },
     "speed": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
       "totalLabel": "Мітка суми",
       "donationsLabel": "Мітка донатів",
       "peakLabel": "Підпис піку",
@@ -152,13 +164,16 @@
     },
     "funds-flow": {
       "title": "Заголовок",
-      "subtitle": "Підзаголовок",
+      "dateRange": "Діапазон дат на картці",
       "raisedLabel": "Мітка «Зібрано»",
+      "currencyLabel": "Назва валюти",
       "spentLabel": "Мітка «Витрачено»",
       "balanceLabel": "Мітка «На рахунку»",
       "refundsLabel": "Мітка повернень",
-      "donationsLabel": "Мітка кількості донатів",
-      "noWithdrawalsNote": "Текст якщо зняття не було"
+      "noWithdrawalsNote": "Текст якщо зняття не було",
+      "statCollected": "Підсумок: мітка «Зібрано»",
+      "statMedian": "Підсумок: мітка середнього",
+      "statMax": "Підсумок: мітка найбільшого"
     }
   }
 }

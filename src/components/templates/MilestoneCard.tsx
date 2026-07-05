@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, CardFooter, NoWrap } from './shared';
 
 interface MilestoneCardProps {
   aggregates: Aggregates;
@@ -12,10 +13,12 @@ interface MilestoneCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -44,8 +47,6 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         : 'achievedLabel_0';
     const defaultAchieved = t(`milestone.${achievedKey}`);
 
-    const stars = ['✦', '✧', '✦', '✧', '✦', '✧', '✦', '✧'];
-
     return (
       <div
         ref={ref}
@@ -55,15 +56,12 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: isStory ? '120px 80px' : '80px',
+          padding: isStory ? '100px 80px' : '80px',
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
           position: 'relative',
           overflow: 'hidden',
-          textAlign: 'center',
         }}
       >
         {/* Glow */}
@@ -81,18 +79,20 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           }}
         />
 
-        {/* Decorative stars ring */}
-        <div style={{ display: 'flex', gap: 24, marginBottom: 48, opacity: 0.5 }}>
-          {stars.map((s, i) => (
-            <span key={i} style={{ fontSize: fz(28), color: p.accent }}>{s}</span>
-          ))}
-        </div>
+        {/* Header — top left with the ₴ icon */}
+        {showHeader && <CardHeader palette={p} fz={fz} title={tx('title')} />}
 
-        {/* Title */}
-        <div style={{ fontSize: fz(36), color: p.secondary, marginBottom: 8, letterSpacing: '2px', textTransform: 'uppercase' }}>
-          {tx('title')}
-        </div>
-
+        {/* Main — centered */}
+        <div
+          style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            textAlign: 'center',
+          }}
+        >
         {displayPct !== null ? (
           <div
             style={{
@@ -135,11 +135,6 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           {tx('achievedLabel', defaultAchieved)}
         </div>
 
-        {/* Subtitle */}
-        <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 56 }}>
-          {tx('subtitle')}
-        </div>
-
         {/* Progress bar */}
         {barWidthPct !== null && (
           <div style={{ width: '100%', marginBottom: 48 }}>
@@ -164,61 +159,29 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           </div>
         )}
 
-        {/* Stats row */}
-        <div
-          style={{
-            display: 'flex',
-            gap: 32,
-            width: '100%',
-          }}
-        >
-          <div
-            style={{
-              flex: 1,
-              background: p.cardBg,
-              border: `1px solid ${p.cardBorder}`,
-              borderRadius: 20,
-              padding: '28px 24px',
-            }}
-          >
-            <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-              {tx('collectedLabel')}
-            </div>
-            <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</div>
-          </div>
+        {/* Collected / goal line */}
+        <div style={{ fontSize: fz(28), color: p.secondary }}>
+          {tx('collectedLabel')}{' '}
+          <NoWrap style={{ fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</NoWrap>
           {formattedGoal && (
-            <div
-              style={{
-                flex: 1,
-                background: p.cardBg,
-                border: `1px solid ${p.cardBorder}`,
-                borderRadius: 20,
-                padding: '28px 24px',
-              }}
-            >
-              <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-                {tx('goalLabel')}
-              </div>
-              <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>{formattedGoal} ₴</div>
-            </div>
+            <>
+              {' · '}
+              {tx('goalLabel')}{' '}
+              <NoWrap style={{ fontWeight: 800, color: p.primary }}>{formattedGoal} ₴</NoWrap>
+            </>
           )}
-          <div
-            style={{
-              flex: 1,
-              background: p.cardBg,
-              border: `1px solid ${p.cardBorder}`,
-              borderRadius: 20,
-              padding: '28px 24px',
-            }}
-          >
-            <div style={{ fontSize: fz(20), color: p.secondary, marginBottom: 8 }}>
-              {tx('donationsLabel')}
-            </div>
-            <div style={{ fontSize: fz(36), fontWeight: 800, color: p.primary }}>
-              {aggregates.donationCount}
-            </div>
-          </div>
         </div>
+        </div>
+
+        {/* Footer */}
+        {showFooter && (
+          <CardFooter
+            palette={p}
+            fz={fz}
+            aggregates={aggregates}
+            labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
+          />
+        )}
 
         <div
           style={{

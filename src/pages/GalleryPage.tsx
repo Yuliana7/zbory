@@ -25,7 +25,7 @@ interface TemplateGroup {
 const GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'funds-flow'] },
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
-  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors'] },
+  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count'] },
 ];
 
 export function GalleryPage() {
@@ -39,7 +39,8 @@ export function GalleryPage() {
   function toggleGroup(id: string) {
     setOpenGroups((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   }
@@ -162,7 +163,8 @@ function TemplatePreview({ id, aggregates, goal }: TemplatePreviewProps) {
           {id === 'milestone' && <MilestoneCard aggregates={aggregates} goal={goal} format="post" />}
           {id === 'donors-count' && <DonorsCountCard aggregates={aggregates} format="post" />}
           {id === 'urgency' && <UrgencyCard aggregates={aggregates} goal={goal} format="post" />}
-          {id === 'top-donors' && <TopDonorsCard aggregates={aggregates} format="post" />}
+          {id === 'top-donors' && <TopDonorsCard aggregates={aggregates} format="post" mode="sum" />}
+          {id === 'top-donors-count' && <TopDonorsCard aggregates={aggregates} format="post" mode="count" />}
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
           {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}

@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { NoWrap } from './shared';
 
 interface TopDonorsCardProps {
   aggregates: Aggregates;
@@ -11,23 +12,26 @@ interface TopDonorsCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
-  hideSums?: boolean;
+  /** 'sum' ranks by total amount; 'count' ranks by number of donations */
+  mode?: 'sum' | 'count';
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, hideSums = false, bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, mode = 'sum', bgOverride }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string) => textOverrides[key] ?? t(`top-donors.${key}`);
+    const ns = mode === 'count' ? 'top-donors-count' : 'top-donors';
+    const tx = (key: string) => textOverrides[key] ?? t(`${ns}.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-    const donors = aggregates.topDonors.slice(0, isStory ? 7 : 5);
-    const maxAmount = donors[0]?.amount || 1;
+    const ranked = mode === 'count' ? aggregates.topDonorsByCount : aggregates.topDonors;
+    const donors = ranked.slice(0, isStory ? 7 : 5);
+    const maxMetric = (mode === 'count' ? donors[0]?.count : donors[0]?.amount) || 1;
 
     return (
       <div
@@ -78,10 +82,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             >
               ₴
             </div>
-            <div>
-              <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
-              <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
-            </div>
+            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
           </div>
         </div>
 
@@ -93,7 +94,8 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             </div>
           ) : (
             donors.map((donor, i) => {
-              const barPct = (donor.amount / maxAmount) * 100;
+              const metric = mode === 'count' ? donor.count : donor.amount;
+              const barPct = (metric / maxMetric) * 100;
               const isTop3 = i < 3;
               return (
                 <div
@@ -137,19 +139,21 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                       >
                         {donor.name || tx('anonymousLabel')}
                       </div>
-                      {donor.count > 1 && (
+                      {mode === 'sum' && donor.count > 1 && (
                         <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>
                           {donor.count} {tx('donationsLabel')}
                         </div>
                       )}
                     </div>
-                    {!hideSums && (
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <div style={{ fontSize: fz(isTop3 ? 32 : 28), fontWeight: 800, color: p.accent }}>
-                          {fmt(donor.amount)} ₴
-                        </div>
+                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                      <div style={{ fontSize: fz(isTop3 ? 32 : 28), fontWeight: 800, color: p.accent }}>
+                        {mode === 'count' ? (
+                          <NoWrap>{donor.count} {tx('donationsLabel')}</NoWrap>
+                        ) : (
+                          <NoWrap>{fmt(donor.amount)} ₴</NoWrap>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
               );

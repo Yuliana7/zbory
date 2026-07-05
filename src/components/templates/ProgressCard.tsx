@@ -4,6 +4,7 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, CardFooter, NoWrap } from './shared';
 
 interface ProgressCardProps {
   aggregates: Aggregates;
@@ -13,15 +14,19 @@ interface ProgressCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string) => textOverrides[key] ?? t(`progress.${key}`);
+    const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`progress.${key}`);
+
+    const defaultDateRange = `${formatUkrainianDate(aggregates.firstDate)} — ${formatUkrainianDate(aggregates.lastDate)}`;
 
     const total = aggregates.totalAmount;
     const progressPct = goal ? Math.round((total / goal) * 100) : null;
@@ -90,37 +95,9 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                background: p.logoGradient,
-                borderRadius: 14,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: fz(28),
-                color: '#fff',
-              }}
-            >
-              ₴
-            </div>
-            <div>
-              <div style={{ fontSize: fz(28), fontWeight: 700, letterSpacing: '-0.5px' }}>
-                {tx('title')}
-              </div>
-              <div style={{ fontSize: fz(18), color: p.secondary, marginTop: 2 }}>
-                {tx('subtitle')}
-              </div>
-            </div>
-          </div>
-          <div style={{ textAlign: 'right', color: p.secondary, fontSize: fz(20) }}>
-            <div>{formatUkrainianDate(aggregates.firstDate)}</div>
-            <div style={{ marginTop: 4 }}>— {formatUkrainianDate(aggregates.lastDate)}</div>
-          </div>
-        </div>
+        {showHeader && (
+          <CardHeader palette={p} fz={fz} title={tx('title')} right={tx('dateRange', defaultDateRange)} />
+        )}
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
@@ -155,7 +132,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             <div style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary, whiteSpace: 'nowrap' }}>
-                  {tx('goalLabel')}: {formattedGoal} ₴
+                  {tx('goalLabel')}: <NoWrap>{formattedGoal} ₴</NoWrap>
                 </span>
                 <span
                   style={{
@@ -189,31 +166,14 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         </div>
 
         {/* Footer stats */}
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            paddingTop: 40,
-            borderTop: `1px solid ${p.cardBorder}`,
-          }}
-        >
-          {[
-            { label: tx('statDonations'), value: String(aggregates.donationCount) },
-            {
-              label: tx('statAverage'),
-              value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.avgDonation)) + ' ₴',
-            },
-            {
-              label: tx('statMax'),
-              value: new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.maxDonation)) + ' ₴',
-            },
-          ].map((stat) => (
-            <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: fz(36), fontWeight: 700 }}>{stat.value}</div>
-              <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
-            </div>
-          ))}
-        </div>
+        {showFooter && (
+          <CardFooter
+            palette={p}
+            fz={fz}
+            aggregates={aggregates}
+            labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
+          />
+        )}
 
         <div
           style={{

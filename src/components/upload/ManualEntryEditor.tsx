@@ -1,7 +1,7 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ManualRow } from '../../types';
-import { manualRowsToCSVString, downloadCSV } from '../../utils/csvExporter';
+import { manualRowsToCSVString, downloadCSV, computeBalances, sortChronologically } from '../../utils/csvExporter';
 import { generateId } from '../../utils/id';
 
 const ROWS_PER_PAGE = 10;
@@ -29,6 +29,13 @@ function createRow(): ManualRow {
     comment: '',
     balance: '',
   };
+}
+
+// Money fields are plain text inputs (type="number" is too permissive/quirky);
+// returns the normalized value, or null when the keystroke should be ignored.
+function sanitizeDecimal(raw: string): string | null {
+  const value = raw.replace(',', '.').replace(/\s/g, '');
+  return /^\d*\.?\d{0,2}$/.test(value) ? value : null;
 }
 
 function validateRow(row: ManualRow, t: (key: string) => string): RowErrors {
@@ -118,20 +125,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
     setCurrentPage(Math.ceil((rowIdx + 1) / ROWS_PER_PAGE));
   }, [errorIndices]);
 
-  const computedBalances = useMemo(() => {
-    const sorted = [...rows].sort((a, b) => {
-      const da = `${a.date}T${a.time || '12:00'}`;
-      const db = `${b.date}T${b.time || '12:00'}`;
-      return da.localeCompare(db);
-    });
-    let running = 0;
-    const map = new Map<string, number>();
-    for (const row of sorted) {
-      running += parseFloat(row.amount) || 0;
-      map.set(row.id, running);
-    }
-    return map;
-  }, [rows]);
+  const computedBalances = useMemo(() => computeBalances(rows), [rows]);
 
   const updateRow = useCallback((id: string, field: keyof ManualRow, value: string) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, [field]: value } : r)));
@@ -146,6 +140,23 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
       return { ...prev, [id]: updated };
     });
     setGlobalError(null);
+  }, []);
+
+  // An edited balance is a new authoritative baseline — clear the stored
+  // balances of all chronologically later rows so they re-derive from it
+  // (rows loaded from a CSV carry explicit balances that would otherwise
+  // keep their now-stale values).
+  const updateBalance = useCallback((id: string, raw: string) => {
+    const value = sanitizeDecimal(raw);
+    if (value === null) return;
+    setRows((prev) => {
+      const next = prev.map((r) => (r.id === id ? { ...r, balance: value } : r));
+      if (value === '') return next;
+      const sorted = sortChronologically(next);
+      const pos = sorted.findIndex((r) => r.id === id);
+      const laterIds = new Set(sorted.slice(pos + 1).map((r) => r.id));
+      return next.map((r) => (laterIds.has(r.id) && r.balance !== '' ? { ...r, balance: '' } : r));
+    });
   }, []);
 
   const addRow = useCallback(() => {
@@ -344,12 +355,13 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                   {/* Amount */}
                   <td className="px-3 py-2 align-top">
                     <input
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      lang="en"
+                      type="text"
+                      inputMode="decimal"
                       value={row.amount}
-                      onChange={(e) => updateRow(row.id, 'amount', e.target.value)}
+                      onChange={(e) => {
+                        const value = sanitizeDecimal(e.target.value);
+                        if (value !== null) updateRow(row.id, 'amount', value);
+                      }}
                       placeholder={t('placeholders.amount')}
                       className={`w-28 px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         rowErrors.amount ? 'border-red-400 bg-red-50' : 'border-gray-300'
@@ -360,18 +372,16 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                   {/* Balance — auto-computed, user may override */}
                   <td className="px-3 py-2 align-top">
                     <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      lang="en"
+                      type="text"
+                      inputMode="decimal"
                       value={
                         row.balance !== ''
                           ? row.balance
                           : focusedBalanceId === row.id
                             ? ''
-                            : (computedBalances.get(row.id)?.toFixed(2) ?? '')
+                            : (computedBalances.get(row.id) ?? '')
                       }
-                      onChange={(e) => updateRow(row.id, 'balance', e.target.value)}
+                      onChange={(e) => updateBalance(row.id, e.target.value)}
                       onFocus={() => setFocusedBalanceId(row.id)}
                       onBlur={() => setFocusedBalanceId((current) => (current === row.id ? null : current))}
                       className={`w-28 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${

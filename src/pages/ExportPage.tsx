@@ -13,9 +13,16 @@ import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
 import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 import { exportToPNG } from '../utils/exportPNG';
-import { aggregateDonations } from '../utils/dataAggregator';
+import { aggregateDonations, formatUkrainianDate } from '../utils/dataAggregator';
 import { PALETTES, DEFAULT_PALETTE, type Palette } from '../utils/palettes';
-import { TEMPLATE_TEXT_FIELDS, TEMPLATE_SUPPORTS_DATE_RANGE, TEMPLATE_REQUIRES_GOAL } from '../utils/templateConfig';
+import {
+  TEMPLATE_TEXT_FIELDS,
+  TEMPLATE_SUPPORTS_DATE_RANGE,
+  TEMPLATE_REQUIRES_GOAL,
+  TEMPLATE_DEFAULT_FORMAT,
+  TEMPLATE_HAS_HEADER,
+  TEMPLATE_HAS_FOOTER,
+} from '../utils/templateConfig';
 
 type Format = 'post' | 'story';
 type FontScale = number;
@@ -23,19 +30,6 @@ type FontScale = number;
 const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
   post: { width: 1080, height: 1080, label: '1080×1080' },
   story: { width: 1080, height: 1920, label: '1080×1920' },
-};
-
-const DEFAULT_FORMAT: Record<TemplateType, Format> = {
-  progress: 'post',
-  'daily-activity': 'story',
-  'thank-you': 'post',
-  milestone: 'post',
-  'top-donors': 'story',
-  'donors-count': 'post',
-  urgency: 'post',
-  'weekly-recap': 'story',
-  speed: 'post',
-  'funds-flow': 'post',
 };
 
 function toDateInput(d: Date): string {
@@ -67,7 +61,7 @@ function ExportPageInner() {
   const [scale, setScale] = useState(0.5);
   const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
   const [isExporting, setIsExporting] = useState(false);
-  const [format, setFormat] = useState<Format>(DEFAULT_FORMAT[templateId]);
+  const [format, setFormat] = useState<Format>(TEMPLATE_DEFAULT_FORMAT[templateId]);
   const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
   const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
   const [textEditorOpen, setTextEditorOpen] = useState(false);
@@ -75,13 +69,12 @@ function ExportPageInner() {
   const [dateTo, setDateTo] = useState('');
   const [fontScale, setFontScale] = useState<FontScale>(1);
   const [showRefunds, setShowRefunds] = useState(false);
-  const [hideSums, setHideSums] = useState(false);
   const [formatOpen, setFormatOpen] = useState(true);
   const [bgOpen, setBgOpen] = useState(false);
   const [fontOpen, setFontOpen] = useState(true);
   const [dateOpen, setDateOpen] = useState(false);
   const [refundsOpen, setRefundsOpen] = useState(true);
-  const [hideSumsOpen, setHideSumsOpen] = useState(true);
+  const [layoutOpen, setLayoutOpen] = useState(true);
   const [goalOpen, setGoalOpen] = useState(true);
   const [statsOpen, setStatsOpen] = useState(false);
   const [bgImage, setBgImage] = useState<string | null>(null);
@@ -89,11 +82,25 @@ function ExportPageInner() {
   const [bgTransparent, setBgTransparent] = useState(false);
   const [bgBrightness, setBgBrightness] = useState(1);
   const [bgOpacity, setBgOpacity] = useState(1);
+  const [bgZoom, setBgZoom] = useState(1);
+  const [bgOffsetX, setBgOffsetX] = useState(0);
+  const [bgOffsetY, setBgOffsetY] = useState(0);
+  // Template section visibility (header / footer / daily-activity blocks)
+  const [showHeader, setShowHeader] = useState(true);
+  const [showFooter, setShowFooter] = useState(true);
+  const [showChart, setShowChart] = useState(true);
+  const [showBars, setShowBars] = useState(true);
+  const [showBestDay, setShowBestDay] = useState(true);
   const bgInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    setFormat(DEFAULT_FORMAT[templateId]);
+    setFormat(TEMPLATE_DEFAULT_FORMAT[templateId]);
     setTextOverrides({});
+    setShowHeader(true);
+    setShowFooter(true);
+    setShowChart(true);
+    setShowBars(true);
+    setShowBestDay(true);
   }, [templateId]);
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -180,6 +187,10 @@ function ExportPageInner() {
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
   const showGoal = requiresGoal || templateId === 'progress';
 
+  const hasHeaderToggle = TEMPLATE_HAS_HEADER[templateId];
+  const hasFooterToggle = TEMPLATE_HAS_FOOTER[templateId];
+  const hasLayoutSection = hasHeaderToggle || hasFooterToggle || templateId === 'daily-activity';
+
   const templateProps = {
     aggregates: filteredAggregates,
     goal: goalValue,
@@ -188,8 +199,12 @@ function ExportPageInner() {
     textOverrides,
     fontScale,
     showRefunds,
-    hideSums,
     bgOverride,
+    showHeader,
+    showFooter,
+    showChart,
+    showBars,
+    showBestDay,
   };
 
   return (
@@ -247,13 +262,16 @@ function ExportPageInner() {
                 }}
               >
                 {bgImage && (
-                  <div
+                  <img
+                    src={bgImage}
+                    alt=""
                     style={{
                       position: 'absolute',
                       inset: 0,
-                      backgroundImage: `url("${bgImage}")`,
-                      backgroundSize: 'cover',
-                      backgroundPosition: 'center',
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      transform: `translate(${bgOffsetX}%, ${bgOffsetY}%) scale(${bgZoom})`,
                       filter: `brightness(${bgBrightness})`,
                       opacity: bgOpacity,
                     }}
@@ -360,10 +378,22 @@ function ExportPageInner() {
                       <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.opacity')}</span><span>{Math.round(bgOpacity * 100)}%</span></div>
                       <input type="range" min={0.05} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
                     </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.zoom')}</span><span>{Math.round(bgZoom * 100)}%</span></div>
+                      <input type="range" min={1} max={3} step={0.05} value={bgZoom} onChange={e => setBgZoom(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetX')}</span><span>{bgOffsetX}%</span></div>
+                      <input type="range" min={-50} max={50} step={1} value={bgOffsetX} onChange={e => setBgOffsetX(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                    </div>
+                    <div>
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetY')}</span><span>{bgOffsetY}%</span></div>
+                      <input type="range" min={-50} max={50} step={1} value={bgOffsetY} onChange={e => setBgOffsetY(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                    </div>
                   </div>
                 )}
                 {(bgImage || bgColor || bgTransparent) && (
-                  <button onClick={() => { setBgImage(null); setBgColor(null); setBgTransparent(false); setBgBrightness(1); setBgOpacity(1); }} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
+                  <button onClick={() => { setBgImage(null); setBgColor(null); setBgTransparent(false); setBgBrightness(1); setBgOpacity(1); setBgZoom(1); setBgOffsetX(0); setBgOffsetY(0); }} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
                     {t('background.reset')}
                   </button>
                 )}
@@ -425,16 +455,26 @@ function ExportPageInner() {
             </Collapsible>
           )}
 
-          {/* Hide sums — collapsible, conditional */}
-          {templateId === 'top-donors' && (
-            <Collapsible label={t('hideSums.sectionLabel')} open={hideSumsOpen} onToggle={() => setHideSumsOpen(o => !o)}>
-              <label className="flex items-center justify-between gap-3 cursor-pointer">
-                <span className="text-sm text-gray-700">{t('hideSums.toggle')}</span>
-                <div onClick={() => setHideSums(v => !v)} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${hideSums ? 'bg-indigo-600' : 'bg-gray-300'}`}>
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${hideSums ? 'translate-x-5' : 'translate-x-1'}`} />
-                </div>
-              </label>
-              <p className="mt-2 text-xs text-gray-400">{t('hideSums.hint')}</p>
+          {/* Template sections — collapsible, conditional */}
+          {hasLayoutSection && (
+            <Collapsible label={t('layout.label')} open={layoutOpen} onToggle={() => setLayoutOpen(o => !o)}>
+              <div className="space-y-3">
+                {hasHeaderToggle && (
+                  <ToggleRow label={t('layout.header')} value={showHeader} onChange={setShowHeader} />
+                )}
+                {hasFooterToggle && (
+                  <ToggleRow label={t('layout.footer')} value={showFooter} onChange={setShowFooter} />
+                )}
+                {templateId === 'daily-activity' && (
+                  <>
+                    <ToggleRow label={t('layout.chart')} value={showChart} onChange={setShowChart} />
+                    {format === 'story' && (
+                      <ToggleRow label={t('layout.bars')} value={showBars} onChange={setShowBars} />
+                    )}
+                    <ToggleRow label={t('layout.bestDay')} value={showBestDay} onChange={setShowBestDay} />
+                  </>
+                )}
+              </div>
             </Collapsible>
           )}
 
@@ -463,6 +503,8 @@ function ExportPageInner() {
                 const defaultValue =
                   field.key === 'achievedLabel' && templateId === 'milestone'
                     ? t(`templates:milestone.${milestoneAchievedKey}`)
+                    : field.key === 'dateRange'
+                    ? `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`
                     : t(`templates:${templateId}.${field.key}`);
                 const currentValue = textOverrides[field.key] ?? defaultValue;
                 return (
@@ -542,24 +584,43 @@ interface RendererProps {
   textOverrides: Record<string, string>;
   fontScale: FontScale;
   showRefunds: boolean;
-  hideSums: boolean;
   bgOverride?: string;
+  showHeader: boolean;
+  showFooter: boolean;
+  showChart: boolean;
+  showBars: boolean;
+  showBestDay: boolean;
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, hideSums, bgOverride }: RendererProps) {
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay }: RendererProps) {
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride };
   switch (templateId) {
-    case 'progress':        return <ProgressCard {...shared} goal={goal} />;
-    case 'daily-activity':  return <DailyActivityCard {...shared} />;
-    case 'thank-you':       return <ThankYouCard {...shared} />;
-    case 'milestone':       return <MilestoneCard {...shared} goal={goal} />;
-    case 'donors-count':    return <DonorsCountCard {...shared} />;
-    case 'urgency':         return <UrgencyCard {...shared} goal={goal} />;
-    case 'top-donors':      return <TopDonorsCard {...shared} hideSums={hideSums} />;
-    case 'weekly-recap':    return <WeeklyRecapCard {...shared} />;
-    case 'speed':           return <SpeedCard {...shared} />;
-    case 'funds-flow':      return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
+    case 'progress':         return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'daily-activity':   return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
+    case 'thank-you':        return <ThankYouCard {...shared} />;
+    case 'milestone':        return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'donors-count':     return <DonorsCountCard {...shared} />;
+    case 'urgency':          return <UrgencyCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'top-donors':       return <TopDonorsCard {...shared} mode="sum" />;
+    case 'top-donors-count': return <TopDonorsCard {...shared} mode="count" />;
+    case 'weekly-recap':     return <WeeklyRecapCard {...shared} showHeader={showHeader} />;
+    case 'speed':            return <SpeedCard {...shared} showHeader={showHeader} />;
+    case 'funds-flow':       return <FundsFlowCard {...shared} showRefunds={showRefunds} showHeader={showHeader} showFooter={showFooter} />;
   }
+}
+
+function ToggleRow({ label, value, onChange }: { label: string; value: boolean; onChange: (v: boolean) => void }) {
+  return (
+    <label className="flex items-center justify-between gap-3 cursor-pointer">
+      <span className="text-sm text-gray-700">{label}</span>
+      <div
+        onClick={() => onChange(!value)}
+        className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${value ? 'bg-indigo-600' : 'bg-gray-300'}`}
+      >
+        <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${value ? 'translate-x-5' : 'translate-x-1'}`} />
+      </div>
+    </label>
+  );
 }
 
 // ─── Collapsible sidebar section ─────────────────────────────────────────────

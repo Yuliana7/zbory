@@ -4,6 +4,7 @@ import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/da
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { CardHeader, NoWrap } from './shared';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
@@ -12,10 +13,14 @@ interface DailyActivityCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  showHeader?: boolean;
+  showChart?: boolean;
+  showBars?: boolean;
+  showBestDay?: boolean;
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
     const { t } = useTranslation('templates');
     const isPost = format === 'post';
     const p = palette;
@@ -92,27 +97,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         />
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 60 }}>
-          <div
-            style={{
-              width: 64,
-              height: 64,
-              background: p.logoGradient,
-              borderRadius: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: fz(32),
-              color: '#fff',
-            }}
-          >
-            ₴
-          </div>
-          <div>
-            <div style={{ fontSize: fz(32), fontWeight: 700 }}>{tx('title')}</div>
-            <div style={{ fontSize: fz(22), color: p.secondary }}>{tx('subtitle')}</div>
-          </div>
-        </div>
+        {showHeader && <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={60} />}
 
         {/* Total */}
         <div style={{ marginBottom: isPost ? 32 : 60 }}>
@@ -129,11 +114,12 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
               WebkitTextFillColor: 'transparent',
             }}
           >
-            {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount))} ₴
+            <NoWrap>{new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount))} ₴</NoWrap>
           </div>
         </div>
 
         {/* Cumulative chart */}
+        {showChart && (
         <div
           style={{
             background: p.cardBg,
@@ -184,9 +170,10 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             })}
           </svg>
         </div>
+        )}
 
         {/* Daily bars — story only */}
-        {!isPost && (
+        {showBars && !isPost && (
           <div
             style={{
               background: p.cardBg,
@@ -232,7 +219,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         )}
 
         {/* Best day callout */}
-        {bestDay && (
+        {showBestDay && bestDay && (
           <div
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.08))',
@@ -276,7 +263,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             },
           ].map((stat) => (
             <div key={stat.label} style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: fz(44), fontWeight: 700 }}>{stat.value}</div>
+              <div style={{ fontSize: fz(44), fontWeight: 700 }}><NoWrap>{stat.value}</NoWrap></div>
               <div style={{ fontSize: fz(24), color: p.secondary, marginTop: 4 }}>{stat.label}</div>
             </div>
           ))}

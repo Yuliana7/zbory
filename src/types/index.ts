@@ -33,6 +33,10 @@ export interface Aggregates {
   totalRaised: number; // gross sum of all inbound donations
   donationCount: number;
   avgDonation: number;
+  medianDonation: number;
+  modeDonation: number; // most frequent exact amount
+  p25Donation: number; // 25th percentile of donation amounts
+  p75Donation: number; // 75th percentile of donation amounts
   minDonation: number;
   maxDonation: number;
 
@@ -61,14 +65,18 @@ export interface Aggregates {
 
   // Top donors by total amount
   topDonors: Array<{ name: string; amount: number; count: number }>;
+  // Top donors by number of donations (frequent small donors matter too)
+  topDonorsByCount: Array<{ name: string; amount: number; count: number }>;
 }
 
 // Insight type for display
 export interface Insight {
   icon: string;
   title: string;
-  value: string;
+  value?: string;
   description?: string;
+  // Optional breakdown lines rendered inside the card (e.g. mode/median/mean)
+  stats?: Array<{ icon: string; label: string; value: string }>;
   type?: 'insight' | 'action'; // 'action' = "Що робити далі?" recommendations
 }
 
@@ -79,6 +87,7 @@ export type TemplateType =
   | 'thank-you'
   | 'milestone'
   | 'top-donors'
+  | 'top-donors-count'
   | 'donors-count'
   | 'urgency'
   | 'weekly-recap'

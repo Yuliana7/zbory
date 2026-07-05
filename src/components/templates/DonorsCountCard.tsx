@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { NoWrap } from './shared';
 
 interface DonorsCountCardProps {
   aggregates: Aggregates;
@@ -76,10 +77,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
           >
             ₴
           </div>
-          <div>
-            <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
-            <div style={{ fontSize: fz(18), color: p.secondary }}>{tx('subtitle')}</div>
-          </div>
+          <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
         </div>
 
         {/* Hero number */}
@@ -120,7 +118,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
                 textAlign: 'center',
               }}
             >
-              <div style={{ fontSize: fz(30), fontWeight: 800, color: p.primary }}>{s.value}</div>
+              <div style={{ fontSize: fz(30), fontWeight: 800, color: p.primary }}><NoWrap>{s.value}</NoWrap></div>
               <div style={{ fontSize: fz(18), color: p.secondary, marginTop: 6 }}>{s.label}</div>
             </div>
           ))}
