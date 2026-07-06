@@ -4,6 +4,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface SpeedCardProps {
   aggregates: Aggregates;
@@ -12,11 +13,13 @@ interface SpeedCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -55,7 +58,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
@@ -120,6 +123,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
 
         {/* Hourly chart */}
         <div
+          data-sticker="hourly"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -173,6 +177,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
 
         {/* Peak hour callout */}
         <div
+          data-sticker="peak"
           style={{
             background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))',
             border: '1px solid rgba(251,191,36,0.3)',
@@ -193,7 +198,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
           </div>
         </div>
 
-        {isStory && (
+        {isStory && showFooter && (
           <div
             style={{
               display: 'flex',

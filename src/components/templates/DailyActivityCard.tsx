@@ -5,6 +5,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
@@ -13,6 +14,7 @@ interface DailyActivityCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showHeader?: boolean;
   showChart?: boolean;
   showBars?: boolean;
@@ -20,7 +22,7 @@ interface DailyActivityCardProps {
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
     const { t } = useTranslation('templates');
     const isPost = format === 'post';
     const p = palette;
@@ -75,7 +77,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: '80px',
+          padding: cardPadding(!isPost, safeZonePad, '80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
@@ -121,6 +123,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Cumulative chart */}
         {showChart && (
         <div
+          data-sticker="chart"
           style={{
             background: p.cardBg,
             borderRadius: 24,
@@ -175,6 +178,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Daily bars — story only */}
         {showBars && !isPost && (
           <div
+            data-sticker="bars"
             style={{
               background: p.cardBg,
               borderRadius: 24,
@@ -221,6 +225,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Best day callout */}
         {showBestDay && bestDay && (
           <div
+            data-sticker="bestDay"
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.08))',
               border: '1px solid rgba(251,191,36,0.3)',

@@ -5,6 +5,7 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { CardHeader, CardFooter, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface FundsFlowCardProps {
   aggregates: Aggregates;
@@ -13,13 +14,14 @@ interface FundsFlowCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showRefunds?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
 }
 
 export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
-  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, showRefunds = false, bgOverride, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, showRefunds = false, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -50,7 +52,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
@@ -82,7 +84,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           </div>
 
           {/* Proportional flow bar */}
-          <div>
+          <div data-sticker="flowBar">
             <div
               style={{
                 height: 24,
@@ -128,7 +130,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           </div>
 
           {/* Stat breakdown cards */}
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <div data-sticker="breakdown" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {/* Balance card */}
             <div style={{ flex: 1, minWidth: 200, background: 'rgba(74,222,128,0.12)', borderRadius: 20, padding: '28px 32px', border: '1px solid rgba(74,222,128,0.25)' }}>
               <div style={{ fontSize: fz(20), color: '#4ade80', marginBottom: 10, fontWeight: 600 }}>{tx('balanceLabel')}</div>

@@ -4,6 +4,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, CardFooter, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface UrgencyCardProps {
   aggregates: Aggregates;
@@ -13,12 +14,13 @@ interface UrgencyCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
 }
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -44,7 +46,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
@@ -75,7 +77,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
         {/* Hero */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           {remainingFormatted !== null ? (
-            <>
+            <div data-sticker="hero">
               <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 12 }}>
                 {tx('remainingLabel')}
               </div>
@@ -95,7 +97,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
               <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px', marginBottom: 56 }}>
                 {tx('currencyLabel')}
               </div>
-            </>
+            </div>
           ) : (
             <div
               style={{
@@ -112,7 +114,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           )}
 
           {/* Progress bar */}
-          <div style={{ marginBottom: 56 }}>
+          <div data-sticker="progressBar" style={{ marginBottom: 56 }}>
             {goalFormatted && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>

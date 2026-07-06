@@ -4,6 +4,7 @@ import { generateThankYouMessage } from '../../utils/insightGenerator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { cardPadding } from '../../utils/units';
 
 interface ThankYouCardProps {
   aggregates: Aggregates;
@@ -12,10 +13,11 @@ interface ThankYouCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
 }
 
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
     const { t } = useTranslation('templates');
     const { t: tInsights } = useTranslation('insights');
     const isStory = format === 'story';
@@ -37,7 +39,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: isStory ? '120px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '120px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',

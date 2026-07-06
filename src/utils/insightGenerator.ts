@@ -9,6 +9,7 @@ import {
   getTimeBuckets,
 } from './dataAggregator';
 import type { TimeBucketKey } from './dataAggregator';
+import { defaultAskUnit } from './dataAggregator';
 
 type TFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -159,6 +160,22 @@ export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?
   if (momentumInsight) actions.push(momentumInsight);
 
   if (goal && aggregates.totalAmount < goal) {
+    // The abstract remaining sum, converted into a countable ask volunteers
+    // can put straight into a story: "ще 42 донати по 100 ₴"
+    const remaining = goal - aggregates.totalAmount;
+    const unit = defaultAskUnit(aggregates.medianDonation);
+    const askCount = Math.ceil(remaining / unit);
+    actions.push({
+      icon: '🧮',
+      title: t('generated.actionAskTitle'),
+      value: t('generated.actionAskValue', { count: askCount, unit: formatCurrency(unit) }),
+      description: t('generated.actionAskDesc', {
+        remaining: formatCurrency(Math.round(remaining)),
+        unit: formatCurrency(unit),
+      }),
+      type: 'action',
+    });
+
     const forecast = estimateDaysToGoal(aggregates, goal);
     if (forecast !== null) {
       const eta = new Date();

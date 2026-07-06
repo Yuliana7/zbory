@@ -5,6 +5,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, CardFooter, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface ProgressCardProps {
   aggregates: Aggregates;
@@ -14,12 +15,13 @@ interface ProgressCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -61,7 +63,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',
@@ -101,6 +103,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div data-sticker="hero">
           <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
             {tx('collectedLabel')}
           </div>
@@ -127,9 +130,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           >
             {tx('currencyLabel')}
           </div>
+          </div>
 
           {progressPct !== null && (
-            <div style={{ marginTop: 56 }}>
+            <div data-sticker="progressBar" style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary, whiteSpace: 'nowrap' }}>
                   {tx('goalLabel')}: <NoWrap>{formattedGoal} ₴</NoWrap>

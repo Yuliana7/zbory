@@ -15,7 +15,6 @@ interface ManualEntryEditorProps {
 
 interface RowErrors {
   date?: string;
-  name?: string;
   amount?: string;
 }
 
@@ -41,7 +40,6 @@ function sanitizeDecimal(raw: string): string | null {
 function validateRow(row: ManualRow, t: (key: string) => string): RowErrors {
   const errors: RowErrors = {};
   if (!row.date) errors.date = t('validation.dateRequired');
-  if (!row.name.trim()) errors.name = t('validation.nameRequired');
   const amount = parseFloat(row.amount);
   if (!row.amount || isNaN(amount) || amount <= 0) {
     errors.amount = t('validation.amountRequired');
@@ -347,10 +345,9 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       onChange={(e) => updateRow(row.id, 'name', e.target.value)}
                       placeholder={t('placeholders.name')}
                       className={`w-44 px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
-                        rowErrors.name ? 'border-red-400 bg-red-50' : 'border-gray-300'
+                        'border-gray-300'
                       }`}
                     />
-                    {rowErrors.name && <p className="text-xs text-red-500 mt-0.5">{rowErrors.name}</p>}
                   </td>
                   {/* Amount */}
                   <td className="px-3 py-2 align-top">

@@ -6,7 +6,7 @@ export interface TextFieldDef {
 }
 
 // Standard footer fields for Progress-category templates:
-// Зібрано / Середній донат (median) / Найбільший
+// Зібрано / Типовий донат (median) / Найбільший
 const FOOTER_FIELDS: TextFieldDef[] = [
   { key: 'statCollected' },
   { key: 'statMedian' },
@@ -47,19 +47,18 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   ],
   'top-donors': [
     { key: 'title' },
-    { key: 'anonymousLabel' },
     { key: 'donationsLabel' },
     { key: 'totalDonorsLabel' },
   ],
   'top-donors-count': [
     { key: 'title' },
-    { key: 'anonymousLabel' },
     { key: 'donationsLabel' },
     { key: 'totalDonorsLabel' },
   ],
   'donors-count': [
     { key: 'title' },
     { key: 'donorsLabel' },
+    { key: 'anonymousLabel' },
     { key: 'avgLabel' },
     { key: 'maxLabel' },
     { key: 'totalLabel' },
@@ -101,6 +100,33 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'noWithdrawalsNote' },
     ...FOOTER_FIELDS,
   ],
+  'final-report': [
+    { key: 'title' },
+    { key: 'currencyLabel' },
+    { key: 'daysLabel' },
+    { key: 'donationsLabel' },
+    { key: 'bestDayLabel' },
+    { key: 'spentLabel' },
+    { key: 'balanceLabel' },
+    { key: 'message', multiline: true },
+    ...FOOTER_FIELDS,
+  ],
+  'concrete-ask': [
+    { key: 'title' },
+    { key: 'remainingLabel' },
+    { key: 'unitAmount' },
+    { key: 'donationsWord' },
+    { key: 'closingLine' },
+    { key: 'linkUrl' },
+    ...FOOTER_FIELDS,
+  ],
+  'emoji-cloud': [
+    { key: 'title' },
+    { key: 'fromCommentsLabel' },
+  ],
+  comments: [
+    { key: 'title' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -115,6 +141,10 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   'weekly-recap': true,
   speed: true,
   'funds-flow': false, // always shows the full campaign picture
+  'final-report': false, // final report covers the whole campaign
+  'concrete-ask': true,
+  'emoji-cloud': false, // comment analysis runs on the full dataset
+  comments: false,
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -129,20 +159,30 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   'weekly-recap': false,
   speed: false,
   'funds-flow': false,
+  'final-report': false,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
 };
 
+// Stories are the primary sharing format for volunteers — every template
+// opens as 9:16; the post 1:1 variant stays one click away in the editor.
 export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
-  progress: 'post',
+  progress: 'story',
   'daily-activity': 'story',
-  'thank-you': 'post',
-  milestone: 'post',
+  'thank-you': 'story',
+  milestone: 'story',
   'top-donors': 'story',
   'top-donors-count': 'story',
-  'donors-count': 'post',
-  urgency: 'post',
+  'donors-count': 'story',
+  urgency: 'story',
   'weekly-recap': 'story',
-  speed: 'post',
-  'funds-flow': 'post',
+  speed: 'story',
+  'funds-flow': 'story',
+  'final-report': 'story',
+  'concrete-ask': 'story',
+  'emoji-cloud': 'story',
+  comments: 'story',
 };
 
 // Which templates render the standard toggleable header (₴ badge + title)
@@ -158,6 +198,10 @@ export const TEMPLATE_HAS_HEADER: Record<TemplateType, boolean> = {
   'weekly-recap': true,
   speed: true,
   'funds-flow': true,
+  'final-report': true,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
 };
 
 // Progress-category templates share the standard toggleable footer
@@ -170,7 +214,45 @@ export const TEMPLATE_HAS_FOOTER: Record<TemplateType, boolean> = {
   'top-donors-count': false,
   'donors-count': false,
   urgency: true,
-  'weekly-recap': false,
-  speed: false,
+  'weekly-recap': true,
+  speed: true,
   'funds-flow': true,
+  'final-report': true,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
+};
+
+// Gallery categories — also used by the editor's "add template" picker
+export interface TemplateGroup {
+  id: string;
+  labelKey: string; // key in the gallery namespace
+  icon: string;
+  ids: TemplateType[];
+}
+
+export const TEMPLATE_GROUPS: TemplateGroup[] = [
+  { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
+  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
+  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
+];
+
+// Blocks inside each template that can be exported alone as a transparent PNG
+// "sticker". Ids must match the data-sticker attribute in the card markup.
+export const TEMPLATE_STICKERS: Record<TemplateType, string[]> = {
+  progress: ['hero', 'progressBar'],
+  'daily-activity': ['chart', 'bars', 'bestDay'],
+  'thank-you': [],
+  milestone: ['hero'],
+  'top-donors': ['list'],
+  'top-donors-count': ['list'],
+  'donors-count': ['distribution'],
+  urgency: ['hero', 'progressBar'],
+  'weekly-recap': ['chart', 'bestDay'],
+  speed: ['hourly', 'peak'],
+  'funds-flow': ['flowBar', 'breakdown'],
+  'final-report': ['statsGrid'],
+  'concrete-ask': ['hero'],
+  'emoji-cloud': ['cloud'],
+  comments: ['quotes'],
 };

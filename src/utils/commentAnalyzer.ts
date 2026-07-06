@@ -1,7 +1,8 @@
 import type { Donation, CommentInsights, RepeatDonor } from '../types';
 
-// Auto-generated Monobank comment — not a personal message
-const AUTO_COMMENT = 'Поповнення рахунку банки';
+// Auto-generated Monobank comment — not a personal message. Case varies
+// between exports («банки» / «Банки»), so match the normalized prefix.
+const AUTO_COMMENT_PREFIX = 'поповнення рахунку';
 
 /**
  * Analyzes donation comments to extract:
@@ -34,12 +35,35 @@ export function analyzeComments(donations: Donation[]): CommentInsights {
   };
 }
 
+/**
+ * Personal comments suitable for featuring on a card, newest first, deduped.
+ * Used by the "Слова підтримки" template picker and gallery gating.
+ */
+export function getPersonalComments(
+  donations: Donation[],
+  limit = 50,
+): Array<{ text: string; donor?: string; amount: number }> {
+  const seen = new Set<string>();
+  const result: Array<{ text: string; donor?: string; amount: number }> = [];
+  const sorted = [...donations].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+  for (const d of sorted) {
+    if (!isPersonalComment(d.comment)) continue;
+    const text = d.comment.trim();
+    const key = text.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    result.push({ text, donor: d.donor || undefined, amount: d.amount });
+    if (result.length >= limit) break;
+  }
+  return result;
+}
+
 // ─── Personal comment filter ──────────────────────────────────────────────────
 
 function isPersonalComment(comment: string | undefined): comment is string {
   if (!comment || !comment.trim()) return false;
   const normalized = comment.trim();
-  if (normalized === AUTO_COMMENT) return false;
+  if (normalized.toLowerCase().startsWith(AUTO_COMMENT_PREFIX)) return false;
   if (normalized.length < 2) return false;
   return true;
 }
