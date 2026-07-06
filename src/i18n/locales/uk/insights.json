@@ -19,6 +19,19 @@
     "whatNext": "Що робити далі?",
     "comments": "Коментарі донатерів"
   },
+  "moments": {
+    "title": "Готові моменти для допису",
+    "goal_100": "Мету досягнуто!",
+    "goal_75": "Перетнули 75% мети",
+    "goal_50": "Половина мети позаду",
+    "goal_25": "Перша чверть мети",
+    "donations_one": "Вже {{count}} донат",
+    "donations_few": "Вже {{count}} донати",
+    "donations_many": "Вже {{count}} донатів",
+    "donations_other": "Вже {{count}} донатів",
+    "total": "Перетнули {{amount}}",
+    "recordDay": "Рекордний день — {{amount}}"
+  },
   "charts": {
     "raised": "Зібрано",
     "withdrawn": "Витрачено",
@@ -80,6 +93,9 @@
     "actionBestTimeTitle": "Найкращий час для посту",
     "actionBestTimeDesc_today": "{{count}} з {{total}} донатів ({{pct}}%) надійшли між {{hour}}:00 та {{hourEnd}}:00 — опублікуйте пост сьогодні саме в цей час",
     "actionBestTimeDesc_daily": "{{count}} з {{total}} донатів ({{pct}}%) надійшли між {{hour}}:00 та {{hourEnd}}:00 — плануйте публікації на цей час",
+    "actionAskTitle": "Конкретне прохання",
+    "actionAskValue": "≈ {{count}} донатів по {{unit}}",
+    "actionAskDesc": "Залишок {{remaining}} звучить абстрактно — попросіть аудиторію про конкретне: «нам треба ще стільки-то донатів по {{unit}}». Це працює краще",
     "actionGoalTitle": "Прогноз виконання",
     "actionGoalValue_one": "~{{count}} день",
     "actionGoalValue_few": "~{{count}} дні",

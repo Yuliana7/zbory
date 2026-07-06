@@ -87,7 +87,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
         </div>
 
         {/* Donors list */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div data-sticker="list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {donors.length === 0 ? (
             <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(32), marginTop: 80 }}>
               {tx('noDataLabel')}
@@ -137,7 +137,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {donor.name || tx('anonymousLabel')}
+                        {donor.name}
                       </div>
                       {mode === 'sum' && donor.count > 1 && (
                         <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>

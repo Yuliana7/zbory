@@ -13,10 +13,11 @@ interface WeeklyRecapCardProps {
   fontScale?: number;
   bgOverride?: string;
   showHeader?: boolean;
+  showFooter?: boolean;
 }
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const UA_DAYS = t('weekly-recap.days', { returnObjects: true }) as string[];
     const isStory = format === 'story';
@@ -121,6 +122,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
 
         {/* Bar chart */}
         <div
+          data-sticker="chart"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -179,6 +181,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
           const d = new Date(best[0]);
           return (
             <div
+              data-sticker="bestDay"
               style={{
                 background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))',
                 border: '1px solid rgba(251,191,36,0.3)',
@@ -202,7 +205,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
         })()}
 
         {/* Footer */}
-        <div
+        {showFooter && (<div
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -220,7 +223,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
               <div style={{ fontSize: fz(20), color: p.secondary, marginTop: 4 }}>{s.label}</div>
             </div>
           ))}
-        </div>
+        </div>)}
 
         <div
           style={{

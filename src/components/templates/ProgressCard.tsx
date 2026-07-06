@@ -101,6 +101,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+          <div data-sticker="hero">
           <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
             {tx('collectedLabel')}
           </div>
@@ -127,9 +128,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           >
             {tx('currencyLabel')}
           </div>
+          </div>
 
           {progressPct !== null && (
-            <div style={{ marginTop: 56 }}>
+            <div data-sticker="progressBar" style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary, whiteSpace: 'nowrap' }}>
                   {tx('goalLabel')}: <NoWrap>{formattedGoal} ₴</NoWrap>

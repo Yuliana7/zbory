@@ -92,7 +92,11 @@ export type TemplateType =
   | 'urgency'
   | 'weekly-recap'
   | 'speed'
-  | 'funds-flow';
+  | 'funds-flow'
+  | 'final-report'
+  | 'concrete-ask'
+  | 'emoji-cloud'
+  | 'comments';
 
 export interface Template {
   id: TemplateType;

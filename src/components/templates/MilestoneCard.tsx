@@ -95,6 +95,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         >
         {displayPct !== null ? (
           <div
+            data-sticker="hero"
             style={{
               fontSize: fz(200),
               fontWeight: 900,

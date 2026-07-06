@@ -43,14 +43,12 @@
     },
     "top-donors": {
         "title": "Топ донатери",
-        "anonymousLabel": "Анонімно",
         "donationsLabel": "донати",
         "totalDonorsLabel": "Усього підтримали:",
         "noDataLabel": "Немає даних про донорів"
     },
     "top-donors-count": {
         "title": "Найвідданіші донатери",
-        "anonymousLabel": "Анонімно",
         "donationsLabel": "донатів",
         "totalDonorsLabel": "Усього підтримали:",
         "noDataLabel": "Немає даних про донорів"
@@ -107,5 +105,42 @@
         "statCollected": "Зібрано",
         "statMedian": "Медіана",
         "statMax": "Найбільший"
+    },
+    "final-report": {
+        "title": "Збір завершено 💙💛",
+        "currencyLabel": "гривень зібрано",
+        "daysLabel": "Днів",
+        "donationsLabel": "Донатів",
+        "bestDayLabel": "Найкращий день",
+        "spentLabel": "Витрачено:",
+        "balanceLabel": "На рахунку:",
+        "message": "Дякуємо кожному, хто долучився. Разом ми — сила! 💙💛",
+        "statCollected": "Зібрано",
+        "statMedian": "Медіана",
+        "statMax": "Найбільший"
+    },
+    "concrete-ask": {
+        "title": "Збори",
+        "askPrefix": "Ще",
+        "donationsWord": "донатів",
+        "unitPrefix": "по",
+        "closingLine": "— і збір закрито 🎯",
+        "remainingLabel": "Залишилось зібрати:",
+        "unitAmount": "",
+        "linkUrl": "",
+        "goalReached": "Мету досягнуто! 🎉",
+        "statCollected": "Зібрано",
+        "statMedian": "Медіана",
+        "statMax": "Найбільший"
+    },
+    "emoji-cloud": {
+        "title": "Емоції нашого збору",
+        "fromCommentsLabel": "З особистих коментарів донатерів:",
+        "noDataLabel": "У коментарях поки немає емоджі"
+    },
+    "comments": {
+        "title": "Слова підтримки",
+        "emptyHint": "Оберіть коментарі у панелі праворуч — вони з'являться тут",
+        "noDataLabel": "Немає коментарів"
     }
 }

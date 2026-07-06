@@ -121,6 +121,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Cumulative chart */}
         {showChart && (
         <div
+          data-sticker="chart"
           style={{
             background: p.cardBg,
             borderRadius: 24,
@@ -175,6 +176,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Daily bars — story only */}
         {showBars && !isPost && (
           <div
+            data-sticker="bars"
             style={{
               background: p.cardBg,
               borderRadius: 24,
@@ -221,6 +223,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         {/* Best day callout */}
         {showBestDay && bestDay && (
           <div
+            data-sticker="bestDay"
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.08))',
               border: '1px solid rgba(251,191,36,0.3)',

@@ -176,6 +176,15 @@ function findMode(amounts: number[]): number {
   return mode;
 }
 
+/** Rounds the median to a "nice" ask unit people actually donate (50/100/200…) */
+export function defaultAskUnit(median: number): number {
+  if (median >= 750) return 1000;
+  if (median >= 350) return 500;
+  if (median >= 150) return 200;
+  if (median >= 75) return 100;
+  return 50;
+}
+
 export type TimeBucketKey = 'morning' | 'afternoon' | 'evening' | 'night';
 
 /**

@@ -23,6 +23,7 @@ import { manualRowsToRawDonations } from '../utils/csvExporter';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
+import { saveSession, updateSessionGoal, clearSession, loadSession } from '../utils/session';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -140,6 +141,7 @@ interface AppContextValue {
   handleProceedToInsights: (goal?: number) => void;
   handleTemplateSelect: (templateId: TemplateType) => void;
   handleReset: () => void;
+  handleRestoreSession: () => boolean;
   goToStep: (step: AppState['step']) => void;
 }
 
@@ -164,6 +166,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw new Error(t('errors.csvParseError'));
 
       dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance, originalFileName: file.name } });
+      saveSession(rawData, file.name);
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
@@ -181,6 +184,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         throw new Error(t('errors.manualProcessError'));
       }
       dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
+      saveSession(rawData, null);
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
@@ -201,6 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         const insights = generateInsights(aggregates, tInsights);
         const commentInsights = analyzeComments(state.app.donations);
         dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { aggregates, insights, commentInsights, goal } });
+        updateSessionGoal(goal);
       } catch (err) {
         console.error(err);
         dispatch({ type: 'SET_ERROR', payload: t('errors.insightsError') });
@@ -214,7 +219,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleReset = useCallback(() => {
+    clearSession();
     dispatch({ type: 'RESET' });
+  }, []);
+
+  // Restores the autosaved dataset (after an accidental refresh/close)
+  const handleRestoreSession = useCallback((): boolean => {
+    const session = loadSession();
+    if (!session) return false;
+    try {
+      const { donations, withdrawals, currentBalance } = normalizeDonations(session.rawData);
+      if (donations.length === 0) return false;
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData: session.rawData,
+          donations,
+          withdrawals,
+          currentBalance,
+          originalFileName: session.fileName ?? undefined,
+        },
+      });
+      return true;
+    } catch {
+      return false;
+    }
   }, []);
 
   const goToStep = useCallback(
@@ -229,7 +258,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleReset, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleReset, handleRestoreSession, goToStep }}
     >
       {children}
     </AppContext.Provider>

@@ -82,7 +82,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           </div>
 
           {/* Proportional flow bar */}
-          <div>
+          <div data-sticker="flowBar">
             <div
               style={{
                 height: 24,
@@ -128,7 +128,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           </div>
 
           {/* Stat breakdown cards */}
-          <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          <div data-sticker="breakdown" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {/* Balance card */}
             <div style={{ flex: 1, minWidth: 200, background: 'rgba(74,222,128,0.12)', borderRadius: 20, padding: '28px 32px', border: '1px solid rgba(74,222,128,0.25)' }}>
               <div style={{ fontSize: fz(20), color: '#4ade80', marginBottom: 10, fontWeight: 600 }}>{tx('balanceLabel')}</div>

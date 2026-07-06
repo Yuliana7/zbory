@@ -6,7 +6,7 @@ export interface TextFieldDef {
 }
 
 // Standard footer fields for Progress-category templates:
-// Зібрано / Середній донат (median) / Найбільший
+// Зібрано / Типовий донат (median) / Найбільший
 const FOOTER_FIELDS: TextFieldDef[] = [
   { key: 'statCollected' },
   { key: 'statMedian' },
@@ -47,13 +47,11 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   ],
   'top-donors': [
     { key: 'title' },
-    { key: 'anonymousLabel' },
     { key: 'donationsLabel' },
     { key: 'totalDonorsLabel' },
   ],
   'top-donors-count': [
     { key: 'title' },
-    { key: 'anonymousLabel' },
     { key: 'donationsLabel' },
     { key: 'totalDonorsLabel' },
   ],
@@ -101,6 +99,33 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'noWithdrawalsNote' },
     ...FOOTER_FIELDS,
   ],
+  'final-report': [
+    { key: 'title' },
+    { key: 'currencyLabel' },
+    { key: 'daysLabel' },
+    { key: 'donationsLabel' },
+    { key: 'bestDayLabel' },
+    { key: 'spentLabel' },
+    { key: 'balanceLabel' },
+    { key: 'message', multiline: true },
+    ...FOOTER_FIELDS,
+  ],
+  'concrete-ask': [
+    { key: 'title' },
+    { key: 'remainingLabel' },
+    { key: 'unitAmount' },
+    { key: 'donationsWord' },
+    { key: 'closingLine' },
+    { key: 'linkUrl' },
+    ...FOOTER_FIELDS,
+  ],
+  'emoji-cloud': [
+    { key: 'title' },
+    { key: 'fromCommentsLabel' },
+  ],
+  comments: [
+    { key: 'title' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -115,6 +140,10 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   'weekly-recap': true,
   speed: true,
   'funds-flow': false, // always shows the full campaign picture
+  'final-report': false, // final report covers the whole campaign
+  'concrete-ask': true,
+  'emoji-cloud': false, // comment analysis runs on the full dataset
+  comments: false,
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -129,6 +158,10 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   'weekly-recap': false,
   speed: false,
   'funds-flow': false,
+  'final-report': false,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
 };
 
 export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
@@ -143,6 +176,10 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   'weekly-recap': 'story',
   speed: 'post',
   'funds-flow': 'post',
+  'final-report': 'post',
+  'concrete-ask': 'post',
+  'emoji-cloud': 'post',
+  comments: 'story',
 };
 
 // Which templates render the standard toggleable header (₴ badge + title)
@@ -158,6 +195,10 @@ export const TEMPLATE_HAS_HEADER: Record<TemplateType, boolean> = {
   'weekly-recap': true,
   speed: true,
   'funds-flow': true,
+  'final-report': true,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
 };
 
 // Progress-category templates share the standard toggleable footer
@@ -170,7 +211,31 @@ export const TEMPLATE_HAS_FOOTER: Record<TemplateType, boolean> = {
   'top-donors-count': false,
   'donors-count': false,
   urgency: true,
-  'weekly-recap': false,
-  speed: false,
+  'weekly-recap': true,
+  speed: true,
   'funds-flow': true,
+  'final-report': true,
+  'concrete-ask': true,
+  'emoji-cloud': false,
+  comments: false,
+};
+
+// Blocks inside each template that can be exported alone as a transparent PNG
+// "sticker". Ids must match the data-sticker attribute in the card markup.
+export const TEMPLATE_STICKERS: Record<TemplateType, string[]> = {
+  progress: ['hero', 'progressBar'],
+  'daily-activity': ['chart', 'bars', 'bestDay'],
+  'thank-you': [],
+  milestone: ['hero'],
+  'top-donors': ['list'],
+  'top-donors-count': ['list'],
+  'donors-count': ['distribution'],
+  urgency: ['hero', 'progressBar'],
+  'weekly-recap': ['chart', 'bestDay'],
+  speed: ['hourly', 'peak'],
+  'funds-flow': ['flowBar', 'breakdown'],
+  'final-report': ['statsGrid'],
+  'concrete-ask': ['hero'],
+  'emoji-cloud': ['cloud'],
+  comments: ['quotes'],
 };

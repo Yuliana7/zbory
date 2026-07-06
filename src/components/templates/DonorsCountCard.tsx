@@ -126,6 +126,7 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
 
         {/* Distribution bars */}
         <div
+          data-sticker="distribution"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,

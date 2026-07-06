@@ -1,13 +1,16 @@
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
+import { detectMoments } from '../utils/momentDetector';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
-  const { state, dispatch, handleReset } = useAppContext();
+  const { state, dispatch, handleReset, handleTemplateSelect } = useAppContext();
   const { app } = state;
 
   if (!app.aggregates || !app.insights) return null;
+
+  const moments = detectMoments(app.aggregates, t, app.goal);
 
   return (
     <div>
@@ -37,6 +40,30 @@ export function InsightsPage() {
           </button>
         </div>
       </div>
+      {/* Share-worthy moments — one tap jumps to the matching template */}
+      {moments.length > 0 && (
+        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4">
+          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3">
+            {t('moments.title')}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {moments.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => handleTemplateSelect(m.templateId)}
+                className="flex items-center gap-2 px-3 py-2 bg-white border border-amber-200 rounded-xl
+                           text-sm font-medium text-gray-800 shadow-sm
+                           hover:border-amber-400 hover:shadow transition-all"
+              >
+                <span className="text-base leading-none">{m.icon}</span>
+                {m.text}
+                <span className="text-amber-500 font-semibold">→</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <InsightsPanel
         insights={app.insights}
         aggregates={app.aggregates}

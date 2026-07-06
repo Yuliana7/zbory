@@ -1,11 +1,12 @@
 import { forwardRef } from 'react';
 import type { Aggregates } from '../../types';
+import { defaultAskUnit } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, CardFooter, NoWrap } from './shared';
 
-interface UrgencyCardProps {
+interface ConcreteAskCardProps {
   aggregates: Aggregates;
   goal?: number;
   format?: 'post' | 'story';
@@ -17,23 +18,29 @@ interface UrgencyCardProps {
   showFooter?: boolean;
 }
 
-export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
+/**
+ * Turns the abstract remaining sum into a countable ask:
+ * "Ще 42 донати по 100 ₴ — і збір закрито".
+ */
+export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
+  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string) => textOverrides[key] ?? t(`urgency.${key}`);
+    const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`concrete-ask.${key}`);
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
     const total = aggregates.totalAmount;
-    const remaining = goal ? Math.max(goal - total, 0) : null;
-    const progressPct = goal ? Math.min((total / goal) * 100, 100) : null;
-    const barWidthPct = progressPct ?? 0;
+    const remaining = goal ? Math.max(goal - total, 0) : 0;
+    const progressPct = goal ? Math.min((total / goal) * 100, 100) : 0;
 
-    const remainingFormatted = remaining !== null ? fmt(remaining) : null;
-    const goalFormatted = goal ? fmt(goal) : null;
+    const unitDefault = defaultAskUnit(aggregates.medianDonation);
+    const unit = parseFloat(tx('unitAmount', String(unitDefault))) || unitDefault;
+    const askCount = unit > 0 ? Math.ceil(remaining / unit) : 0;
+
+    const goalReached = !!goal && remaining === 0;
 
     return (
       <div
@@ -69,104 +76,81 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
 
         {/* Header */}
         {showHeader && (
-          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 80 : 60} />
+          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 80 : 56} />
         )}
 
         {/* Hero */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          {remainingFormatted !== null ? (
-            <div data-sticker="hero">
-              <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 12 }}>
-                {tx('remainingLabel')}
-              </div>
+          <div data-sticker="hero">
+            {goalReached ? (
               <div
                 style={{
-                  fontSize: fz(108),
+                  fontSize: fz(88),
                   fontWeight: 900,
-                  letterSpacing: '-4px',
-                  lineHeight: 1,
+                  lineHeight: 1.05,
                   background: `${p.accentGradient} text`,
                   WebkitTextFillColor: 'transparent',
-                  marginBottom: 8,
+                  marginBottom: 40,
                 }}
               >
-                {remainingFormatted}
+                {tx('goalReached')}
               </div>
-              <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px', marginBottom: 56 }}>
-                {tx('currencyLabel')}
-              </div>
-            </div>
-          ) : (
-            <div
-              style={{
-                fontSize: fz(80),
-                fontWeight: 900,
-                lineHeight: 1,
-                background: `${p.accentGradient} text`,
-                WebkitTextFillColor: 'transparent',
-                marginBottom: 56,
-              }}
-            >
-              {tx('ctaNoGoal')}
-            </div>
-          )}
-
-          {/* Progress bar */}
-          <div data-sticker="progressBar" style={{ marginBottom: 56 }}>
-            {goalFormatted && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
-                <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('collectedLabel')} <NoWrap>{fmt(total)} ₴</NoWrap>
-                </span>
-                <span style={{ fontSize: fz(22), color: p.secondary }}>
-                  {tx('goalLabel')} <NoWrap>{goalFormatted} ₴</NoWrap>
-                </span>
-              </div>
-            )}
-            <div
-              style={{
-                height: 24,
-                background: p.progressTrack,
-                borderRadius: 12,
-                overflow: 'hidden',
-              }}
-            >
-              <div
-                style={{
-                  height: '100%',
-                  width: `${barWidthPct}%`,
-                  background: p.accentGradient,
-                  borderRadius: 12,
-                }}
-              />
-            </div>
-            {progressPct !== null && (
-              <div style={{ textAlign: 'right', marginTop: 8, fontSize: fz(22), fontWeight: 700, color: p.accent }}>
-                {Math.round(progressPct)}%
-              </div>
+            ) : (
+              <>
+                <div
+                  style={{
+                    fontSize: fz(96),
+                    fontWeight: 900,
+                    letterSpacing: '-3px',
+                    lineHeight: 1.05,
+                    background: `${p.accentGradient} text`,
+                    WebkitTextFillColor: 'transparent',
+                  }}
+                >
+                  {tx('askPrefix')} {fmt(askCount)} {tx('donationsWord')}
+                </div>
+                <div style={{ fontSize: fz(52), fontWeight: 700, color: p.primary, marginTop: 16, letterSpacing: '-1px' }}>
+                  <NoWrap>{tx('unitPrefix')} {fmt(unit)} ₴</NoWrap> {tx('closingLine')}
+                </div>
+                <div style={{ fontSize: fz(26), color: p.secondary, marginTop: 24 }}>
+                  {tx('remainingLabel')} <NoWrap>{fmt(remaining)} ₴</NoWrap>
+                </div>
+              </>
             )}
           </div>
 
-          {/* Jar link — rendered only when the volunteer pasted a URL */}
+          {/* Progress bar */}
+          {!!goal && (
+            <div style={{ marginTop: 56 }}>
+              <div style={{ height: 24, background: p.progressTrack, borderRadius: 12, overflow: 'hidden' }}>
+                <div
+                  style={{
+                    height: '100%',
+                    width: `${progressPct}%`,
+                    background: p.accentGradient,
+                    borderRadius: 12,
+                  }}
+                />
+              </div>
+              <div style={{ textAlign: 'right', marginTop: 8, fontSize: fz(22), fontWeight: 700, color: p.accent }}>
+                {Math.round((total / goal) * 100)}%
+              </div>
+            </div>
+          )}
+
+          {/* Jar link */}
           {textOverrides.linkUrl?.trim() && (
             <div
               style={{
+                marginTop: 40,
                 background: p.cardBg,
                 border: `1px solid ${p.cardBorder}`,
                 borderRadius: 24,
-                padding: '36px 48px',
+                padding: '32px 44px',
                 textAlign: 'center',
               }}
             >
-              <div
-                style={{
-                  fontSize: fz(36),
-                  fontWeight: 800,
-                  color: p.primary,
-                  lineHeight: 1.2,
-                  overflowWrap: 'break-word',
-                }}
-              >
+              <div style={{ fontSize: fz(34), fontWeight: 800, color: p.primary, lineHeight: 1.2, overflowWrap: 'break-word' }}>
                 🔗 {textOverrides.linkUrl.trim()}
               </div>
             </div>
