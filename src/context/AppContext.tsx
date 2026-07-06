@@ -17,6 +17,8 @@ import type {
   CommentInsights,
   TemplateType,
   ManualRow,
+  CardState,
+  SharedStyle,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
@@ -24,6 +26,7 @@ import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
 import { saveSession, updateSessionGoal, clearSession, loadSession } from '../utils/session';
+import { TEMPLATE_GROUPS } from '../utils/templateConfig';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -42,7 +45,12 @@ const INITIAL_APP_STATE: AppState = {
   aggregates: null,
   insights: null,
   commentInsights: null,
-  selectedTemplate: null,
+  selectedTemplates: null,
+  gallerySelection: [],
+  // First category open by default
+  galleryOpenGroups: [TEMPLATE_GROUPS[0].id],
+  stackCards: null,
+  stackStyle: null,
   originalFileName: null,
 };
 
@@ -65,7 +73,9 @@ export type AppAction =
         goal?: number;
       };
     }
-  | { type: 'TEMPLATE_SELECTED'; payload: TemplateType }
+  | { type: 'TEMPLATES_SELECTED'; payload: TemplateType[] }
+  | { type: 'GALLERY_UI'; payload: { selection?: TemplateType[]; openGroups?: string[] } }
+  | { type: 'STACK_UPDATED'; payload: { cards: CardState[]; style: SharedStyle } }
   | { type: 'GO_TO_STEP'; payload: AppState['step'] }
   | { type: 'RESET' }
   | { type: 'SET_ERROR'; payload: string | null }
@@ -100,25 +110,27 @@ function appReducer(state: FullState, action: AppAction): FullState {
         app: { ...state.app, ...action.payload, step: 'insights' },
       };
 
-    case 'TEMPLATE_SELECTED': {
-      const id = action.payload;
-      const defaultStory = new Set<TemplateType>(['daily-activity', 'top-donors', 'weekly-recap']);
-      const needsGoal = new Set<TemplateType>(['milestone', 'urgency']);
+    case 'TEMPLATES_SELECTED':
+      return {
+        ...state,
+        app: { ...state.app, selectedTemplates: action.payload, step: 'export' },
+      };
+
+    case 'STACK_UPDATED':
+      return {
+        ...state,
+        app: { ...state.app, stackCards: action.payload.cards, stackStyle: action.payload.style },
+      };
+
+    case 'GALLERY_UI':
       return {
         ...state,
         app: {
           ...state.app,
-          selectedTemplate: {
-            id,
-            name: id,
-            description: '',
-            format: defaultStory.has(id) ? 'story' : 'post',
-            requiresGoal: needsGoal.has(id),
-          },
-          step: 'export',
+          gallerySelection: action.payload.selection ?? state.app.gallerySelection,
+          galleryOpenGroups: action.payload.openGroups ?? state.app.galleryOpenGroups,
         },
       };
-    }
 
     case 'GO_TO_STEP':
       return { ...state, app: { ...state.app, step: action.payload } };
@@ -140,6 +152,7 @@ interface AppContextValue {
   handleManualDataProceed: (rows: ManualRow[]) => void;
   handleProceedToInsights: (goal?: number) => void;
   handleTemplateSelect: (templateId: TemplateType) => void;
+  handleTemplatesSelect: (templateIds: TemplateType[]) => void;
   handleReset: () => void;
   handleRestoreSession: () => boolean;
   goToStep: (step: AppState['step']) => void;
@@ -215,7 +228,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
   );
 
   const handleTemplateSelect = useCallback((templateId: TemplateType) => {
-    dispatch({ type: 'TEMPLATE_SELECTED', payload: templateId });
+    dispatch({ type: 'TEMPLATES_SELECTED', payload: [templateId] });
+  }, []);
+
+  const handleTemplatesSelect = useCallback((templateIds: TemplateType[]) => {
+    if (templateIds.length === 0) return;
+    dispatch({ type: 'TEMPLATES_SELECTED', payload: templateIds });
   }, []);
 
   const handleReset = useCallback(() => {
@@ -258,7 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleReset, handleRestoreSession, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, goToStep }}
     >
       {children}
     </AppContext.Provider>

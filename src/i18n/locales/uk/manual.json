@@ -7,7 +7,7 @@
   "columns": {
     "date": "Дата *",
     "time": "Час",
-    "name": "Ім'я донатера *",
+    "name": "Ім'я донатера",
     "amount": "Сума (₴) *",
     "category": "Категорія",
     "comment": "Коментар",
@@ -29,7 +29,6 @@
   "downloadFilename": "Jar_statement_manual.csv",
   "validation": {
     "dateRequired": "Вкажіть дату",
-    "nameRequired": "Вкажіть ім'я донатера",
     "amountRequired": "Сума має бути більше 0",
     "hasErrors": "Виправте помилки у таблиці перед продовженням",
     "noRows": "Додайте хоча б один рядок"

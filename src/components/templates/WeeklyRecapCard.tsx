@@ -4,6 +4,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface WeeklyRecapCardProps {
   aggregates: Aggregates;
@@ -12,12 +13,13 @@ interface WeeklyRecapCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
 }
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
     const { t } = useTranslation('templates');
     const UA_DAYS = t('weekly-recap.days', { returnObjects: true }) as string[];
     const isStory = format === 'story';
@@ -57,7 +59,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',

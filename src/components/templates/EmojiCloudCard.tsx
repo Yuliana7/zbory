@@ -3,6 +3,7 @@ import type { Aggregates, CommentInsights } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { cardPadding } from '../../utils/units';
 
 interface EmojiCloudCardProps {
   aggregates: Aggregates;
@@ -12,11 +13,12 @@ interface EmojiCloudCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
 }
 
 /** The emotions of the fundraiser: top emojis from donor comments, sized by frequency. */
 export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
-  ({ commentInsights, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ commentInsights, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -37,7 +39,7 @@ export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: isStory ? '120px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '120px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',

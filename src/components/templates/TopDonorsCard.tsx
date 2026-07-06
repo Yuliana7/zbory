@@ -4,6 +4,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { NoWrap } from './shared';
+import { cardPadding } from '../../utils/units';
 
 interface TopDonorsCardProps {
   aggregates: Aggregates;
@@ -12,6 +13,7 @@ interface TopDonorsCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
   /** 'sum' ranks by total amount; 'count' ranks by number of donations */
   mode?: 'sum' | 'count';
 }
@@ -19,7 +21,7 @@ interface TopDonorsCardProps {
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, mode = 'sum', bgOverride }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, mode = 'sum', bgOverride, safeZonePad }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -42,7 +44,7 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '100px 80px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',

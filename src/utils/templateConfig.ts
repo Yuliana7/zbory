@@ -58,6 +58,7 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   'donors-count': [
     { key: 'title' },
     { key: 'donorsLabel' },
+    { key: 'anonymousLabel' },
     { key: 'avgLabel' },
     { key: 'maxLabel' },
     { key: 'totalLabel' },
@@ -164,21 +165,23 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   comments: false,
 };
 
+// Stories are the primary sharing format for volunteers — every template
+// opens as 9:16; the post 1:1 variant stays one click away in the editor.
 export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
-  progress: 'post',
+  progress: 'story',
   'daily-activity': 'story',
-  'thank-you': 'post',
-  milestone: 'post',
+  'thank-you': 'story',
+  milestone: 'story',
   'top-donors': 'story',
   'top-donors-count': 'story',
-  'donors-count': 'post',
-  urgency: 'post',
+  'donors-count': 'story',
+  urgency: 'story',
   'weekly-recap': 'story',
-  speed: 'post',
-  'funds-flow': 'post',
-  'final-report': 'post',
-  'concrete-ask': 'post',
-  'emoji-cloud': 'post',
+  speed: 'story',
+  'funds-flow': 'story',
+  'final-report': 'story',
+  'concrete-ask': 'story',
+  'emoji-cloud': 'story',
   comments: 'story',
 };
 
@@ -219,6 +222,20 @@ export const TEMPLATE_HAS_FOOTER: Record<TemplateType, boolean> = {
   'emoji-cloud': false,
   comments: false,
 };
+
+// Gallery categories — also used by the editor's "add template" picker
+export interface TemplateGroup {
+  id: string;
+  labelKey: string; // key in the gallery namespace
+  icon: string;
+  ids: TemplateType[];
+}
+
+export const TEMPLATE_GROUPS: TemplateGroup[] = [
+  { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
+  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
+  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
+];
 
 // Blocks inside each template that can be exported alone as a transparent PNG
 // "sticker". Ids must match the data-sticker attribute in the card markup.

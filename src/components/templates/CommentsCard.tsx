@@ -3,6 +3,7 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
+import { cardPadding } from '../../utils/units';
 
 export interface SelectedComment {
   text: string;
@@ -17,11 +18,12 @@ interface CommentsCardProps {
   textOverrides?: Record<string, string>;
   fontScale?: number;
   bgOverride?: string;
+  safeZonePad?: boolean;
 }
 
 /** Words of support: quote bubbles with comments the volunteer hand-picked. */
 export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
-  ({ selectedComments = [], format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride }, ref) => {
+  ({ selectedComments = [], format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -37,7 +39,7 @@ export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
-          padding: isStory ? '110px 90px' : '80px',
+          padding: cardPadding(isStory, safeZonePad, '110px 90px', '90px'),
           fontFamily: "'Inter', 'Segoe UI', sans-serif",
           color: p.primary,
           boxSizing: 'border-box',

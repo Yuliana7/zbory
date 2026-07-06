@@ -23,7 +23,7 @@ export function UploadPage() {
   const invalidRowCount = useMemo(() => {
     if (!app.rawData) return 0;
     return rawDonationsToManualRows(app.rawData).filter((row) => {
-      if (!row.date || !row.name) return true;
+      if (!row.date) return true;
       const amount = parseFloat(row.amount);
       return !row.amount || isNaN(amount) || amount <= 0;
     }).length;

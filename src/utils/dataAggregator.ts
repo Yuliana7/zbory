@@ -106,17 +106,31 @@ export function aggregateDonations(
     }
   }
 
-  const donorMap = new Map<string, { amount: number; count: number }>();
+  // Anonymous donations are excluded from donor identity: Monobank marks all
+  // anonymous senders with the same emoji (🐈), so treating it as one "donor"
+  // would merge many different people — and inflate top-donor rankings.
+  const donorMap = new Map<string, { display: string; amount: number; count: number }>();
+  let anonymousDonations = 0;
   for (const donation of donations) {
-    if (donation.donor) {
-      const existing = donorMap.get(donation.donor) ?? { amount: 0, count: 0 };
-      donorMap.set(donation.donor, {
-        amount: existing.amount + donation.amount,
-        count: existing.count + 1,
-      });
+    if (isAnonymousDonor(donation.donor)) {
+      anonymousDonations++;
+      continue;
+    }
+    const key = donation.donor!.toLowerCase().trim().replace(/\s+/g, ' ');
+    const existing = donorMap.get(key);
+    if (existing) {
+      existing.amount += donation.amount;
+      existing.count += 1;
+    } else {
+      donorMap.set(key, { display: donation.donor!.trim(), amount: donation.amount, count: 1 });
     }
   }
-  const donorEntries = Array.from(donorMap.entries()).map(([name, stats]) => ({ name, ...stats }));
+  const uniqueDonors = donorMap.size;
+  const donorEntries = Array.from(donorMap.values()).map(({ display, amount, count }) => ({
+    name: display,
+    amount,
+    count,
+  }));
   const topDonors = [...donorEntries].sort((a, b) => b.amount - a.amount).slice(0, 10);
   const topDonorsByCount = [...donorEntries]
     .sort((a, b) => b.count - a.count || b.amount - a.amount)
@@ -148,7 +162,18 @@ export function aggregateDonations(
     largeDonations,
     topDonors,
     topDonorsByCount,
+    uniqueDonors,
+    anonymousDonations,
   };
+}
+
+/**
+ * True when a donor name is just an anonymity marker rather than a person:
+ * empty, or contains no letters/digits at all (🐈, ❤️ and similar).
+ */
+function isAnonymousDonor(name: string | undefined): boolean {
+  if (!name || !name.trim()) return true;
+  return !/[\p{L}\p{N}]/u.test(name);
 }
 
 /** Linear-interpolated percentile over a pre-sorted ascending array */

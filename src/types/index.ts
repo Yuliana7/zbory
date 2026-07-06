@@ -67,6 +67,50 @@ export interface Aggregates {
   topDonors: Array<{ name: string; amount: number; count: number }>;
   // Top donors by number of donations (frequent small donors matter too)
   topDonorsByCount: Array<{ name: string; amount: number; count: number }>;
+  // Distinct named donors (deduped case-insensitively; anonymous markers excluded)
+  uniqueDonors: number;
+  // Donations without a usable donor name (empty or emoji-only, e.g. 🐈)
+  anonymousDonations: number;
+}
+
+// ─── Stack editor state (shared with AppContext for in-session persistence) ──
+
+import type { Palette } from '../utils/palettes';
+
+// Visual style shared across a template series (a card may unlink and keep its own copy)
+export interface SharedStyle {
+  palette: Palette;
+  bgImage: string | null;
+  bgColor: string | null;
+  bgTransparent: boolean;
+  bgBrightness: number;
+  bgOpacity: number;
+  bgZoom: number;
+  bgOffsetX: number;
+  bgOffsetY: number;
+  bgRotate: number;
+  fontScale: number;
+}
+
+// Everything content-related that one card in the editing stack owns
+export interface CardState {
+  templateId: TemplateType;
+  format: 'post' | 'story';
+  textOverrides: Record<string, string>;
+  showHeader: boolean;
+  showFooter: boolean;
+  showChart: boolean;
+  showBars: boolean;
+  showBestDay: boolean;
+  showRefunds: boolean;
+  dateFrom: string;
+  dateTo: string;
+  selectedCommentKeys: string[];
+  /** null = live auto-generated caption; string = user-edited */
+  captionText: string | null;
+  /** non-null = this card detached from the series style and keeps its own */
+  styleOverride: SharedStyle | null;
+  touched: boolean;
 }
 
 // Insight type for display
@@ -116,7 +160,14 @@ export interface AppState {
   aggregates: Aggregates | null;
   insights: Insight[] | null;
   commentInsights: CommentInsights | null;
-  selectedTemplate: Template | null;
+  // The editing stack: one or more templates selected in the gallery
+  selectedTemplates: TemplateType[] | null;
+  // Gallery UI state — persisted so navigating to export and back keeps it
+  gallerySelection: TemplateType[];
+  galleryOpenGroups: string[];
+  // Stack editor state — survives the gallery ⇄ export round trip
+  stackCards: CardState[] | null;
+  stackStyle: SharedStyle | null;
   goal?: number;
   originalFileName: string | null;
 }

@@ -17,27 +17,36 @@ import { ConcreteAskCard } from '../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../components/templates/CommentsCard';
 import { getPersonalComments } from '../utils/commentAnalyzer';
+import { TEMPLATE_GROUPS as GROUPS } from '../utils/templateConfig';
 
 const NATIVE = 1080;
 
-interface TemplateGroup {
-  id: string;
-  labelKey: string;
-  icon: string;
-  ids: TemplateType[];
-}
-
-const GROUPS: TemplateGroup[] = [
-  { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
-  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
-  { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
-];
-
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
-  const { state, dispatch, handleTemplateSelect } = useAppContext();
+  const { state, dispatch, handleTemplateSelect, handleTemplatesSelect } = useAppContext();
   const { app } = state;
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set());
+  // Selection (series, insertion order = export order) and open groups live in
+  // app state so they survive the gallery ⇄ export round trip
+  const selection = app.gallerySelection;
+  const openGroups = useMemo(() => new Set(app.galleryOpenGroups), [app.galleryOpenGroups]);
+
+  const setSelection = (next: TemplateType[]) =>
+    dispatch({ type: 'GALLERY_UI', payload: { selection: next } });
+
+  const toggleSelection = (id: TemplateType) => {
+    setSelection(selection.includes(id) ? selection.filter((s) => s !== id) : [...selection, id]);
+  };
+
+  // Coming back with an active series: make sure its groups are visible
+  useEffect(() => {
+    if (selection.length === 0) return;
+    const needed = GROUPS.filter((g) => g.ids.some((id) => selection.includes(id))).map((g) => g.id);
+    const missing = needed.filter((id) => !openGroups.has(id));
+    if (missing.length > 0) {
+      dispatch({ type: 'GALLERY_UI', payload: { openGroups: [...openGroups, ...missing] } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- run once on mount
+  }, []);
 
   // Comment-based templates are only offered when there's actual comment data
   const previewComments: SelectedComment[] = useMemo(
@@ -56,12 +65,10 @@ export function GalleryPage() {
     });
 
   function toggleGroup(id: string) {
-    setOpenGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
+    const next = new Set(openGroups);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    dispatch({ type: 'GALLERY_UI', payload: { openGroups: [...next] } });
   }
 
   return (
@@ -106,36 +113,88 @@ export function GalleryPage() {
 
               {isOpen && (
                 <div className="px-5 pb-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 border-t border-gray-100">
-                  {ids.map((id) => (
-                    <button
-                      key={id}
-                      onClick={() => handleTemplateSelect(id)}
-                      className="group bg-gray-50 rounded-xl border border-gray-100 text-left mt-4
-                                 hover:border-indigo-300 hover:shadow-md transition-all duration-150 overflow-hidden
-                                 flex flex-col focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    >
-                      <TemplatePreview
-                        id={id}
-                        aggregates={app.aggregates!}
-                        goal={app.goal}
-                        commentInsights={app.commentInsights}
-                        previewComments={previewComments}
-                      />
-                      <div className="p-4 flex flex-col gap-1.5 flex-1">
-                        <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
-                        <p className="text-xs text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
-                        <p className="mt-auto pt-1 text-xs font-semibold text-indigo-600 group-hover:text-indigo-700">
-                          {t('useTemplate')}
-                        </p>
+                  {ids.map((id) => {
+                    const selectedIdx = selection.indexOf(id);
+                    return (
+                      <div
+                        key={id}
+                        className={`group relative bg-gray-50 rounded-xl border text-left mt-4
+                                   hover:shadow-md transition-all duration-150 overflow-hidden flex flex-col
+                                   ${selectedIdx >= 0 ? 'border-indigo-400 ring-2 ring-indigo-200' : 'border-gray-100 hover:border-indigo-300'}`}
+                      >
+                        {/* Series checkbox — top-right, numbered by selection order */}
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleSelection(id); }}
+                          title={t('selectBar.toggleHint')}
+                          className={`absolute top-2 right-2 z-10 w-7 h-7 rounded-full flex items-center justify-center
+                                     text-xs font-bold shadow-sm border transition-all
+                                     ${selectedIdx >= 0
+                                       ? 'bg-indigo-600 border-indigo-600 text-white'
+                                       : 'bg-white/90 border-gray-300 text-transparent hover:text-gray-300 hover:border-indigo-400'}`}
+                        >
+                          {selectedIdx >= 0 ? selectedIdx + 1 : '✓'}
+                        </button>
+
+                        <button
+                          // In selection mode a tile click toggles the series —
+                          // an accidental click can't discard the selection
+                          onClick={() => (selection.length > 0 ? toggleSelection(id) : handleTemplateSelect(id))}
+                          className="text-left flex flex-col flex-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                        >
+                          <TemplatePreview
+                            id={id}
+                            aggregates={app.aggregates!}
+                            goal={app.goal}
+                            commentInsights={app.commentInsights}
+                            previewComments={previewComments}
+                          />
+                          <div className="p-4 flex flex-col gap-1.5 flex-1">
+                            <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
+                            <p className="text-xs text-gray-500 leading-relaxed">{t(`templates.${id}.description`)}</p>
+                            <p className="mt-auto pt-1 text-xs font-semibold text-indigo-600 group-hover:text-indigo-700">
+                              {selection.length > 0
+                                ? selectedIdx >= 0
+                                  ? t('selectBar.inSeries', { n: selectedIdx + 1 })
+                                  : t('selectBar.addTile')
+                                : t('useTemplate')}
+                            </p>
+                          </div>
+                        </button>
                       </div>
-                    </button>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
             </div>
           );
         })}
       </div>
+
+      {/* Series bar — appears when templates are marked for the stack */}
+      {selection.length > 0 && (
+        <div className="sticky bottom-4 mt-6 z-20 flex justify-center animate-fade-in">
+          <div className="flex items-center gap-3 bg-white border border-indigo-200 rounded-2xl shadow-lg px-4 py-3">
+            <span className="text-sm text-gray-600">
+              {t('selectBar.count', { count: selection.length })}
+            </span>
+            <button
+              onClick={() => handleTemplatesSelect(selection)}
+              className="px-4 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors"
+            >
+              {t('selectBar.edit')}
+            </button>
+            <button
+              onClick={() => setSelection([])}
+              title={t('selectBar.clear')}
+              className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

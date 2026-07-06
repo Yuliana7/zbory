@@ -1,7 +1,7 @@
-import { useRef, useState, useLayoutEffect, useMemo, useEffect } from 'react';
+import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { TemplateType } from '../types';
+import type { TemplateType, Donation, Aggregates, CommentInsights, CardState, SharedStyle } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -21,8 +21,7 @@ import { aggregateDonations, formatUkrainianDate } from '../utils/dataAggregator
 import { generateCaption } from '../utils/captionGenerator';
 import { getPersonalComments } from '../utils/commentAnalyzer';
 import { createZip } from '../utils/zip';
-import { PALETTES, DEFAULT_PALETTE, type Palette } from '../utils/palettes';
-import type { CommentInsights } from '../types';
+import { PALETTES, DEFAULT_PALETTE } from '../utils/palettes';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
@@ -31,146 +30,229 @@ import {
   TEMPLATE_HAS_HEADER,
   TEMPLATE_HAS_FOOTER,
   TEMPLATE_STICKERS,
+  TEMPLATE_GROUPS,
 } from '../utils/templateConfig';
 
 type Format = 'post' | 'story';
-type FontScale = number;
 
 const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
   post: { width: 1080, height: 1080, label: '1080×1080' },
   story: { width: 1080, height: 1920, label: '1080×1920' },
 };
 
+const DEFAULT_SHARED_STYLE: SharedStyle = {
+  palette: DEFAULT_PALETTE,
+  bgImage: null,
+  bgColor: null,
+  bgTransparent: false,
+  bgBrightness: 1,
+  bgOpacity: 1,
+  bgZoom: 1,
+  bgOffsetX: 0,
+  bgOffsetY: 0,
+  bgRotate: 0,
+  fontScale: 1,
+};
+
 function toDateInput(d: Date): string {
   return d.toISOString().slice(0, 10);
+}
+
+function makeCard(templateId: TemplateType, personalComments: Array<{ text: string }>): CardState {
+  return {
+    templateId,
+    format: TEMPLATE_DEFAULT_FORMAT[templateId],
+    textOverrides: {},
+    showHeader: true,
+    showFooter: true,
+    showChart: true,
+    showBars: true,
+    showBestDay: true,
+    showRefunds: false,
+    dateFrom: '',
+    dateTo: '',
+    selectedCommentKeys:
+      templateId === 'comments' ? personalComments.slice(0, 3).map((c) => c.text) : [],
+    captionText: null,
+    styleOverride: null,
+    touched: false,
+  };
+}
+
+/**
+ * Builds the card list for a template id sequence, reusing previously edited
+ * cards (matched by template, consumed in order) so adding/removing/reordering
+ * templates never discards edits.
+ */
+function mergeCards(
+  ids: TemplateType[],
+  existing: CardState[],
+  personalComments: Array<{ text: string }>,
+): CardState[] {
+  const pool = [...existing];
+  return ids.map((id) => {
+    const idx = pool.findIndex((c) => c.templateId === id);
+    if (idx >= 0) return pool.splice(idx, 1)[0];
+    return makeCard(id, personalComments);
+  });
+}
+
+function filterAggregates(
+  donations: Donation[],
+  fullAggregates: Aggregates,
+  dateFrom: string,
+  dateTo: string,
+): Aggregates {
+  if (!dateFrom && !dateTo) return fullAggregates;
+  const from = dateFrom ? new Date(dateFrom).getTime() : 0;
+  const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+  const filtered = donations.filter((d) => {
+    const ts = d.timestamp.getTime();
+    return ts >= from && ts <= to;
+  });
+  if (filtered.length === 0) return fullAggregates;
+  try {
+    return aggregateDonations(filtered);
+  } catch {
+    return fullAggregates;
+  }
 }
 
 export function ExportPage() {
   const { state } = useAppContext();
   const { app } = state;
-  if (!app.selectedTemplate || !app.aggregates || !app.donations) return null;
+  if (!app.selectedTemplates?.length || !app.aggregates || !app.donations) return null;
   return <ExportPageInner />;
 }
 
 function ExportPageInner() {
-  const { t } = useTranslation(['export', 'templates']);
+  const { t } = useTranslation(['export', 'templates', 'gallery']);
   const { state, dispatch } = useAppContext();
   const { app } = state;
 
   // These are guaranteed non-null by the guard in ExportPage
-  const selectedTemplate = app.selectedTemplate!;
+  const stackIds = app.selectedTemplates!;
   const fullAggregates = app.aggregates!;
   const donations = app.donations!;
-  const templateId: TemplateType = selectedTemplate.id;
+  const commentInsights: CommentInsights | null = app.commentInsights;
+
+  const personalComments = useMemo(() => getPersonalComments(donations), [donations]);
+
+  // ── Stack state — restored from context so gallery ⇄ export keeps edits ──
+  const [cards, setCards] = useState<CardState[]>(() =>
+    mergeCards(stackIds, app.stackCards ?? [], personalComments),
+  );
+  const [current, setCurrent] = useState(0);
+  const safeCurrent = Math.min(current, cards.length - 1);
+  const card = cards[safeCurrent];
+  const templateId = card.templateId;
+
+  // Re-merge when the selection changes while mounted (e.g. "+ додати шаблон")
+  const idsKey = stackIds.join(',');
+  const prevIdsKey = useRef(idsKey);
+  useEffect(() => {
+    if (prevIdsKey.current === idsKey) return;
+    prevIdsKey.current = idsKey;
+    setCards((prev) => mergeCards(stackIds, prev, personalComments));
+  }, [idsKey, stackIds, personalComments]);
+
+  // ── Shared style (series-wide) with optional per-card override ──
+  // Restored from context — losing it on a gallery round-trip silently
+  // reverted linked cards to the default style on export.
+  const [sharedStyle, setSharedStyle] = useState<SharedStyle>(
+    () => app.stackStyle ?? DEFAULT_SHARED_STYLE,
+  );
+
+  // Mirror edits into context so they survive navigating away
+  useEffect(() => {
+    dispatch({ type: 'STACK_UPDATED', payload: { cards, style: sharedStyle } });
+  }, [cards, sharedStyle, dispatch]);
+
+  const updateCard = useCallback((patch: Partial<CardState>) => {
+    setCards((prev) => prev.map((c, i) => (i === safeCurrent ? { ...c, ...patch, touched: true } : c)));
+  }, [safeCurrent]);
+
+  const style = card.styleOverride ?? sharedStyle;
+  const styleUnlinked = card.styleOverride !== null;
+
+  const patchStyle = (patch: Partial<SharedStyle>) => {
+    if (card.styleOverride) {
+      updateCard({ styleOverride: { ...card.styleOverride, ...patch } });
+    } else {
+      setSharedStyle((prev) => ({ ...prev, ...patch }));
+    }
+  };
+
+  const styleBadge =
+    cards.length > 1 ? (styleUnlinked ? t('stack.ownStyleBadge') : t('stack.sharedBadge')) : undefined;
+
+  // Latest style/patch accessible from non-React event listeners (wheel)
+  const styleRef = useRef(style);
+  styleRef.current = style;
+  const patchStyleRef = useRef(patchStyle);
+  patchStyleRef.current = patchStyle;
+
+  // ── Page-level state ──
+  const [scale, setScale] = useState(0.5);
+  const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
+  const [isExporting, setIsExporting] = useState(false);
+  const [showSafeZones, setShowSafeZones] = useState(false);
+  const [captionCopied, setCaptionCopied] = useState(false);
+  const [allCaptionsCopied, setAllCaptionsCopied] = useState(false);
+  const [availableStickers, setAvailableStickers] = useState<string[]>([]);
+  const [addOpen, setAddOpen] = useState(false);
+  // Picker categories mirror the gallery; first one open by default
+  const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
+    () => new Set([TEMPLATE_GROUPS[0].id]),
+  );
+  // Sidebar sections
+  const [formatOpen, setFormatOpen] = useState(true);
+  const [bgOpen, setBgOpen] = useState(false);
+  const [fontOpen, setFontOpen] = useState(false);
+  const [dateOpen, setDateOpen] = useState(false);
+  const [refundsOpen, setRefundsOpen] = useState(false);
+  const [layoutOpen, setLayoutOpen] = useState(false);
+  const [goalOpen, setGoalOpen] = useState(false);
+  const [textEditorOpen, setTextEditorOpen] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [captionOpen, setCaptionOpen] = useState(false);
+  const [stickersOpen, setStickersOpen] = useState(false);
+  const [statsOpen, setStatsOpen] = useState(false);
 
   const templateRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
-
-  const [scale, setScale] = useState(0.5);
-  const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
-  const [isExporting, setIsExporting] = useState(false);
-  const [format, setFormat] = useState<Format>(TEMPLATE_DEFAULT_FORMAT[templateId]);
-  const [palette, setPalette] = useState<Palette>(DEFAULT_PALETTE);
-  const [textOverrides, setTextOverrides] = useState<Record<string, string>>({});
-  const [textEditorOpen, setTextEditorOpen] = useState(false);
-  const [dateFrom, setDateFrom] = useState('');
-  const [dateTo, setDateTo] = useState('');
-  const [fontScale, setFontScale] = useState<FontScale>(1);
-  const [showRefunds, setShowRefunds] = useState(false);
-  const [formatOpen, setFormatOpen] = useState(true);
-  const [bgOpen, setBgOpen] = useState(false);
-  const [fontOpen, setFontOpen] = useState(true);
-  const [dateOpen, setDateOpen] = useState(false);
-  const [refundsOpen, setRefundsOpen] = useState(true);
-  const [layoutOpen, setLayoutOpen] = useState(true);
-  const [goalOpen, setGoalOpen] = useState(true);
-  const [statsOpen, setStatsOpen] = useState(false);
-  const [bgImage, setBgImage] = useState<string | null>(null);
-  const [bgColor, setBgColor] = useState<string | null>(null);
-  const [bgTransparent, setBgTransparent] = useState(false);
-  const [bgBrightness, setBgBrightness] = useState(1);
-  const [bgOpacity, setBgOpacity] = useState(1);
-  const [bgZoom, setBgZoom] = useState(1);
-  const [bgOffsetX, setBgOffsetX] = useState(0);
-  const [bgOffsetY, setBgOffsetY] = useState(0);
-  const [bgRotate, setBgRotate] = useState(0);
-  // Template section visibility (header / footer / daily-activity blocks)
-  const [showHeader, setShowHeader] = useState(true);
-  const [showFooter, setShowFooter] = useState(true);
-  const [showChart, setShowChart] = useState(true);
-  const [showBars, setShowBars] = useState(true);
-  const [showBestDay, setShowBestDay] = useState(true);
-  const [showSafeZones, setShowSafeZones] = useState(false);
-  // Caption, comment picker, stickers, batch export
-  const [captionText, setCaptionText] = useState('');
-  const [captionCopied, setCaptionCopied] = useState(false);
-  const [captionOpen, setCaptionOpen] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(true);
-  const [stickersOpen, setStickersOpen] = useState(false);
-  const [batchOpen, setBatchOpen] = useState(false);
-  const [selectedCommentKeys, setSelectedCommentKeys] = useState<Set<string>>(new Set());
-  const [availableStickers, setAvailableStickers] = useState<string[]>([]);
-  const [batchSelection, setBatchSelection] = useState<Set<TemplateType>>(new Set());
-  const [batchQueue, setBatchQueue] = useState<TemplateType[]>([]);
-  const batchResults = useRef<{ name: string; data: Uint8Array }[]>([]);
-  const batchRef = useRef<HTMLDivElement>(null);
-  const batchInnerRef = useRef<HTMLDivElement>(null);
+  const previewClipRef = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
+  const touchStartX = useRef<number | null>(null);
+  const bgDrag = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
-  const commentInsights: CommentInsights | null = app.commentInsights;
-  const personalComments = useMemo(() => getPersonalComments(donations), [donations]);
-
-  useEffect(() => {
-    setFormat(TEMPLATE_DEFAULT_FORMAT[templateId]);
-    setTextOverrides({});
-    setShowHeader(true);
-    setShowFooter(true);
-    setShowChart(true);
-    setShowBars(true);
-    setShowBestDay(true);
-    // Pre-select the three freshest comments so the card isn't empty
-    if (templateId === 'comments') {
-      setSelectedCommentKeys(new Set(personalComments.slice(0, 3).map((c) => c.text)));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when the template changes
-  }, [templateId]);
+  // ── ZIP export of the whole stack ──
+  const [zipQueue, setZipQueue] = useState<number[]>([]);
+  const zipResults = useRef<{ name: string; data: Uint8Array }[]>([]);
+  const zipRef = useRef<HTMLDivElement>(null);
+  const zipInnerRef = useRef<HTMLDivElement>(null);
+  const zipCurrentIdx = zipQueue.length > 0 ? zipQueue[0] : null;
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => { setBgImage(ev.target?.result as string); setBgTransparent(false); setBgColor(null); };
+    reader.onload = (ev) =>
+      patchStyle({ bgImage: ev.target?.result as string, bgTransparent: false, bgColor: null });
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
-  // Image is rendered as a separate overlay div (with filter/opacity controls),
-  // so the template itself gets 'transparent' when an image is active.
-  const bgOverride = bgTransparent || bgImage
-    ? 'transparent'
-    : bgColor ?? undefined;
-
-  const dims = FORMAT_DIMS[format];
+  const dims = FORMAT_DIMS[card.format];
 
   const campaignMin = toDateInput(fullAggregates.firstDate);
   const campaignMax = toDateInput(fullAggregates.lastDate);
 
-  const filteredAggregates = useMemo(() => {
-    if (!dateFrom && !dateTo) return fullAggregates;
-    const from = dateFrom ? new Date(dateFrom).getTime() : 0;
-    const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
-    const filtered = donations.filter(d => {
-      const ts = d.timestamp.getTime();
-      return ts >= from && ts <= to;
-    });
-    if (filtered.length === 0) return fullAggregates;
-    try {
-      return aggregateDonations(filtered);
-    } catch {
-      return fullAggregates;
-    }
-  }, [donations, fullAggregates, dateFrom, dateTo]);
+  const filteredAggregates = useMemo(
+    () => filterAggregates(donations, fullAggregates, card.dateFrom, card.dateTo),
+    [donations, fullAggregates, card.dateFrom, card.dateTo],
+  );
 
   useLayoutEffect(() => {
     const calculate = () => {
@@ -209,49 +291,97 @@ function ExportPageInner() {
 
   const effectiveScale = scale * (1 - 0.45 * scrollShrink);
 
+  // Wheel over the preview zooms the background photo (non-passive to prevent page scroll)
+  useEffect(() => {
+    const el = previewClipRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!styleRef.current.bgImage) return;
+      e.preventDefault();
+      const next = Math.min(3, Math.max(1, styleRef.current.bgZoom + (e.deltaY < 0 ? 0.08 : -0.08)));
+      patchStyleRef.current({ bgZoom: Math.round(next * 100) / 100 });
+    };
+    el.addEventListener('wheel', onWheel, { passive: false });
+    return () => el.removeEventListener('wheel', onWheel);
+  }, []);
+
+  const goPrev = useCallback(() => setCurrent((i) => Math.max(0, i - 1)), []);
+  const goNext = useCallback(() => setCurrent((i) => Math.min(cards.length - 1, i + 1)), [cards.length]);
+
+  // ←/→ navigate the deck (unless the user is typing)
+  useEffect(() => {
+    if (cards.length < 2) return;
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (target.closest('input, textarea, select, [contenteditable]')) return;
+      if (e.key === 'ArrowLeft') goPrev();
+      if (e.key === 'ArrowRight') goNext();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [cards.length, goPrev, goNext]);
+
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
-  const selectedComments: SelectedComment[] = useMemo(
-    () =>
-      personalComments
-        .filter((c) => selectedCommentKeys.has(c.text))
+  const commentsFor = useCallback(
+    (c: CardState): SelectedComment[] => {
+      const keys = new Set(c.selectedCommentKeys);
+      return personalComments
+        .filter((pc) => keys.has(pc.text))
         .slice(0, 5)
-        .map((c) => ({ text: c.text, donor: c.donor })),
-    [personalComments, selectedCommentKeys],
+        .map((pc) => ({ text: pc.text, donor: pc.donor }));
+    },
+    [personalComments],
   );
 
-  const regenerateCaption = () => {
-    setCaptionText(
-      generateCaption(templateId, filteredAggregates, t, {
-        goal: goalValue,
-        linkUrl: textOverrides.linkUrl,
-        comments: selectedComments,
-      }),
-    );
-  };
+  const selectedComments = useMemo(() => commentsFor(card), [commentsFor, card]);
 
-  // Fresh caption whenever the template changes; manual edits survive until then
-  useEffect(() => {
-    setCaptionText(
-      generateCaption(templateId, filteredAggregates, t, {
+  // Live caption: recomputes with the data until the user edits it;
+  // "regenerate" simply drops the edited copy
+  const captionFor = useCallback(
+    (c: CardState): string =>
+      c.captionText ??
+      generateCaption(c.templateId, filterAggregates(donations, fullAggregates, c.dateFrom, c.dateTo), t, {
         goal: goalValue,
-        linkUrl: textOverrides.linkUrl,
-        comments: selectedComments,
+        linkUrl: c.textOverrides.linkUrl,
+        comments: commentsFor(c),
       }),
-    );
-    setCaptionCopied(false);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- regenerate only on template change
-  }, [templateId]);
+    [donations, fullAggregates, t, goalValue, commentsFor],
+  );
+  const captionValue = captionFor(card);
 
   const handleCopyCaption = async () => {
     try {
-      await navigator.clipboard.writeText(captionText);
+      await navigator.clipboard.writeText(captionValue);
       setCaptionCopied(true);
       setTimeout(() => setCaptionCopied(false), 2000);
     } catch (err) {
       console.error('Clipboard write failed:', err);
     }
   };
+
+  const handleCopyAllCaptions = async () => {
+    const bundle = cards
+      .map((c, i) => `${i + 1}/${cards.length}\n${captionFor(c)}`)
+      .join('\n\n———\n\n');
+    try {
+      await navigator.clipboard.writeText(bundle);
+      setAllCaptionsCopied(true);
+      setTimeout(() => setAllCaptionsCopied(false), 2000);
+    } catch (err) {
+      console.error('Clipboard write failed:', err);
+    }
+  };
+
+  const milestoneAchievedKey = (() => {
+    const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
+    if (pct === null) return 'achievedLabel_noGoal';
+    if (pct >= 100) return 'achievedLabel_100';
+    if (pct >= 75) return 'achievedLabel_75';
+    if (pct >= 50) return 'achievedLabel_50';
+    if (pct >= 25) return 'achievedLabel_25';
+    return 'achievedLabel_0';
+  })();
 
   // Which sticker blocks are actually present in the rendered template
   useEffect(() => {
@@ -266,7 +396,7 @@ function ExportPageInner() {
       );
     });
     return () => cancelAnimationFrame(frame);
-  }, [templateId, format, goalValue, showHeader, showFooter, showChart, showBars, showBestDay, filteredAggregates, selectedComments]);
+  }, [templateId, card, goalValue, filteredAggregates, selectedComments]);
 
   const handleStickerExport = async (stickerId: string) => {
     const el = templateRef.current?.querySelector<HTMLElement>(`[data-sticker="${stickerId}"]`);
@@ -278,40 +408,46 @@ function ExportPageInner() {
     }
   };
 
-  // Templates eligible for batch export: comments needs manual curation,
-  // emoji-cloud needs comment data, goal-based ones need a goal
-  const batchableTemplates = useMemo(() => {
-    return (Object.keys(TEMPLATE_DEFAULT_FORMAT) as TemplateType[]).filter((id) => {
-      if (id === 'comments') return false;
-      if (id === 'emoji-cloud' && !commentInsights?.topEmojis.length) return false;
-      if (TEMPLATE_REQUIRES_GOAL[id] && !goalValue) return false;
-      return true;
-    });
-  }, [commentInsights, goalValue]);
+  const handleExport = async () => {
+    const exportEl = exportRef.current ?? templateRef.current;
+    if (!exportEl) return;
+    setIsExporting(true);
+    try {
+      const filename = `zbory-${templateId}-${card.format}-${Date.now()}.png`;
+      await exportToPNG(exportEl, filename, dims.width, dims.height);
+    } catch (err) {
+      console.error('Export failed:', err);
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
-  const batchCurrent = batchQueue[0] ?? null;
-
+  // ── ZIP export: renders each card offscreen with its own saved state ──
   useEffect(() => {
-    if (!batchCurrent) return;
+    if (zipCurrentIdx === null) return;
     let cancelled = false;
+    const zipCard = cards[zipCurrentIdx];
     const run = async () => {
-      // Give the offscreen template a beat to lay out and paint
+      // Give the offscreen card a beat to lay out and paint
       await new Promise((r) => setTimeout(r, 150));
-      const el = batchRef.current;
+      const el = zipRef.current;
       if (!el || cancelled) return;
-      const d = FORMAT_DIMS[TEMPLATE_DEFAULT_FORMAT[batchCurrent]];
+      const d = FORMAT_DIMS[zipCard.format];
       try {
         const dataUrl = await renderToPNGDataUrl(el, d.width, d.height);
-        batchResults.current.push({ name: `zbory-${batchCurrent}.png`, data: dataUrlToBytes(dataUrl) });
+        zipResults.current.push({
+          name: `${zipCurrentIdx + 1}-zbory-${zipCard.templateId}-${zipCard.format}.png`,
+          data: dataUrlToBytes(dataUrl),
+        });
       } catch (err) {
-        console.error(`Batch export failed for ${batchCurrent}:`, err);
+        console.error(`ZIP export failed for ${zipCard.templateId}:`, err);
       }
       if (cancelled) return;
-      setBatchQueue((q) => {
+      setZipQueue((q) => {
         const rest = q.slice(1);
-        if (rest.length === 0 && batchResults.current.length > 0) {
-          const blob = createZip(batchResults.current);
-          batchResults.current = [];
+        if (rest.length === 0 && zipResults.current.length > 0) {
+          const blob = createZip(zipResults.current);
+          zipResults.current = [];
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.download = `zbory-${Date.now()}.zip`;
@@ -326,37 +462,34 @@ function ExportPageInner() {
     return () => {
       cancelled = true;
     };
-  }, [batchCurrent]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- driven by the queue head only
+  }, [zipCurrentIdx]);
 
-  const startBatchExport = () => {
-    if (batchQueue.length > 0 || batchSelection.size === 0) return;
-    batchResults.current = [];
-    setBatchQueue(batchableTemplates.filter((id) => batchSelection.has(id)));
+  const startZipExport = () => {
+    if (zipQueue.length > 0) return;
+    zipResults.current = [];
+    setZipQueue(cards.map((_, i) => i));
   };
 
-  const milestoneAchievedKey = (() => {
-    const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
-    if (pct === null) return 'achievedLabel_noGoal';
-    if (pct >= 100) return 'achievedLabel_100';
-    if (pct >= 75) return 'achievedLabel_75';
-    if (pct >= 50) return 'achievedLabel_50';
-    if (pct >= 25) return 'achievedLabel_25';
-    return 'achievedLabel_0';
-  })();
-
-  const handleExport = async () => {
-    const exportEl = exportRef.current ?? templateRef.current;
-    if (!exportEl) return;
-    setIsExporting(true);
-    try {
-      const filename = `zbory-${templateId}-${format}-${Date.now()}.png`;
-      await exportToPNG(exportEl, filename, dims.width, dims.height);
-    } catch (err) {
-      console.error('Export failed:', err);
-    } finally {
-      setIsExporting(false);
-    }
+  const handleAddTemplate = (id: TemplateType) => {
+    const newIds = [...cards.map((c) => c.templateId), id];
+    dispatch({ type: 'GALLERY_UI', payload: { selection: newIds } });
+    dispatch({ type: 'TEMPLATES_SELECTED', payload: newIds });
+    setCurrent(newIds.length - 1);
+    setAddOpen(false);
   };
+
+  // Same categories as the template gallery, with data-gated templates hidden
+  const addableGroups = useMemo(() => {
+    const available = (id: TemplateType) => {
+      if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
+      if (id === 'comments') return personalComments.length > 0;
+      return true;
+    };
+    return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
+      (g) => g.ids.length > 0,
+    );
+  }, [commentInsights, personalComments]);
 
   const previewW = Math.round(dims.width * effectiveScale);
   const previewH = Math.round(dims.height * effectiveScale);
@@ -364,29 +497,13 @@ function ExportPageInner() {
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
-  const showGoal = requiresGoal || templateId === 'progress';
+  const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report';
 
   const hasHeaderToggle = TEMPLATE_HAS_HEADER[templateId];
   const hasFooterToggle = TEMPLATE_HAS_FOOTER[templateId];
   const hasLayoutSection = hasHeaderToggle || hasFooterToggle || templateId === 'daily-activity';
 
-  const templateProps = {
-    aggregates: filteredAggregates,
-    goal: goalValue,
-    format,
-    palette,
-    textOverrides,
-    fontScale,
-    showRefunds,
-    bgOverride,
-    showHeader,
-    showFooter,
-    showChart,
-    showBars,
-    showBestDay,
-    commentInsights,
-    selectedComments,
-  };
+  const zipCard = zipCurrentIdx !== null ? cards[zipCurrentIdx] : null;
 
   return (
     <div>
@@ -402,17 +519,36 @@ function ExportPageInner() {
           </svg>
           {t('backButton')}
         </button>
-        <div className="text-sm font-medium text-gray-700">{t(`templateNames.${templateId}`)}</div>
+        <div className="text-sm font-medium text-gray-700">
+          {t(`templateNames.${templateId}`)}
+          {cards.length > 1 && (
+            <span className="ml-2 text-gray-400">{t('stack.cardOf', { current: safeCurrent + 1, total: cards.length })}</span>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start" style={{ position: 'relative' }}>
         {/* Preview */}
         <div
           ref={previewContainerRef}
-          className="bg-gray-100 rounded-2xl p-6 flex items-center justify-center"
-          style={{ minHeight: (previewH + 48), position: 'sticky', top: '0px', zIndex: 100 }}
+          className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
+          style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
+          onTouchStart={(e) => {
+            // With a background photo, touch on the preview drags the photo instead
+            if (style.bgImage) return;
+            touchStartX.current = e.touches[0].clientX;
+          }}
+          onTouchEnd={(e) => {
+            if (touchStartX.current === null) return;
+            const delta = e.changedTouches[0].clientX - touchStartX.current;
+            touchStartX.current = null;
+            if (Math.abs(delta) < 60) return;
+            if (delta > 0) goPrev();
+            else goNext();
+          }}
         >
           <div
+            ref={previewClipRef}
             style={{
               width: previewW,
               height: previewH,
@@ -420,7 +556,32 @@ function ExportPageInner() {
               borderRadius: 8,
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
+              cursor: style.bgImage ? (bgDrag.current ? 'grabbing' : 'grab') : undefined,
+              touchAction: style.bgImage ? 'none' : undefined,
+              userSelect: style.bgImage ? 'none' : undefined,
             }}
+            onPointerDown={(e) => {
+              if (!style.bgImage) return;
+              e.currentTarget.setPointerCapture(e.pointerId);
+              bgDrag.current = {
+                startX: e.clientX,
+                startY: e.clientY,
+                baseX: style.bgOffsetX,
+                baseY: style.bgOffsetY,
+              };
+            }}
+            onPointerMove={(e) => {
+              if (!bgDrag.current) return;
+              // Screen px → % of the card (the img translate % is relative to card size)
+              const dxPct = ((e.clientX - bgDrag.current.startX) / previewW) * 100;
+              const dyPct = ((e.clientY - bgDrag.current.startY) / previewH) * 100;
+              patchStyle({
+                bgOffsetX: Math.round(Math.min(100, Math.max(-100, bgDrag.current.baseX + dxPct))),
+                bgOffsetY: Math.round(Math.min(100, Math.max(-100, bgDrag.current.baseY + dyPct))),
+              });
+            }}
+            onPointerUp={() => { bgDrag.current = null; }}
+            onPointerCancel={() => { bgDrag.current = null; }}
           >
             <div
               style={{
@@ -431,40 +592,21 @@ function ExportPageInner() {
                 position: 'relative',
               }}
             >
-              {/* exportRef wrapper captures template + image overlay for PNG export */}
-              <div
-                ref={exportRef}
-                style={{
-                  position: 'relative',
-                  width: dims.width,
-                  height: dims.height,
-                  overflow: 'hidden',
-                  // palette bg shows through semi-transparent image when opacity < 1
-                  background: bgImage ? palette.background : undefined,
-                }}
-              >
-                {bgImage && (
-                  <img
-                    src={bgImage}
-                    alt=""
-                    style={{
-                      position: 'absolute',
-                      inset: 0,
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      transform: `translate(${bgOffsetX}%, ${bgOffsetY}%) scale(${bgZoom}) rotate(${bgRotate}deg)`,
-                      filter: `brightness(${bgBrightness})`,
-                      opacity: bgOpacity,
-                    }}
-                  />
-                )}
-                <TemplateRenderer templateId={templateId} templateRef={templateRef} {...templateProps} />
-              </div>
+              <CardCanvas
+                card={card}
+                style={style}
+                aggregates={filteredAggregates}
+                goal={goalValue}
+                commentInsights={commentInsights}
+                selectedComments={selectedComments}
+                safeZonePad={showSafeZones}
+                exRef={exportRef}
+                templateRef={templateRef}
+              />
 
               {/* Instagram story safe zones — preview only, never exported
                   (the overlay is a sibling of exportRef, outside the capture) */}
-              {format === 'story' && showSafeZones && (
+              {card.format === 'story' && showSafeZones && (
                 <>
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 250, background: 'rgba(244,63,94,0.14)', borderBottom: '3px dashed rgba(244,63,94,0.55)', pointerEvents: 'none' }} />
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 310, background: 'rgba(244,63,94,0.14)', borderTop: '3px dashed rgba(244,63,94,0.55)', pointerEvents: 'none' }} />
@@ -472,26 +614,73 @@ function ExportPageInner() {
               )}
             </div>
           </div>
+
+          {/* Stack navigation */}
+          <div className="flex items-center gap-3">
+            {cards.length > 1 && (
+              <>
+                <button
+                  onClick={goPrev}
+                  disabled={safeCurrent === 0}
+                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <div className="flex items-center gap-2">
+                  {cards.map((c, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setCurrent(i)}
+                      title={t(`templateNames.${c.templateId}`)}
+                      className={`relative w-3 h-3 rounded-full transition-all ${
+                        i === safeCurrent ? 'bg-indigo-600 scale-125' : c.touched ? 'bg-indigo-300' : 'bg-gray-300 hover:bg-gray-400'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <button
+                  onClick={goNext}
+                  disabled={safeCurrent === cards.length - 1}
+                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+            <button
+              onClick={() => setAddOpen(true)}
+              title={t('stack.addTemplate')}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
+            >
+              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              {t('stack.addTemplate')}
+            </button>
+          </div>
         </div>
 
         {/* Sidebar */}
         <div className="space-y-4">
-          {/* Reusable chevron */}
-          {/* Format — collapsible */}
+          {/* Format — per card */}
           <Collapsible label={t('format.label')} open={formatOpen} onToggle={() => setFormatOpen(o => !o)}>
             <div className="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm w-fit">
               {(['post', 'story'] as Format[]).map((f) => (
                 <button
                   key={f}
-                  onClick={() => setFormat(f)}
-                  className={`px-4 py-2 text-xs font-medium transition-colors ${format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  onClick={() => updateCard({ format: f })}
+                  className={`px-4 py-2 text-xs font-medium transition-colors ${card.format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                 >
                   {f === 'post' ? t('format.postShort') : t('format.storyShort')}
                 </button>
               ))}
             </div>
-            {format === 'story' && (
+            {card.format === 'story' && (
               <div className="mt-3">
                 <ToggleRow label={t('safeZones.toggle')} value={showSafeZones} onChange={setShowSafeZones} />
                 <p className="mt-1 text-xs text-gray-400">{t('safeZones.hint')}</p>
@@ -499,9 +688,26 @@ function ExportPageInner() {
             )}
           </Collapsible>
 
-          {/* Background + palette — collapsible */}
-          <Collapsible label={t('background.label')} open={bgOpen} onToggle={() => setBgOpen(o => !o)}>
+          {/* Background + palette — shared, or per-card when unlinked */}
+          <Collapsible
+            label={t('background.label')}
+            badge={styleBadge}
+            badgeColor="indigo"
+            open={bgOpen}
+            onToggle={() => setBgOpen(o => !o)}
+          >
             <div className="space-y-4">
+              {cards.length > 1 && (
+                <div className="pb-1 border-b border-gray-100">
+                  <ToggleRow
+                    label={t('stack.unlinkStyle')}
+                    value={styleUnlinked}
+                    onChange={(v) => updateCard({ styleOverride: v ? { ...sharedStyle } : null })}
+                  />
+                  <p className="mt-1 text-xs text-gray-400">{t('stack.unlinkHint')}</p>
+                </div>
+              )}
+
               {/* Palette swatches */}
               <div>
                 <p className="text-xs font-medium text-gray-500 mb-2">{t('palette.label')}</p>
@@ -509,9 +715,9 @@ function ExportPageInner() {
                   {PALETTES.map((pal) => (
                     <button
                       key={pal.id}
-                      onClick={() => setPalette(pal)}
+                      onClick={() => patchStyle({ palette: pal })}
                       title={pal.name}
-                      className={`relative rounded-lg overflow-hidden h-10 transition-all ${palette.id === pal.id
+                      className={`relative rounded-lg overflow-hidden h-10 transition-all ${style.palette.id === pal.id
                         ? 'ring-2 ring-indigo-500 ring-offset-1 scale-105'
                         : 'hover:ring-1 hover:ring-gray-300'
                         }`}
@@ -520,7 +726,7 @@ function ExportPageInner() {
                       <span className="absolute inset-0 flex items-end justify-start p-1" style={{ color: pal.primary, fontSize: 8, fontWeight: 600, opacity: 0.85 }}>
                         {pal.name}
                       </span>
-                      {palette.id === pal.id && (
+                      {style.palette.id === pal.id && (
                         <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-white rounded-full flex items-center justify-center">
                           <svg className="w-2 h-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -537,9 +743,9 @@ function ExportPageInner() {
                 <p className="text-xs font-medium text-gray-500 mb-2">{t('background.ownLabel')}</p>
                 <div className="flex gap-2 flex-wrap">
                   <button
-                    onClick={() => { setBgTransparent(v => !v); setBgImage(null); setBgColor(null); }}
+                    onClick={() => patchStyle({ bgTransparent: !style.bgTransparent, bgImage: null, bgColor: null })}
                     title={t('background.transparent')}
-                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${bgTransparent ? 'border-indigo-500 scale-105' : 'border-gray-200 hover:border-gray-400'}`}
+                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden transition-all ${style.bgTransparent ? 'border-indigo-500 scale-105' : 'border-gray-200 hover:border-gray-400'}`}
                   >
                     <svg width="40" height="40" viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
                       <rect width="40" height="40" fill="#fff" />
@@ -550,49 +756,52 @@ function ExportPageInner() {
                     </svg>
                   </button>
                   <label title={t('background.customColor')} className="relative w-10 h-10 rounded-lg border-2 overflow-hidden cursor-pointer transition-all hover:border-indigo-400 border-gray-200">
-                    <input type="color" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" value={bgColor ?? '#ffffff'} onChange={(e) => { setBgColor(e.target.value); setBgImage(null); setBgTransparent(false); }} />
-                    <div className="w-full h-full" style={{ background: bgColor ?? 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }} />
+                    <input type="color" className="absolute inset-0 w-full h-full opacity-0 cursor-pointer" value={style.bgColor ?? '#ffffff'} onChange={(e) => patchStyle({ bgColor: e.target.value, bgImage: null, bgTransparent: false })} />
+                    <div className="w-full h-full" style={{ background: style.bgColor ?? 'conic-gradient(red, yellow, lime, aqua, blue, magenta, red)' }} />
                   </label>
                   <button
                     onClick={() => bgInputRef.current?.click()}
                     title={t('background.uploadPhoto')}
-                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden flex items-center justify-center transition-all ${bgImage ? 'border-indigo-500' : 'border-gray-200 hover:border-gray-400'}`}
-                    style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
+                    className={`w-10 h-10 rounded-lg border-2 overflow-hidden flex items-center justify-center transition-all ${style.bgImage ? 'border-indigo-500' : 'border-gray-200 hover:border-gray-400'}`}
+                    style={style.bgImage ? { backgroundImage: `url(${style.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
                   >
-                    {!bgImage && <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                    {!style.bgImage && <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
                   </button>
                   <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
                 </div>
-                {bgImage && (
+                {style.bgImage && (
                   <div className="mt-3 space-y-3">
+                    <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
+                      {t('background.dragHint')}
+                    </p>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.brightness')}</span><span>{Math.round(bgBrightness * 100)}%</span></div>
-                      <input type="range" min={0.1} max={1.5} step={0.05} value={bgBrightness} onChange={e => setBgBrightness(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.brightness')}</span><span>{Math.round(style.bgBrightness * 100)}%</span></div>
+                      <input type="range" min={0.1} max={1.5} step={0.05} value={style.bgBrightness} onChange={e => patchStyle({ bgBrightness: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.opacity')}</span><span>{Math.round(bgOpacity * 100)}%</span></div>
-                      <input type="range" min={0.05} max={1} step={0.05} value={bgOpacity} onChange={e => setBgOpacity(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.opacity')}</span><span>{Math.round(style.bgOpacity * 100)}%</span></div>
+                      <input type="range" min={0.05} max={1} step={0.05} value={style.bgOpacity} onChange={e => patchStyle({ bgOpacity: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.zoom')}</span><span>{Math.round(bgZoom * 100)}%</span></div>
-                      <input type="range" min={1} max={3} step={0.05} value={bgZoom} onChange={e => setBgZoom(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.zoom')}</span><span>{Math.round(style.bgZoom * 100)}%</span></div>
+                      <input type="range" min={1} max={3} step={0.05} value={style.bgZoom} onChange={e => patchStyle({ bgZoom: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetX')}</span><span>{bgOffsetX}%</span></div>
-                      <input type="range" min={-50} max={50} step={1} value={bgOffsetX} onChange={e => setBgOffsetX(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetX')}</span><span>{style.bgOffsetX}%</span></div>
+                      <input type="range" min={-100} max={100} step={1} value={style.bgOffsetX} onChange={e => patchStyle({ bgOffsetX: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetY')}</span><span>{bgOffsetY}%</span></div>
-                      <input type="range" min={-50} max={50} step={1} value={bgOffsetY} onChange={e => setBgOffsetY(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetY')}</span><span>{style.bgOffsetY}%</span></div>
+                      <input type="range" min={-100} max={100} step={1} value={style.bgOffsetY} onChange={e => patchStyle({ bgOffsetY: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
                     </div>
                     <div>
-                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.rotate')}</span><span>{bgRotate}%</span></div>
-                      <input type="range" min={0} max={360} step={1} value={bgRotate} onChange={e => setBgRotate(parseInt(e.target.value, 10))} className="w-full accent-indigo-600" />
+                      <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.rotate')}</span><span>{style.bgRotate}°</span></div>
+                      <input type="range" min={0} max={360} step={1} value={style.bgRotate} onChange={e => patchStyle({ bgRotate: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
                     </div>
                   </div>
                 )}
-                {(bgImage || bgColor || bgTransparent) && (
-                  <button onClick={() => { setBgImage(null); setBgColor(null); setBgTransparent(false); setBgBrightness(1); setBgOpacity(1); setBgZoom(1); setBgOffsetX(0); setBgOffsetY(0); }} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
+                {(style.bgImage || style.bgColor || style.bgTransparent) && (
+                  <button onClick={() => patchStyle({ bgImage: null, bgColor: null, bgTransparent: false, bgBrightness: 1, bgOpacity: 1, bgZoom: 1, bgOffsetX: 0, bgOffsetY: 0, bgRotate: 0 })} className="mt-2 text-xs text-gray-400 hover:text-gray-600 underline">
                     {t('background.reset')}
                   </button>
                 )}
@@ -600,24 +809,24 @@ function ExportPageInner() {
             </div>
           </Collapsible>
 
-          {/* Font scale — collapsible */}
+          {/* Font scale — shared, or per-card when unlinked */}
           <Collapsible
             label={t('fontScale.label')}
-            badge={`${fontScale.toFixed(2)}×`}
+            badge={`${style.fontScale.toFixed(2)}×${styleBadge ? ` · ${styleBadge}` : ''}`}
             open={fontOpen}
             onToggle={() => setFontOpen(o => !o)}
           >
-            <input type="range" min={0.75} max={2.5} step={0.05} value={fontScale} onChange={(e) => setFontScale(parseFloat(e.target.value))} className="w-full accent-indigo-600" />
+            <input type="range" min={0.75} max={2.5} step={0.05} value={style.fontScale} onChange={(e) => patchStyle({ fontScale: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
             <div className="flex justify-between text-[10px] text-gray-400 mt-1">
               <span>0.75×</span><span>1×</span><span>2.5×</span>
             </div>
           </Collapsible>
 
-          {/* Date range — collapsible, conditional */}
+          {/* Date range — per card, conditional */}
           {supportsDateRange && (
             <Collapsible
               label={t('dateRange.label')}
-              badge={(dateFrom || dateTo) ? t('dateRange.filtered', { count: filteredAggregates.donationCount }) : undefined}
+              badge={(card.dateFrom || card.dateTo) ? t('dateRange.filtered', { count: filteredAggregates.donationCount }) : undefined}
               badgeColor="indigo"
               open={dateOpen}
               onToggle={() => setDateOpen(o => !o)}
@@ -625,28 +834,28 @@ function ExportPageInner() {
               <div className="space-y-2">
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">{t('dateRange.from')}</label>
-                  <input type="date" value={dateFrom} min={campaignMin} max={dateTo || campaignMax} onChange={e => setDateFrom(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="date" value={card.dateFrom} min={campaignMin} max={card.dateTo || campaignMax} onChange={e => updateCard({ dateFrom: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                 </div>
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">{t('dateRange.to')}</label>
-                  <input type="date" value={dateTo} min={dateFrom || campaignMin} max={campaignMax} onChange={e => setDateTo(e.target.value)} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                  <input type="date" value={card.dateTo} min={card.dateFrom || campaignMin} max={campaignMax} onChange={e => updateCard({ dateTo: e.target.value })} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                 </div>
-                {(dateFrom || dateTo) && (
-                  <button onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('dateRange.reset')}</button>
+                {(card.dateFrom || card.dateTo) && (
+                  <button onClick={() => updateCard({ dateFrom: '', dateTo: '' })} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('dateRange.reset')}</button>
                 )}
               </div>
             </Collapsible>
           )}
 
-          {/* Refunds — collapsible, conditional */}
+          {/* Refunds — per card, conditional */}
           {templateId === 'funds-flow' && filteredAggregates.impliedRefunds > 500 && (
             <Collapsible label={t('refundsPanel.title')} icon="↩️" open={refundsOpen} onToggle={() => setRefundsOpen(o => !o)} purple>
               <p className="text-xs text-purple-700 leading-relaxed mb-3">
                 {t('refundsPanel.description', { amount: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.impliedRefunds)) })}
               </p>
               <label className="flex items-center gap-3 cursor-pointer group">
-                <div onClick={() => setShowRefunds(v => !v)} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${showRefunds ? 'bg-purple-600' : 'bg-gray-300'}`}>
-                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${showRefunds ? 'translate-x-5' : 'translate-x-1'}`} />
+                <div onClick={() => updateCard({ showRefunds: !card.showRefunds })} className={`relative w-10 h-6 rounded-full transition-colors flex-shrink-0 ${card.showRefunds ? 'bg-purple-600' : 'bg-gray-300'}`}>
+                  <span className={`absolute top-1 w-4 h-4 bg-white rounded-full shadow transition-transform ${card.showRefunds ? 'translate-x-5' : 'translate-x-1'}`} />
                 </div>
                 <span className="text-xs font-medium text-purple-800 group-hover:text-purple-900">{t('refundsPanel.toggle')}</span>
               </label>
@@ -654,30 +863,30 @@ function ExportPageInner() {
             </Collapsible>
           )}
 
-          {/* Template sections — collapsible, conditional */}
+          {/* Template sections — per card, conditional */}
           {hasLayoutSection && (
             <Collapsible label={t('layout.label')} open={layoutOpen} onToggle={() => setLayoutOpen(o => !o)}>
               <div className="space-y-3">
                 {hasHeaderToggle && (
-                  <ToggleRow label={t('layout.header')} value={showHeader} onChange={setShowHeader} />
+                  <ToggleRow label={t('layout.header')} value={card.showHeader} onChange={(v) => updateCard({ showHeader: v })} />
                 )}
                 {hasFooterToggle && (
-                  <ToggleRow label={t('layout.footer')} value={showFooter} onChange={setShowFooter} />
+                  <ToggleRow label={t('layout.footer')} value={card.showFooter} onChange={(v) => updateCard({ showFooter: v })} />
                 )}
                 {templateId === 'daily-activity' && (
                   <>
-                    <ToggleRow label={t('layout.chart')} value={showChart} onChange={setShowChart} />
-                    {format === 'story' && (
-                      <ToggleRow label={t('layout.bars')} value={showBars} onChange={setShowBars} />
+                    <ToggleRow label={t('layout.chart')} value={card.showChart} onChange={(v) => updateCard({ showChart: v })} />
+                    {card.format === 'story' && (
+                      <ToggleRow label={t('layout.bars')} value={card.showBars} onChange={(v) => updateCard({ showBars: v })} />
                     )}
-                    <ToggleRow label={t('layout.bestDay')} value={showBestDay} onChange={setShowBestDay} />
+                    <ToggleRow label={t('layout.bestDay')} value={card.showBestDay} onChange={(v) => updateCard({ showBestDay: v })} />
                   </>
                 )}
               </div>
             </Collapsible>
           )}
 
-          {/* Goal — collapsible, conditional */}
+          {/* Goal — global, conditional */}
           {showGoal && (
             <Collapsible label={t('goal.label')} open={goalOpen} onToggle={() => setGoalOpen(o => !o)}>
               <div className="relative">
@@ -695,7 +904,7 @@ function ExportPageInner() {
             </Collapsible>
           )}
 
-          {/* Text editor — collapsible */}
+          {/* Text editor — per card */}
           <Collapsible label={t('textEditor.label')} open={textEditorOpen} onToggle={() => setTextEditorOpen(o => !o)}>
             <div className="space-y-3">
               {textFields.map((field) => {
@@ -705,25 +914,27 @@ function ExportPageInner() {
                     : field.key === 'dateRange'
                       ? `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`
                       : t(`templates:${templateId}.${field.key}`);
-                const currentValue = textOverrides[field.key] ?? defaultValue;
+                const currentValue = card.textOverrides[field.key] ?? defaultValue;
+                const setOverride = (value: string) =>
+                  updateCard({ textOverrides: { ...card.textOverrides, [field.key]: value } });
                 return (
                   <div key={field.key}>
                     <label className="block text-xs text-gray-500 mb-1">{t(`fieldLabels.${templateId}.${field.key}`)}</label>
                     {field.multiline ? (
-                      <textarea value={currentValue} onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
+                      <textarea value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
                     ) : (
-                      <input type="text" value={currentValue} onChange={e => setTextOverrides(prev => ({ ...prev, [field.key]: e.target.value }))} placeholder={t('textEditor.defaultPlaceholder')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                      <input type="text" value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
                     )}
                   </div>
                 );
               })}
-              {Object.keys(textOverrides).length > 0 && (
-                <button onClick={() => setTextOverrides({})} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('textEditor.reset')}</button>
+              {Object.keys(card.textOverrides).length > 0 && (
+                <button onClick={() => updateCard({ textOverrides: {} })} className="text-xs text-gray-400 hover:text-gray-600 underline">{t('textEditor.reset')}</button>
               )}
             </div>
           </Collapsible>
 
-          {/* Comment picker — only for the "Слова підтримки" template */}
+          {/* Comment picker — per card, only for «Слова підтримки» */}
           {templateId === 'comments' && (
             <Collapsible
               label={t('commentPicker.label')}
@@ -739,7 +950,7 @@ function ExportPageInner() {
                   <p className="text-xs text-gray-400 mb-2">{t('commentPicker.hint')}</p>
                   <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
                     {personalComments.map((c) => {
-                      const checked = selectedCommentKeys.has(c.text);
+                      const checked = card.selectedCommentKeys.includes(c.text);
                       const disabled = !checked && selectedComments.length >= 5;
                       return (
                         <label
@@ -753,11 +964,10 @@ function ExportPageInner() {
                             checked={checked}
                             disabled={disabled}
                             onChange={() =>
-                              setSelectedCommentKeys((prev) => {
-                                const next = new Set(prev);
-                                if (next.has(c.text)) next.delete(c.text);
-                                else next.add(c.text);
-                                return next;
+                              updateCard({
+                                selectedCommentKeys: checked
+                                  ? card.selectedCommentKeys.filter((k) => k !== c.text)
+                                  : [...card.selectedCommentKeys, c.text],
                               })
                             }
                             className="mt-0.5 accent-indigo-600"
@@ -775,11 +985,11 @@ function ExportPageInner() {
             </Collapsible>
           )}
 
-          {/* Caption for the post — collapsible */}
+          {/* Caption for the post — per card */}
           <Collapsible label={t('caption.label')} open={captionOpen} onToggle={() => setCaptionOpen(o => !o)}>
             <textarea
-              value={captionText}
-              onChange={(e) => setCaptionText(e.target.value)}
+              value={captionValue}
+              onChange={(e) => updateCard({ captionText: e.target.value })}
               rows={9}
               className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm leading-relaxed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-y"
             />
@@ -794,17 +1004,31 @@ function ExportPageInner() {
               >
                 {captionCopied ? t('caption.copied') : t('caption.copy')}
               </button>
-              <button
-                onClick={regenerateCaption}
-                title={t('caption.regenerate')}
-                className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
-              >
-                ↺
-              </button>
+              {card.captionText !== null && (
+                <button
+                  onClick={() => updateCard({ captionText: null })}
+                  title={t('caption.regenerate')}
+                  className="px-3 py-2 text-sm font-medium border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  ↺
+                </button>
+              )}
             </div>
+            {cards.length > 1 && (
+              <button
+                onClick={handleCopyAllCaptions}
+                className={`mt-2 w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
+                  allCaptionsCopied
+                    ? 'bg-green-100 border-green-200 text-green-700'
+                    : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                }`}
+              >
+                {allCaptionsCopied ? t('caption.copied') : t('stack.copyAllCaptions', { count: cards.length })}
+              </button>
+            )}
           </Collapsible>
 
-          {/* Sticker export — collapsible, conditional */}
+          {/* Sticker export — per card, conditional */}
           {availableStickers.length > 0 && (
             <Collapsible label={t('stickers.label')} open={stickersOpen} onToggle={() => setStickersOpen(o => !o)}>
               <p className="text-xs text-gray-400 mb-2">{t('stickers.hint')}</p>
@@ -825,40 +1049,6 @@ function ExportPageInner() {
             </Collapsible>
           )}
 
-          {/* Batch export — collapsible */}
-          <Collapsible label={t('batch.label')} open={batchOpen} onToggle={() => setBatchOpen(o => !o)}>
-            <p className="text-xs text-gray-400 mb-2">{t('batch.hint')}</p>
-            <div className="space-y-1.5 max-h-56 overflow-y-auto pr-1">
-              {batchableTemplates.map((id) => (
-                <label key={id} className="flex items-center gap-2 px-2 py-1 rounded-lg text-sm cursor-pointer hover:bg-gray-50">
-                  <input
-                    type="checkbox"
-                    checked={batchSelection.has(id)}
-                    onChange={() =>
-                      setBatchSelection((prev) => {
-                        const next = new Set(prev);
-                        if (next.has(id)) next.delete(id);
-                        else next.add(id);
-                        return next;
-                      })
-                    }
-                    className="accent-indigo-600"
-                  />
-                  <span className="text-gray-700">{t(`templateNames.${id}`)}</span>
-                </label>
-              ))}
-            </div>
-            <button
-              onClick={startBatchExport}
-              disabled={batchQueue.length > 0 || batchSelection.size === 0}
-              className="mt-3 w-full px-3 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white transition-colors"
-            >
-              {batchQueue.length > 0
-                ? t('batch.exporting', { left: batchQueue.length })
-                : t('batch.download', { count: batchSelection.size })}
-            </button>
-          </Collapsible>
-
           {/* Stats — collapsible */}
           <Collapsible label={t('stats.title')} open={statsOpen} onToggle={() => setStatsOpen(o => !o)}>
             <div className="space-y-3">
@@ -875,7 +1065,7 @@ function ExportPageInner() {
             </div>
           </Collapsible>
 
-          {/* Download button */}
+          {/* Download current card */}
           <button
             onClick={handleExport}
             disabled={isExporting}
@@ -901,41 +1091,180 @@ function ExportPageInner() {
               </>
             )}
           </button>
+
+          {/* Download whole stack as ZIP */}
+          {cards.length > 1 && (
+            <button
+              onClick={startZipExport}
+              disabled={zipQueue.length > 0}
+              className="w-full border-2 border-indigo-600 text-indigo-700 hover:bg-indigo-50 disabled:opacity-60
+                         font-semibold rounded-xl py-3.5 px-6 flex items-center justify-center gap-3 transition-colors"
+            >
+              {zipQueue.length > 0
+                ? t('stack.exporting', { left: zipQueue.length })
+                : t('stack.downloadAll', { count: cards.length })}
+            </button>
+          )}
         </div>
       </div>
 
-      {/* Offscreen batch renderer — one template at a time */}
-      {batchCurrent && (
+      {/* Add-template modal */}
+      {addOpen && (
+        <div
+          className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4"
+          onClick={() => setAddOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-xl w-80 max-h-[70vh] overflow-y-auto p-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="text-sm font-semibold text-gray-800 mb-3">{t('stack.addTemplate')}</p>
+            <div className="space-y-2">
+              {addableGroups.map((group) => {
+                const isOpen = addGroupsOpen.has(group.id);
+                return (
+                  <div key={group.id} className="border border-gray-100 rounded-xl overflow-hidden">
+                    <button
+                      onClick={() =>
+                        setAddGroupsOpen((prev) => {
+                          const next = new Set(prev);
+                          if (next.has(group.id)) next.delete(group.id);
+                          else next.add(group.id);
+                          return next;
+                        })
+                      }
+                      className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                    >
+                      <span className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                        <span className="text-sm leading-none">{group.icon}</span>
+                        {t(`gallery:${group.labelKey}`)}
+                        <span className="text-gray-300 normal-case">{group.ids.length}</span>
+                      </span>
+                      <svg
+                        className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {isOpen && (
+                      <div className="pb-1 px-1 space-y-0.5">
+                        {group.ids.map((id) => (
+                          <button
+                            key={id}
+                            onClick={() => handleAddTemplate(id)}
+                            className="w-full flex items-center justify-between px-3 py-2 text-sm text-left rounded-lg
+                                       text-gray-700 hover:bg-indigo-50 hover:text-indigo-800 transition-colors"
+                          >
+                            {t(`templateNames.${id}`)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Offscreen ZIP renderer — one card at a time, with its own saved state */}
+      {zipCard && (
         <div style={{ position: 'fixed', left: -12000, top: 0 }} aria-hidden>
           <div
-            ref={batchRef}
+            ref={zipRef}
             style={{
-              width: FORMAT_DIMS[TEMPLATE_DEFAULT_FORMAT[batchCurrent]].width,
-              height: FORMAT_DIMS[TEMPLATE_DEFAULT_FORMAT[batchCurrent]].height,
+              width: FORMAT_DIMS[zipCard.format].width,
+              height: FORMAT_DIMS[zipCard.format].height,
               overflow: 'hidden',
             }}
           >
-            <TemplateRenderer
-              templateId={batchCurrent}
-              templateRef={batchInnerRef}
-              aggregates={filteredAggregates}
+            <CardCanvas
+              card={zipCard}
+              style={zipCard.styleOverride ?? sharedStyle}
+              aggregates={filterAggregates(donations, fullAggregates, zipCard.dateFrom, zipCard.dateTo)}
               goal={goalValue}
-              format={TEMPLATE_DEFAULT_FORMAT[batchCurrent]}
-              palette={palette}
-              textOverrides={{}}
-              fontScale={fontScale}
-              showRefunds={showRefunds}
-              showHeader
-              showFooter
-              showChart
-              showBars
-              showBestDay
               commentInsights={commentInsights}
-              selectedComments={[]}
+              selectedComments={commentsFor(zipCard)}
+              safeZonePad={showSafeZones}
+              templateRef={zipInnerRef}
             />
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Card canvas: background + template, the exact node captured for PNG ─────
+
+interface CardCanvasProps {
+  card: CardState;
+  style: SharedStyle;
+  aggregates: Aggregates;
+  goal?: number;
+  commentInsights: CommentInsights | null;
+  selectedComments: SelectedComment[];
+  safeZonePad: boolean;
+  templateRef: React.RefObject<HTMLDivElement>;
+  exRef?: React.RefObject<HTMLDivElement>;
+}
+
+function CardCanvas({ card, style, aggregates, goal, commentInsights, selectedComments, safeZonePad, templateRef, exRef }: CardCanvasProps) {
+  const dims = FORMAT_DIMS[card.format];
+  // Image is rendered as a separate overlay (with filter/transform controls),
+  // so the template itself gets 'transparent' when an image is active.
+  const bgOverride = style.bgTransparent || style.bgImage ? 'transparent' : style.bgColor ?? undefined;
+
+  return (
+    <div
+      ref={exRef}
+      style={{
+        position: 'relative',
+        width: dims.width,
+        height: dims.height,
+        overflow: 'hidden',
+        // palette bg shows through semi-transparent image when opacity < 1
+        background: style.bgImage ? style.palette.background : undefined,
+      }}
+    >
+      {style.bgImage && (
+        <img
+          src={style.bgImage}
+          alt=""
+          style={{
+            position: 'absolute',
+            inset: 0,
+            width: '100%',
+            height: '100%',
+            objectFit: 'contain',
+            transform: `translate(${style.bgOffsetX}%, ${style.bgOffsetY}%) scale(${style.bgZoom}) rotate(${style.bgRotate}deg)`,
+            filter: `brightness(${style.bgBrightness})`,
+            opacity: style.bgOpacity,
+          }}
+        />
+      )}
+      <TemplateRenderer
+        templateId={card.templateId}
+        templateRef={templateRef}
+        aggregates={aggregates}
+        goal={goal}
+        format={card.format}
+        palette={style.palette}
+        textOverrides={card.textOverrides}
+        fontScale={style.fontScale}
+        showRefunds={card.showRefunds}
+        bgOverride={bgOverride}
+        showHeader={card.showHeader}
+        showFooter={card.showFooter}
+        showChart={card.showChart}
+        showBars={card.showBars}
+        showBestDay={card.showBestDay}
+        safeZonePad={safeZonePad}
+        commentInsights={commentInsights}
+        selectedComments={selectedComments}
+      />
     </div>
   );
 }
@@ -945,12 +1274,12 @@ function ExportPageInner() {
 interface RendererProps {
   templateId: TemplateType;
   templateRef: React.RefObject<HTMLDivElement>;
-  aggregates: ReturnType<typeof aggregateDonations>;
+  aggregates: Aggregates;
   goal?: number;
   format: Format;
-  palette: Palette;
+  palette: SharedStyle['palette'];
   textOverrides: Record<string, string>;
-  fontScale: FontScale;
+  fontScale: number;
   showRefunds: boolean;
   bgOverride?: string;
   showHeader: boolean;
@@ -958,12 +1287,13 @@ interface RendererProps {
   showChart: boolean;
   showBars: boolean;
   showBestDay: boolean;
+  safeZonePad?: boolean;
   commentInsights: CommentInsights | null;
   selectedComments: SelectedComment[];
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay, commentInsights, selectedComments }: RendererProps) {
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride };
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay, safeZonePad, commentInsights, selectedComments }: RendererProps) {
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad };
   switch (templateId) {
     case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
     case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
