@@ -65,8 +65,8 @@
     "invalidRows_many": "{{count}} рядків не вдалося розпізнати",
     "invalidRows_other": "{{count}} рядки не вдалося розпізнати",
     "invalidRowsHint": "Відредагуйте дані перед продовженням",
-    "cancelButton": "Обрати інший файл",
-    "editButton": "Редагувати дані",
+    "cancelButton": "Інший файл",
+    "editButton": "Редагувати",
     "proceedButton": "Продовжити до аналітики →",
     "proceedAnywayButton": "Продовжити без виправлень →"
   }

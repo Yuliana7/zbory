@@ -1,4 +1,6 @@
-import type { Donation, CommentInsights, RepeatDonor } from '../types';
+import type { Donation, RawDonation, CommentInsights, RepeatDonor } from '../types';
+import { normalizeDonations } from './csvParser';
+import { isAnonymousDonor } from './dataAggregator';
 
 // Auto-generated Monobank comment — not a personal message. Case varies
 // between exports («банки» / «Банки»), so match the normalized prefix.
@@ -21,18 +23,48 @@ export function analyzeComments(donations: Donation[]): CommentInsights {
       totalWithComments: personalComments.length,
       topEmojis: [],
       repeatDonors: [],
+      topDonorsBySum: [],
       communities: [],
       hasEnoughData: false,
     };
   }
 
+  const identities = topIdentities(donations);
+
   return {
     totalWithComments: personalComments.length,
     topEmojis: extractTopEmojis(donations),
-    repeatDonors: findRepeatDonors(donations),
+    repeatDonors: identities.filter(v => v.count >= 2).sort((a, b) => b.count - a.count).slice(0, 5),
+    topDonorsBySum: [...identities].sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 5),
     communities: detectCommunities(donations),
     hasEnoughData: true,
   };
+}
+
+/**
+ * Adds `campaignCount` to each entry: how many of the given campaign
+ * statements the identity actually donated in. Used in multi-jar "Разом"
+ * view so the merged repeat/top-donor lists can show "у N зборах" instead
+ * of losing campaign boundaries once statements are merged into one dataset.
+ */
+export function attachCampaignCounts(
+  list: RepeatDonor[],
+  datasets: Array<{ rawData: RawDonation[] }>,
+): RepeatDonor[] {
+  const perDatasetKeys = datasets.map((d) => {
+    const { donations } = normalizeDonations(d.rawData);
+    const keys = new Set<string>();
+    for (const donation of donations) {
+      const identity = resolveIdentity(donation);
+      if (identity) keys.add(normalizeIdentity(identity));
+    }
+    return keys;
+  });
+
+  return list.map((entry) => ({
+    ...entry,
+    campaignCount: perDatasetKeys.filter((keys) => keys.has(normalizeIdentity(entry.identity))).length,
+  }));
 }
 
 /**
@@ -109,9 +141,9 @@ function extractTopEmojis(donations: Donation[]): Array<{ emoji: string; count: 
     .map(([emoji, count]) => ({ emoji, count }));
 }
 
-// ─── Repeat donors ────────────────────────────────────────────────────────────
+// ─── Donor identities (repeat + top-by-sum share this pool) ──────────────────
 
-function findRepeatDonors(donations: Donation[]): RepeatDonor[] {
+function topIdentities(donations: Donation[]): RepeatDonor[] {
   const byIdentity = new Map<string, { display: string; count: number; total: number }>();
 
   for (const d of donations) {
@@ -128,24 +160,20 @@ function findRepeatDonors(donations: Donation[]): RepeatDonor[] {
     }
   }
 
-  return [...byIdentity.values()]
-    .filter(v => v.count >= 2)
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 5)
-    .map(({ display, count, total }) => ({
-      identity: display,
-      count,
-      totalAmount: total,
-    }));
+  return [...byIdentity.values()].map(({ display, count, total }) => ({
+    identity: display,
+    count,
+    totalAmount: total,
+  }));
 }
 
 /**
  * Picks the best identity for a donation:
- * - donor name (if it's a real name, not auto-text)
+ * - donor name (if it's a real name, not auto-text or the 🐈-style anonymous marker)
  * - short personal comment (emoji-like, first-name signatures, etc.)
  */
 function resolveIdentity(d: Donation): string | null {
-  if (d.donor && d.donor !== 'Власний внесок') return d.donor;
+  if (d.donor && d.donor !== 'Власний внесок' && !isAnonymousDonor(d.donor)) return d.donor;
 
   if (d.comment && isPersonalComment(d.comment)) {
     const c = d.comment.trim();

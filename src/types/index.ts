@@ -191,12 +191,16 @@ export interface RepeatDonor {
   identity: string;      // donor name, emoji, or comment snippet
   count: number;         // number of donations
   totalAmount: number;
+  // Multi-jar "Разом" view only: how many campaign statements this identity
+  // appears in. Absent in single-jar contexts.
+  campaignCount?: number;
 }
 
 export interface CommentInsights {
   totalWithComments: number;                      // donations with a personal comment (not auto-text)
   topEmojis: Array<{ emoji: string; count: number }>;
-  repeatDonors: RepeatDonor[];                    // identities with 2+ donations
+  repeatDonors: RepeatDonor[];                    // identities with 2+ donations, ranked by count
+  topDonorsBySum: RepeatDonor[];                  // all identities, ranked by total amount
   communities: string[];                          // detected group links / mentions
   hasEnoughData: boolean;                         // false when <3% of donations have comments
 }

@@ -4,6 +4,9 @@ import '../../src/i18n';
 import { analyzeCampaigns, buildReport } from '../../src/utils/campaignAnalytics';
 import { ReportCard } from '../../src/components/templates/ReportCard';
 import { CrossCampaignSection } from '../../src/components/insights/CrossCampaignSection';
+import { CumulativeChart } from '../../src/components/insights/CumulativeChart';
+import { normalizeDonations } from '../../src/utils/csvParser';
+import { aggregateDonations } from '../../src/utils/dataAggregator';
 import type { CampaignMeta } from '../../src/utils/campaignStore';
 import type { RawDonation } from '../../src/types';
 
@@ -119,19 +122,30 @@ assertEq('card: period label', html.includes('зібрано за 2026 рік'),
 assertEq('card: top campaigns block', html.includes('Топ 3 збори'), true);
 assertEq('card: date span in header', html.includes('12.04.2026 — 02.07.2026'), true);
 assertEq('card: thanks line', html.includes('Дякуємо кожному'), true);
-// ── CrossCampaignSection (Phase 10: embedded in InsightsPage multi mode) ──
-const section = renderToStaticMarkup(
-  createElement(CrossCampaignSection, {
-    datasets: [
-      { id: 'a', name: 'Дрони', rawData: jarA },
-      { id: 'b', name: 'Медицина', rawData: jarB },
-    ],
-  }),
+// ── CrossCampaignSection (Phase 10: comparison table only, top-of-page chart/quarters live in CumulativeChart) ──
+const crossDatasets = [
+  { id: 'a', name: 'Дрони', rawData: jarA },
+  { id: 'b', name: 'Медицина', rawData: jarB },
+];
+const section = renderToStaticMarkup(createElement(CrossCampaignSection, { datasets: crossDatasets }));
+assertEq('section: no chart (moved to CumulativeChart)', section.includes('<polyline'), false);
+assertEq('section: both campaign names in table', section.includes('Дрони') && section.includes('Медицина'), true);
+assertEq('section: filter chips present', section.includes('Дрони') && section.includes('rounded-full'), true);
+
+// ── CumulativeChart: multi mode draws one polyline per jar + quarters ──
+const { donations: donationsA, withdrawals: withdrawalsA, currentBalance: balanceA } = normalizeDonations(jarA);
+const aggregatesA = aggregateDonations(donationsA, withdrawalsA, balanceA);
+
+const chart = renderToStaticMarkup(
+  createElement(CumulativeChart, { aggregates: aggregatesA, datasets: crossDatasets }),
 );
-assertEq('section: chart rendered', section.includes('<polyline'), true);
-assertEq('section: both campaign names', section.includes('Дрони') && section.includes('Медицина'), true);
-assertEq('section: loyal donor listed', section.includes('Олена Петренко'), true);
-assertEq('section: quarters present', section.includes('К2 2026') && section.includes('К3 2026'), true);
+assertEq('chart: two polylines (one per jar)', (chart.match(/<polyline/g) ?? []).length, 2);
+assertEq('chart: quarters present', chart.includes('К2 2026') && chart.includes('К3 2026'), true);
+
+// ── CumulativeChart: single-jar mode draws exactly one line, no quarters/filter ──
+const soloChart = renderToStaticMarkup(createElement(CumulativeChart, { aggregates: aggregatesA, datasets: null }));
+assertEq('chart solo: one polyline', (soloChart.match(/<polyline/g) ?? []).length, 1);
+assertEq('chart solo: no quarters block', soloChart.includes('К2 2026'), false);
 
 // Amount + ₴ must sit inside a nowrap span so the sign can't wrap alone on export
 assertEq('card: hero wrapped in NoWrap', /white-space:nowrap[^>]*>1[\s\u00A0\u202F]?250[\s\u00A0\u202F]*₴/.test(html), true);

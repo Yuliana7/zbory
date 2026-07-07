@@ -2,13 +2,13 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
-import { SaveCampaignControl } from '../components/insights/SaveCampaignControl';
+// import { SaveCampaignControl } from '../components/insights/SaveCampaignControl';
 import { CrossCampaignSection } from '../components/insights/CrossCampaignSection';
 import { detectMoments } from '../utils/momentDetector';
 import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
-import { analyzeComments } from '../utils/commentAnalyzer';
+import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
@@ -28,14 +28,27 @@ export function InsightsPage() {
     return { aggregates, insights: generateInsights(aggregates, t), commentInsights: analyzeComments(donations) };
   }, [datasets, viewId, t]);
 
+  const isMerged = !perJar;
+
+  // Merged multi-jar view: enrich the repeat/top-donor lists with how many
+  // of the loaded statements each identity actually donated in — lost once
+  // statements are merged into one flat dataset, so it's re-derived here.
+  const mergedCommentInsights = useMemo(() => {
+    if (!isMerged || !datasets || datasets.length < 2 || !app.commentInsights) return app.commentInsights;
+    return {
+      ...app.commentInsights,
+      repeatDonors: attachCampaignCounts(app.commentInsights.repeatDonors, datasets),
+      topDonorsBySum: attachCampaignCounts(app.commentInsights.topDonorsBySum, datasets),
+    };
+  }, [isMerged, datasets, app.commentInsights]);
+
   if (!app.aggregates || !app.insights) return null;
 
   const moments = detectMoments(app.aggregates, t, app.goal);
-  const isMerged = !perJar;
 
   return (
     <div>
-      <div className="mb-6 flex items-center justify-between">
+      <div className="mb-6 flex justify-between">
         <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
@@ -49,7 +62,6 @@ export function InsightsPage() {
             </svg>
             {t('backButton')}
           </button>
-          <SaveCampaignControl />
           <button
             onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
             className="flex items-center gap-2 text-sm font-semibold text-white
@@ -62,6 +74,7 @@ export function InsightsPage() {
           </button>
         </div>
       </div>
+      
       {/* Multi mode: merged vs per-jar view */}
       {datasets && datasets.length >= 2 && (
         <div className="mb-6 flex flex-wrap gap-1 p-1 bg-gray-50 border border-gray-200 rounded-xl w-fit">
@@ -107,7 +120,8 @@ export function InsightsPage() {
         insights={perJar?.insights ?? app.insights}
         aggregates={perJar?.aggregates ?? app.aggregates}
         goal={isMerged ? app.goal : undefined}
-        commentInsights={perJar?.commentInsights ?? app.commentInsights}
+        commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
+        campaignDatasets={isMerged ? datasets : null}
       />
 
       {/* Cross-campaign analytics — only in multi mode, on the merged view */}

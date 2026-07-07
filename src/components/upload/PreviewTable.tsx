@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Donation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
+import { SaveCampaignControl } from '../insights/SaveCampaignControl';
 
 interface PreviewTableProps {
   donations: Donation[];
@@ -32,12 +33,34 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
       <div className="card">
-        <div className="flex items-center justify-between mb-6">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-2xl font-bold text-gray-900">{t('preview.title')}</h2>
             <p className="text-sm text-gray-600 mt-1">
               {t('preview.foundCount', { count: totalCount })}
             </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={onCancel}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+                         bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
+                         hover:border-gray-300 transition-all"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              {t('preview.cancelButton')}
+            </button>
+            <button
+              onClick={handleProceed}
+              className="flex items-center gap-2 text-sm font-semibold text-white
+                         bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 shadow-sm transition-all"
+            >
+              {showErrors && invalidRowCount > 0
+                ? t('preview.proceedAnywayButton')
+                : t('preview.proceedButton')}
+            </button>
           </div>
         </div>
 
@@ -137,22 +160,18 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
           )}
         </div>
 
-        <div className="mt-4 flex flex-col gap-3">
-          <div className="flex gap-3">
-            <button onClick={onCancel} className="btn-secondary flex-1">
-              {t('preview.cancelButton')}
+        {/* Utility actions: fix data, or save a snapshot — step navigation lives in the header above.
+            Stacked full-width below sm: so the labels never get squeezed on narrow phones. */}
+        <div className="relative mt-6 flex flex-col sm:flex-row gap-3">
+          {onEdit && (
+            <button onClick={onEdit} className="btn-secondary flex-1 flex items-center justify-center gap-2">
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+              </svg>
+              {t('preview.editButton')}
             </button>
-            {onEdit && (
-              <button onClick={onEdit} className="btn-secondary flex-1">
-                {t('preview.editButton')}
-              </button>
-            )}
-          </div>
-          <button onClick={handleProceed} className="btn-primary w-full">
-            {showErrors && invalidRowCount > 0
-              ? t('preview.proceedAnywayButton')
-              : t('preview.proceedButton')}
-          </button>
+          )}
+          <SaveCampaignControl fullWidth />
         </div>
       </div>
     </div>

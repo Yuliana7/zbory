@@ -1,17 +1,21 @@
 import { useTranslation } from 'react-i18next';
-import type { Insight, Aggregates, CommentInsights } from '../../types';
+import type { Insight, Aggregates, CommentInsights, RepeatDonor, CampaignDataset } from '../../types';
 import { generateActionableInsights } from '../../utils/insightGenerator';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
+import { CumulativeChart } from './CumulativeChart';
 
 interface InsightsPanelProps {
   insights: Insight[];
   aggregates: Aggregates;
   goal?: number;
   commentInsights: CommentInsights | null;
+  // Multi-jar "Разом" view only — powers the always-visible chart (top of page)
+  // and lets the donor lists below show "у N зборах" per identity.
+  campaignDatasets?: CampaignDataset[] | null;
 }
 
-export function InsightsPanel({ insights, aggregates, goal, commentInsights }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, goal, commentInsights, campaignDatasets }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -43,6 +47,9 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
         </p>
       </div>
       
+      {/* Always-visible cumulative chart: one line per jar, aligned by campaign day in multi mode */}
+      <CumulativeChart aggregates={aggregates} datasets={campaignDatasets ?? null} />
+
       {/* Charts section */}
       <CampaignCharts aggregates={aggregates} />
 
@@ -134,27 +141,23 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
             )}
 
             {commentInsights.repeatDonors.length > 0 && (
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  {t('comments.repeatDonors')}
-                </p>
-                <p className="text-xs text-gray-500 mb-2">
-                  {t('comments.repeatDonorsCount', { count: commentInsights.repeatDonors.length })}
-                </p>
-                <div className="space-y-2">
-                  {commentInsights.repeatDonors.map(({ identity, count, totalAmount }, i) => (
-                    <div key={i} className="flex items-center justify-between gap-2">
-                      <span className="text-sm text-gray-800 truncate flex-1">{identity}</span>
-                      <div className="flex items-center gap-2 shrink-0">
-                        <span className="text-xs text-gray-400">{count}×</span>
-                        <span className="text-xs font-medium text-indigo-700">
-                          {formatCurrency(totalAmount)}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <DonorListCard
+                title={t('comments.repeatDonors')}
+                subtitle={t('comments.repeatDonorsCount', { count: commentInsights.repeatDonors.length })}
+                donors={commentInsights.repeatDonors}
+                metric="count"
+                anonymousCount={aggregates.anonymousDonations}
+                t={t}
+              />
+            )}
+
+            {commentInsights.topDonorsBySum.length > 0 && (
+              <DonorListCard
+                title={t('comments.topDonorsBySum')}
+                donors={commentInsights.topDonorsBySum}
+                metric="sum"
+                t={t}
+              />
             )}
 
             {commentInsights.communities.length > 0 && (
@@ -180,6 +183,48 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights }: I
 
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+interface DonorListCardProps {
+  title: string;
+  subtitle?: string;
+  donors: RepeatDonor[];
+  metric: 'count' | 'sum';
+  anonymousCount?: number;
+  t: (key: string, opts?: Record<string, unknown>) => string;
+}
+
+/** Repeat/top-donor list — mirrors the TopDonorsCard template's rank+metric layout. */
+function DonorListCard({ title, subtitle, donors, metric, anonymousCount, t }: DonorListCardProps) {
+  return (
+    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+      <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">{title}</p>
+      {subtitle && <p className="text-xs text-gray-500 mb-2">{subtitle}</p>}
+      <div className="space-y-2">
+        {donors.map(({ identity, count, totalAmount, campaignCount }, i) => (
+          <div key={i} className="flex items-center justify-between gap-2">
+            <span className="text-sm text-gray-800 truncate flex-1">{identity}</span>
+            <div className="flex items-center gap-2 shrink-0">
+              {campaignCount !== undefined && campaignCount >= 2 && (
+                <span className="text-xs text-amber-600 font-medium">
+                  {t('comments.inCampaigns', { count: campaignCount })}
+                </span>
+              )}
+              <span className="text-xs text-gray-400">{count}×</span>
+              <span className={`text-xs font-medium ${metric === 'sum' ? 'text-indigo-700' : 'text-gray-500'}`}>
+                {formatCurrency(totalAmount)}
+              </span>
+            </div>
+          </div>
+        ))}
+      </div>
+      {!!anonymousCount && anonymousCount > 0 && (
+        <p className="mt-3 pt-2 border-t border-gray-100 text-xs text-gray-400">
+          {t('comments.anonymousExtra', { count: anonymousCount })}
+        </p>
       )}
     </div>
   );

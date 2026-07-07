@@ -635,8 +635,9 @@ function ExportPageInner() {
             </div>
           </div>
 
-          {/* Stack navigation */}
-          <div className="flex items-center gap-3">
+          {/* Stack navigation — wraps onto extra lines instead of overflowing
+              the preview box once enough cards make the dots row too wide */}
+          <div className="flex flex-wrap items-center justify-center gap-3 max-w-full">
             {cards.length > 1 && (
               <>
                 <button
@@ -648,7 +649,7 @@ function ExportPageInner() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
                   </svg>
                 </button>
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center justify-center gap-2 max-w-[240px]">
                   {cards.map((c, i) => (
                     <button
                       key={i}
@@ -671,27 +672,30 @@ function ExportPageInner() {
                 </button>
               </>
             )}
-            <button
-              onClick={() => setAddOpen(true)}
-              title={t('stack.addTemplate')}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
-            >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              {t('stack.addTemplate')}
-            </button>
-            {cards.length > 1 && (
+            {/* Grouped into one flex item so add/delete wrap onto line 2 together, never split */}
+            <div className="flex items-center gap-3">
               <button
-                onClick={handleRemoveCard}
-                title={t('stack.removeCard')}
-                className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
+                onClick={() => setAddOpen(true)}
+                title={t('stack.addTemplate')}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
+                {t('stack.addTemplate')}
               </button>
-            )}
+              {cards.length > 1 && (
+                <button
+                  onClick={handleRemoveCard}
+                  title={t('stack.removeCard')}
+                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
