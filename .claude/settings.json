@@ -3,17 +3,7 @@
     "allow": [
       "Bash(npm install *)",
       "Bash(npx tsc *)",
-      "Bash(npm run *)",
-      "Bash(./node_modules/.bin/esbuild /private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/insightsTest.ts --bundle --platform=node --format=cjs --outfile=/private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/insightsTest.cjs)",
-      "Bash(node /private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/insightsTest.cjs)",
-      "Bash(awk -F',' 'NR>1 {print $2}' jar_statement_2026-07-05_10-48.csv)",
-      "Bash(awk -F',' 'NR>1 {sum+=$3; n++} END {print \"rows:\", n, \"sum:\", sum, \"mean:\", sum/n}' jar_statement_2026-07-05_10-48.csv)",
-      "Bash(./node_modules/.bin/esbuild /private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/templatesTest.tsx --bundle --platform=node --format=cjs --loader:.json=json --jsx=automatic --outfile=/private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/templatesTest.cjs)",
-      "Bash(./node_modules/.bin/esbuild /private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/templatesTest.tsx --bundle --platform=node --format=cjs --loader:.json=json --jsx=automatic --alias:react/jsx-runtime=/Users/yulianaromaniv/Projects/zbory/node_modules/react/jsx-runtime.js --outfile=/private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/01a3f7ba-78a4-42ca-aa67-90a8decd4245/scratchpad/templatesTest.cjs)",
-      "Bash(git -C /Users/yulianaromaniv/Projects/zbory diff --stat)",
-      "Bash(awk -F'\",\"' 'NR>1 {print $2}' testData/jar_statement_2026-07-05_10-48.csv)",
-      "Bash(./node_modules/.bin/esbuild tests/render/campaignStoreTest.ts --bundle --platform=node --format=cjs --loader:.json=json --outfile=/private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/69d51646-1da0-4dcb-aece-4649cfeda000/scratchpad/campaignStoreTest.cjs)",
-      "Bash(node /private/tmp/claude-502/-Users-yulianaromaniv-Projects-zbory/69d51646-1da0-4dcb-aece-4649cfeda000/scratchpad/campaignStoreTest.cjs)"
+      "Bash(npm run *)"
     ]
   }
 }
