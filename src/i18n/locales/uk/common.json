@@ -17,8 +17,8 @@
     "insightsError": "Помилка при генерації аналітики",
     "manualProcessError": "Не вдалося розпізнати жодного донату. Перевірте введені дані",
     "manualDataError": "Помилка при обробці даних",
-    "campaignSaveError": "Не вдалося зберегти кампанію",
-    "campaignLoadError": "Не вдалося відкрити кампанію"
+    "campaignSaveError": "Не вдалося зберегти збір",
+    "campaignLoadError": "Не вдалося відкрити збір"
   },
   "appUpdate": {
     "updateAvailable": "✨ Нова версія застосунку доступна",

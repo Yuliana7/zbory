@@ -6,7 +6,7 @@ import { getCampaignMeta } from '../../utils/campaignStore';
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const shortDate = (d: Date) => `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
 
-/** "Зберегти кампанію" in the insights header: names the current dataset and puts it in the library. */
+/** "Зберегти збір" in the insights header: names the current dataset and puts it in the library. */
 export function SaveCampaignControl() {
   const { t } = useTranslation('campaigns');
   const { state, handleSaveCampaign } = useAppContext();

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Aggregates } from '../../types';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
@@ -84,6 +84,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
     () => [...withdrawals].sort((a, b) => a.timestamp.getTime() - b.timestamp.getTime()),
     [withdrawals],
   );
+  const [historyOpen, setHistoryOpen] = useState(false);
 
   return (
     <div className="space-y-4 mb-2">
@@ -183,13 +184,25 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
         );
       })()}
 
-      {/* ── Withdrawal events list ────────────────────────────────────── */}
+      {/* ── Withdrawal events list (collapsible) ──────────────────────── */}
       {hasWithdrawals && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
-            {t('charts.withdrawalsLabel')}
-          </p>
-          <div className="space-y-3">
+          <button
+            onClick={() => setHistoryOpen((o) => !o)}
+            className="w-full flex items-center justify-between text-left"
+          >
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+              {t('charts.withdrawalsLabel')}
+            </p>
+            <svg
+              className={`w-4 h-4 text-gray-400 transition-transform ${historyOpen ? 'rotate-180' : ''}`}
+              fill="none" viewBox="0 0 24 24" stroke="currentColor"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+          {historyOpen && (
+          <div className="space-y-3 mt-4">
             {withdrawalEvents.map((w, i) => (
               <div key={i} className="flex items-center justify-between gap-3">
                 <div className="flex items-center gap-3 min-w-0">
@@ -211,6 +224,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
               </div>
             ))}
           </div>
+          )}
 
           <div className="mt-4 pt-3 border-t border-gray-100 flex justify-between text-sm">
             <span className="text-gray-500">{t('charts.totalWithdrawn')}</span>

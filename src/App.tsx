@@ -6,7 +6,6 @@ import { UploadPage } from './pages/UploadPage'
 import { InsightsPage } from './pages/InsightsPage'
 import { GalleryPage } from './pages/GalleryPage'
 import { ExportPage } from './pages/ExportPage'
-import { ComparePage } from './pages/ComparePage'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
 
@@ -15,7 +14,6 @@ const STEP_INDEX: Record<AppState['step'], number> = {
   insights: 2,
   gallery: 3,
   export: 4,
-  compare: 1, // side view off the upload screen; indicator stays on step 1
 }
 
 const STEP_KEYS: AppState['step'][] = ['upload', 'insights', 'gallery', 'export']
@@ -112,7 +110,6 @@ function App() {
           {app.step === 'insights' && <InsightsPage />}
           {app.step === 'gallery' && <GalleryPage />}
           {app.step === 'export' && <ExportPage />}
-          {app.step === 'compare' && <ComparePage />}
         </div>
       </main>
 

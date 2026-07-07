@@ -1,7 +1,15 @@
-import type { RawDonation } from '../types';
-import type { CampaignMeta } from './campaignStore';
+import type { RawDonation, CampaignDataset } from '../types';
+import { computeCampaignSummary, type CampaignMeta } from './campaignStore';
 import { normalizeDonations } from './csvParser';
 import { isAnonymousDonor } from './dataAggregator';
+
+/** Builds the analyzeCampaigns/buildReport input from in-session datasets (no library round-trip). */
+export function datasetsToItems(datasets: CampaignDataset[]): Array<{ meta: CampaignMeta; rawData: RawDonation[] }> {
+  return datasets.map((d) => ({
+    meta: { id: d.id, name: d.name, fileName: null, createdAt: 0, updatedAt: 0, summary: computeCampaignSummary(d.rawData) },
+    rawData: d.rawData,
+  }));
+}
 
 // Cross-campaign analytics: everything the comparison view needs, computed in
 // one pass over the library. Donor identity matching is heuristic (normalized

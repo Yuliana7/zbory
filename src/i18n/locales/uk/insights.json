@@ -1,6 +1,6 @@
 {
   "title": "Аналітика збору",
-  "backButton": "Інший файл",
+  "backButton": "Назад",
   "nextButton": "Обрати шаблон",
   "totalAmount": "Загальна сума",
   "donationsCount_one": "{{count}} донат за",

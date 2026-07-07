@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { analyzeCampaigns, buildReport } from '../../src/utils/campaignAnalytics';
 import { ReportCard } from '../../src/components/templates/ReportCard';
+import { CrossCampaignSection } from '../../src/components/insights/CrossCampaignSection';
 import type { CampaignMeta } from '../../src/utils/campaignStore';
 import type { RawDonation } from '../../src/types';
 
@@ -112,11 +113,25 @@ const html = renderToStaticMarkup(
   createElement(ReportCard, { report: year, periodLabel: 'зібрано за 2026 рік', format: 'story' }),
 );
 const strip = (s: string) => s.replace(/<[^>]+>/g, ' ');
-assertEq('card: default title', html.includes('Звіт про збори'), true);
+assertEq('card: default title', html.includes('Загальний звіт'), true);
 assertEq('card: hero total present', /1[\s\u00A0\u202F]?250[\s\u00A0\u202F]*₴/.test(strip(html)), true);
 assertEq('card: period label', html.includes('зібрано за 2026 рік'), true);
-assertEq('card: top campaigns block', html.includes('Найбільші збори'), true);
+assertEq('card: top campaigns block', html.includes('Топ 3 збори'), true);
 assertEq('card: date span in header', html.includes('12.04.2026 — 02.07.2026'), true);
 assertEq('card: thanks line', html.includes('Дякуємо кожному'), true);
+// ── CrossCampaignSection (Phase 10: embedded in InsightsPage multi mode) ──
+const section = renderToStaticMarkup(
+  createElement(CrossCampaignSection, {
+    datasets: [
+      { id: 'a', name: 'Дрони', rawData: jarA },
+      { id: 'b', name: 'Медицина', rawData: jarB },
+    ],
+  }),
+);
+assertEq('section: chart rendered', section.includes('<polyline'), true);
+assertEq('section: both campaign names', section.includes('Дрони') && section.includes('Медицина'), true);
+assertEq('section: loyal donor listed', section.includes('Олена Петренко'), true);
+assertEq('section: quarters present', section.includes('К2 2026') && section.includes('К3 2026'), true);
+
 // Amount + ₴ must sit inside a nowrap span so the sign can't wrap alone on export
 assertEq('card: hero wrapped in NoWrap', /white-space:nowrap[^>]*>1[\s\u00A0\u202F]?250[\s\u00A0\u202F]*₴/.test(html), true);

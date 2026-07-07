@@ -12,6 +12,7 @@ interface ReportCardProps {
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
+  bgOverride?: string;
   safeZonePad?: boolean;
 }
 
@@ -21,12 +22,12 @@ const fmtDate = (d: Date) =>
 
 /** Cross-campaign report («Звіти»): totals for a quarter / year / all time as one shareable image. */
 export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
-  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, safeZonePad }, ref) => {
-    const { t } = useTranslation('campaigns');
+  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
+    const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
-    const tx = (key: string) => textOverrides[key] ?? t(`report.card.${key}`);
+    const tx = (key: string) => textOverrides[key] ?? t(`report.${key}`);
 
     const maxCampaign = Math.max(...report.topCampaigns.map((c) => c.amount), 1);
 
@@ -36,7 +37,7 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
         style={{
           width: 1080,
           height: isStory ? 1920 : 1080,
-          background: p.background,
+          background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
           padding: cardPadding(isStory, safeZonePad, '100px 80px'),

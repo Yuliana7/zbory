@@ -19,6 +19,7 @@ import type {
   ManualRow,
   CardState,
   SharedStyle,
+  CampaignDataset,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
@@ -55,6 +56,7 @@ const INITIAL_APP_STATE: AppState = {
   stackStyle: null,
   originalFileName: null,
   activeCampaignId: null,
+  campaignDatasets: null,
 };
 
 const INITIAL_STATE: FullState = {
@@ -66,7 +68,7 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; campaignDatasets?: CampaignDataset[] } }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
@@ -112,6 +114,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
           // A fresh dataset detaches from any previously opened campaign and
           // drops a stale goal unless the source (campaign/session) carried one
           activeCampaignId: action.payload.activeCampaignId ?? null,
+          campaignDatasets: action.payload.campaignDatasets ?? null,
           goal: action.payload.goal,
         },
       };
@@ -171,6 +174,7 @@ interface AppContextValue {
   handleReset: () => void;
   handleRestoreSession: () => boolean;
   handleLoadCampaign: (id: string) => Promise<boolean>;
+  handleLoadCampaigns: (ids: string[]) => Promise<boolean>;
   handleSaveCampaign: (name: string) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   goToStep: (step: AppState['step']) => void;
@@ -348,6 +352,40 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
+  // Opens several campaigns at once: merged rows drive the normal pipeline,
+  // campaignDatasets keeps each jar separate for per-jar/cross analytics.
+  const handleLoadCampaigns = useCallback(async (ids: string[]): Promise<boolean> => {
+    if (ids.length === 0) return false;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const datasets: CampaignDataset[] = [];
+      for (const id of ids) {
+        const [meta, rawData] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
+        if (!meta || !rawData) throw new Error();
+        datasets.push({ id, name: meta.name, rawData });
+      }
+      let merged: RawDonation[] = [];
+      for (const d of datasets) merged = mergeRawDonations(merged, d.rawData).merged;
+      const { donations, withdrawals, currentBalance } = normalizeDonations(merged);
+      if (donations.length === 0) throw new Error();
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData: merged,
+          donations,
+          withdrawals,
+          currentBalance,
+          activeCampaignId: ids.length === 1 ? ids[0] : undefined,
+          campaignDatasets: datasets.length > 1 ? datasets : undefined,
+        },
+      });
+      return true;
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: t('errors.campaignLoadError') });
+      return false;
+    }
+  }, [t]);
+
   // Saves (or updates, when a campaign is already open) the current dataset
   const handleSaveCampaign = useCallback(async (name: string): Promise<CampaignMeta | null> => {
     if (!state.app.rawData) return null;
@@ -369,7 +407,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const goToStep = useCallback(
     (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4, compare: 1 };
+      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
       if (idx[step] < idx[state.app.step]) {
         dispatch({ type: 'GO_TO_STEP', payload: step });
       }
@@ -379,7 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleSaveCampaign, handleMergeFile, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, goToStep }}
     >
       {children}
     </AppContext.Provider>

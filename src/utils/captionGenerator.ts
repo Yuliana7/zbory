@@ -27,6 +27,8 @@ const OPENER_KIND: Record<TemplateType, 'progress' | 'ask' | 'thanks' | 'recap' 
   'weekly-recap': 'recap',
   speed: 'recap',
   'funds-flow': 'transparency',
+  report: 'recap',
+  'campaigns-chart': 'recap',
 };
 
 /**

@@ -116,6 +116,7 @@
     "unlinkStyle": "Свій стиль для цієї картки",
     "unlinkHint": "Картка збереже копію стилю серії — змінюйте її незалежно",
     "addTemplate": "Додати шаблон",
+    "removeCard": "Прибрати картку з серії",
     "copyAllCaptions": "Скопіювати всі підписи ({{count}})",
     "downloadAll": "Завантажити всі ({{count}}) · ZIP",
     "exporting": "Генерація… залишилось {{left}}"
@@ -267,6 +268,17 @@
       "fromCommentsLabel": "Підпис під хмарою"
     },
     "comments": {
+      "title": "Заголовок"
+    },
+    "report": {
+      "title": "Заголовок",
+      "campaigns": "Підпис: збори",
+      "donations": "Підпис: донати",
+      "donors": "Підпис: донатери",
+      "topTitle": "Заголовок списку зборів",
+      "thanks": "Рядок подяки"
+    },
+    "campaigns-chart": {
       "title": "Заголовок"
     }
   }

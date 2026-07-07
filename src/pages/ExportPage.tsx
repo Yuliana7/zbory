@@ -16,6 +16,9 @@ import { FinalReportCard } from '../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../components/templates/CommentsCard';
+import { ReportCard } from '../components/templates/ReportCard';
+import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
+import { analyzeCampaigns, buildReport, datasetsToItems, type ReportPeriod } from '../utils/campaignAnalytics';
 import { exportToPNG, renderToPNGDataUrl, dataUrlToBytes } from '../utils/exportPNG';
 import { aggregateDonations, formatUkrainianDate } from '../utils/dataAggregator';
 import { generateCaption } from '../utils/captionGenerator';
@@ -137,6 +140,13 @@ function ExportPageInner() {
   const commentInsights: CommentInsights | null = app.commentInsights;
 
   const personalComments = useMemo(() => getPersonalComments(donations), [donations]);
+
+  // Multi-campaign data for the report/comparison templates (null in single mode)
+  const crossItems = useMemo(
+    () => (app.campaignDatasets && app.campaignDatasets.length >= 2 ? datasetsToItems(app.campaignDatasets) : null),
+    [app.campaignDatasets],
+  );
+  const crossQuarters = useMemo(() => (crossItems ? analyzeCampaigns(crossItems).quarters : []), [crossItems]);
 
   // ── Stack state — restored from context so gallery ⇄ export keeps edits ──
   const [cards, setCards] = useState<CardState[]>(() =>
@@ -471,6 +481,14 @@ function ExportPageInner() {
     setZipQueue(cards.map((_, i) => i));
   };
 
+  const handleRemoveCard = () => {
+    if (cards.length <= 1) return;
+    const newIds = cards.map((c) => c.templateId).filter((_, i) => i !== safeCurrent);
+    dispatch({ type: 'GALLERY_UI', payload: { selection: newIds } });
+    dispatch({ type: 'TEMPLATES_SELECTED', payload: newIds });
+    setCurrent(Math.max(0, safeCurrent - 1));
+  };
+
   const handleAddTemplate = (id: TemplateType) => {
     const newIds = [...cards.map((c) => c.templateId), id];
     dispatch({ type: 'GALLERY_UI', payload: { selection: newIds } });
@@ -484,12 +502,13 @@ function ExportPageInner() {
     const available = (id: TemplateType) => {
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
+      if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
       return true;
     };
     return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments]);
+  }, [commentInsights, personalComments, crossItems]);
 
   const previewW = Math.round(dims.width * effectiveScale);
   const previewH = Math.round(dims.height * effectiveScale);
@@ -598,6 +617,7 @@ function ExportPageInner() {
                 aggregates={filteredAggregates}
                 goal={goalValue}
                 commentInsights={commentInsights}
+                crossItems={crossItems}
                 selectedComments={selectedComments}
                 safeZonePad={showSafeZones}
                 exRef={exportRef}
@@ -661,6 +681,17 @@ function ExportPageInner() {
               </svg>
               {t('stack.addTemplate')}
             </button>
+            {cards.length > 1 && (
+              <button
+                onClick={handleRemoveCard}
+                title={t('stack.removeCard')}
+                className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+              </button>
+            )}
           </div>
         </div>
 
@@ -902,6 +933,28 @@ function ExportPageInner() {
               <p className="mt-1.5 text-xs text-gray-400">{t('goal.hint')}</p>
               {requiresGoal && !goal && <p className="mt-1 text-xs text-red-500">{t('requiredField')}</p>}
             </Collapsible>
+          )}
+
+          {/* Report period — multi-campaign report card only */}
+          {templateId === 'report' && crossItems && (
+            <div className="bg-white border border-gray-200 rounded-xl p-4">
+              <label className="block text-xs text-gray-500 mb-1.5">{t('campaigns:report.periodLabel')}</label>
+              <select
+                value={card.textOverrides['periodKey'] ?? 'all'}
+                onChange={(e) => updateCard({ textOverrides: { ...card.textOverrides, periodKey: e.target.value } })}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              >
+                <option value="all">{t('campaigns:report.periodAll')}</option>
+                {[...new Set(crossQuarters.map((q) => q.year))].sort((a, b) => b - a).map((y) => (
+                  <option key={y} value={`y-${y}`}>{t('campaigns:report.periodYear', { year: y })}</option>
+                ))}
+                {[...crossQuarters].sort((a, b) => b.year - a.year || b.quarter - a.quarter).map((q) => (
+                  <option key={`${q.year}-${q.quarter}`} value={`q-${q.year}-${q.quarter}`}>
+                    {t('campaigns:report.periodQuarter', { quarter: q.quarter, year: q.year })}
+                  </option>
+                ))}
+              </select>
+            </div>
           )}
 
           {/* Text editor — per card */}
@@ -1186,6 +1239,7 @@ function ExportPageInner() {
               aggregates={filterAggregates(donations, fullAggregates, zipCard.dateFrom, zipCard.dateTo)}
               goal={goalValue}
               commentInsights={commentInsights}
+              crossItems={crossItems}
               selectedComments={commentsFor(zipCard)}
               safeZonePad={showSafeZones}
               templateRef={zipInnerRef}
@@ -1205,13 +1259,14 @@ interface CardCanvasProps {
   aggregates: Aggregates;
   goal?: number;
   commentInsights: CommentInsights | null;
+  crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
   safeZonePad: boolean;
   templateRef: React.RefObject<HTMLDivElement>;
   exRef?: React.RefObject<HTMLDivElement>;
 }
 
-function CardCanvas({ card, style, aggregates, goal, commentInsights, selectedComments, safeZonePad, templateRef, exRef }: CardCanvasProps) {
+function CardCanvas({ card, style, aggregates, goal, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -1263,6 +1318,7 @@ function CardCanvas({ card, style, aggregates, goal, commentInsights, selectedCo
         showBestDay={card.showBestDay}
         safeZonePad={safeZonePad}
         commentInsights={commentInsights}
+        crossItems={crossItems}
         selectedComments={selectedComments}
       />
     </div>
@@ -1289,10 +1345,32 @@ interface RendererProps {
   showBestDay: boolean;
   safeZonePad?: boolean;
   commentInsights: CommentInsights | null;
+  crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay, safeZonePad, commentInsights, selectedComments }: RendererProps) {
+function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay, safeZonePad, commentInsights, crossItems, selectedComments }: RendererProps) {
+  const { t: tCamp } = useTranslation('campaigns');
+  // Report period rides in textOverrides (key 'periodKey') so it survives
+  // card persistence and batch export without a new CardState field.
+  const periodKey = textOverrides['periodKey'] ?? 'all';
+  const period: ReportPeriod = useMemo(() => {
+    const [kind, year, quarter] = periodKey.split('-');
+    if (kind === 'y') return { kind: 'year', year: Number(year) };
+    if (kind === 'q') return { kind: 'quarter', year: Number(year), quarter: Number(quarter) };
+    return { kind: 'all' };
+  }, [periodKey]);
+  const report = useMemo(
+    () => (templateId === 'report' && crossItems ? buildReport(crossItems, period) : null),
+    [templateId, crossItems, period],
+  );
+  const periodLabel =
+    period.kind === 'all'
+      ? tCamp('report.labelAll')
+      : period.kind === 'year'
+        ? tCamp('report.labelYear', { year: period.year })
+        : tCamp('report.labelQuarter', { quarter: period.quarter, year: period.year });
+
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad };
   switch (templateId) {
     case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
@@ -1310,6 +1388,8 @@ function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, p
     case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
     case 'emoji-cloud': return <EmojiCloudCard {...shared} commentInsights={commentInsights} />;
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
+    case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
+    case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
   }
 }
 

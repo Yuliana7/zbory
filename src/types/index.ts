@@ -140,7 +140,9 @@ export type TemplateType =
   | 'final-report'
   | 'concrete-ask'
   | 'emoji-cloud'
-  | 'comments';
+  | 'comments'
+  | 'report'
+  | 'campaigns-chart';
 
 export interface Template {
   id: TemplateType;
@@ -152,7 +154,7 @@ export interface Template {
 
 // App state
 export interface AppState {
-  step: 'upload' | 'insights' | 'gallery' | 'export' | 'compare';
+  step: 'upload' | 'insights' | 'gallery' | 'export';
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   withdrawals: Withdrawal[] | null;
@@ -172,6 +174,16 @@ export interface AppState {
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;
+  // ≥2 = "multi mode": per-jar analytics view, cross-campaign sections and
+  // report templates. The merged rows still live in rawData/donations.
+  campaignDatasets: CampaignDataset[] | null;
+}
+
+// One statement inside a multi-campaign working set
+export interface CampaignDataset {
+  id: string;
+  name: string;
+  rawData: RawDonation[];
 }
 
 // Comment analysis results
