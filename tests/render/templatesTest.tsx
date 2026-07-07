@@ -16,7 +16,7 @@ import { TopDonorsCard } from '../../src/components/templates/TopDonorsCard';
 import { DonorsCountCard } from '../../src/components/templates/DonorsCountCard';
 import { ThankYouCard } from '../../src/components/templates/ThankYouCard';
 
-const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^﻿/, '');
+const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^\uFEFF/, '');
 const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 const rawData: RawDonation[] = (parsed.data as Record<string, string>[]).map((row) => ({
   date: row['Дата та час операції'] || '',
@@ -44,7 +44,7 @@ let html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={1000
 check('Progress: no subtitle text', !html.includes('Аналітика збору'));
 check('Progress: header date range', html.includes('1 липня 2026') && html.includes('5 липня 2026'));
 check('Progress: footer median 100 ₴ (not average 213)', strip(html).includes('Медіана') && /100\s*₴/.test(strip(html)));
-check('Progress: footer max 1 111 ₴', /1\s?111\s*₴/.test(strip(html).replace(/ /g, ' ')));
+check('Progress: footer max 1 111 ₴', /1\s?111\s*₴/.test(strip(html).replace(/\u00A0/g, ' ')));
 check('Progress: footer Зібрано present', (strip(html).match(/Зібрано/g) || []).length >= 2);
 
 // header/footer toggles
@@ -91,7 +91,7 @@ check('WeeklyRecap: header hidden', !html.includes('Тижневий звіт'))
 // ── TopDonors modes ──
 const bySum = renderToStaticMarkup(<TopDonorsCard aggregates={aggregates} format="post" mode="sum" />);
 const byCount = renderToStaticMarkup(<TopDonorsCard aggregates={aggregates} format="post" mode="count" />);
-check('TopDonors sum: shows amounts with ₴', /\d[\d\s ]*\s?₴/.test(strip(bySum)));
+check('TopDonors sum: shows amounts with ₴', /\d[\d\s\u00A0]*\s?₴/.test(strip(bySum)));
 check('TopDonors count: no ₴ amounts on rows', !strip(byCount.slice(byCount.indexOf('🥇'))).match(/₴/));
 check('TopDonors count: shows donation counts', byCount.includes('донатів'));
 const topBySum = aggregates.topDonors[0]?.name ?? '';

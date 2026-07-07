@@ -3,9 +3,11 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { FileUpload } from '../components/upload/FileUpload';
 import { PreviewTable } from '../components/upload/PreviewTable';
+import { CampaignList } from '../components/upload/CampaignList';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadSession, clearSession } from '../utils/session';
+import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
 
 type Tab = 'upload' | 'manual';
@@ -13,12 +15,14 @@ type Tab = 'upload' | 'manual';
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
-  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession } =
+  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile } =
     useAppContext();
   const { app, isLoading } = state;
   const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
   const [savedSession, setSavedSession] = useState(() => loadSession());
+  const [showMerge, setShowMerge] = useState(false);
+  const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
 
   const invalidRowCount = useMemo(() => {
     if (!app.rawData) return 0;
@@ -62,6 +66,11 @@ export function UploadPage() {
   if (app.donations) {
     return (
       <div className="py-8">
+        {mergeResult && (
+          <div className="max-w-5xl mx-auto mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800 animate-fade-in">
+            ✅ {t('merge.result', { added: mergeResult.added, duplicates: mergeResult.duplicates })}
+          </div>
+        )}
         <PreviewTable
           donations={app.donations}
           totalCount={app.donations.length}
@@ -69,7 +78,43 @@ export function UploadPage() {
           onProceed={handleProceedToInsights}
           onCancel={handleReset}
           onEdit={app.rawData ? handleStartEdit : undefined}
+          initialGoal={app.goal}
         />
+        {/* Merge another export of the same jar into the loaded dataset */}
+        <div className="max-w-5xl mx-auto mt-6 text-center">
+          {showMerge ? (
+            <div className="animate-fade-in">
+              <p className="text-sm text-gray-600 mb-4">{t('merge.title')}</p>
+              <FileUpload
+                onFileSelect={async (file) => {
+                  const result = await handleMergeFile(file);
+                  if (result) {
+                    setMergeResult(result);
+                    setShowMerge(false);
+                  }
+                }}
+                isLoading={isLoading}
+              />
+              <button
+                onClick={() => setShowMerge(false)}
+                className="mt-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                {t('merge.cancel')}
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setShowMerge(true);
+                setMergeResult(null);
+              }}
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
+                         hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
+            >
+              ➕ {t('merge.button')}
+            </button>
+          )}
+        </div>
       </div>
     );
   }
@@ -152,6 +197,10 @@ export function UploadPage() {
           <ManualEntryEditor onProceed={handleManualDataProceed} isLoading={isLoading} />
         </div>
       )}
+
+      <div className="mt-12">
+        <CampaignList />
+      </div>
     </div>
   );
 }

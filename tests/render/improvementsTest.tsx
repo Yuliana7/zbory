@@ -10,13 +10,13 @@ import { detectMoments } from '../../src/utils/momentDetector';
 import { generateActionableInsights } from '../../src/utils/insightGenerator';
 import { analyzeComments, getPersonalComments } from '../../src/utils/commentAnalyzer';
 import { createZip } from '../../src/utils/zip';
-import type { RawDonation, TemplateType } from '../../src/types';
+import type { RawDonation } from '../../src/types';
 import { FinalReportCard } from '../../src/components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../../src/components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../../src/components/templates/EmojiCloudCard';
 import { CommentsCard } from '../../src/components/templates/CommentsCard';
 
-const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^﻿/, '');
+const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^\uFEFF/, '');
 const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 const rawData: RawDonation[] = (parsed.data as Record<string, string>[]).map((row) => ({
   date: row['Дата та час операції'] || '',
@@ -45,7 +45,7 @@ const tInsights = i18n.getFixedT('uk', 'insights');
 const caption = generateCaption('progress', aggregates, tExport, { goal: 10000, linkUrl: 'send.monobank.ua/jar/x' });
 console.log('─── Caption (progress, goal 10 000) ───\n' + caption + '\n');
 check('caption: no missing i18n', !caption.includes('caption.') && !caption.includes('{{'));
-check('caption: has stats + link + hashtags', /5\s755/.test(caption.replace(/[  ]/g, ' ')) && caption.includes('🔗') && caption.includes('#збір'));
+check('caption: has stats + link + hashtags', /5\s755/.test(caption.replace(/[\u00A0\u202F]/g, ' ')) && caption.includes('🔗') && caption.includes('#збір'));
 
 const askCaption = generateCaption('concrete-ask', aggregates, tExport, { goal: 10000 });
 check('caption ask: concrete units', /по\s.*100/.test(askCaption), askCaption);

@@ -127,6 +127,18 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   comments: [
     { key: 'title' },
   ],
+  // Multi-campaign templates (visible only with 2+ statements loaded)
+  report: [
+    { key: 'title' },
+    { key: 'campaigns' },
+    { key: 'donations' },
+    { key: 'donors' },
+    { key: 'topTitle' },
+    { key: 'thanks', multiline: true },
+  ],
+  'campaigns-chart': [
+    { key: 'title' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -145,6 +157,8 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   'concrete-ask': true,
   'emoji-cloud': false, // comment analysis runs on the full dataset
   comments: false,
+  report: false,
+  'campaigns-chart': false,
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -163,6 +177,8 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   'concrete-ask': true,
   'emoji-cloud': false,
   comments: false,
+  report: false,
+  'campaigns-chart': false,
 };
 
 // Stories are the primary sharing format for volunteers — every template
@@ -183,6 +199,8 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   'concrete-ask': 'story',
   'emoji-cloud': 'story',
   comments: 'story',
+  report: 'story',
+  'campaigns-chart': 'story',
 };
 
 // Which templates render the standard toggleable header (₴ badge + title)
@@ -202,6 +220,8 @@ export const TEMPLATE_HAS_HEADER: Record<TemplateType, boolean> = {
   'concrete-ask': true,
   'emoji-cloud': false,
   comments: false,
+  report: false,
+  'campaigns-chart': false,
 };
 
 // Progress-category templates share the standard toggleable footer
@@ -221,6 +241,8 @@ export const TEMPLATE_HAS_FOOTER: Record<TemplateType, boolean> = {
   'concrete-ask': true,
   'emoji-cloud': false,
   comments: false,
+  report: false,
+  'campaigns-chart': false,
 };
 
 // Gallery categories — also used by the editor's "add template" picker
@@ -235,6 +257,7 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
+  { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
 ];
 
 // Blocks inside each template that can be exported alone as a transparent PNG
@@ -255,4 +278,6 @@ export const TEMPLATE_STICKERS: Record<TemplateType, string[]> = {
   'concrete-ask': ['hero'],
   'emoji-cloud': ['cloud'],
   comments: ['quotes'],
+  report: ['report-hero', 'report-stats', 'report-top'],
+  'campaigns-chart': ['chart'],
 };

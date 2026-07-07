@@ -140,7 +140,9 @@ export type TemplateType =
   | 'final-report'
   | 'concrete-ask'
   | 'emoji-cloud'
-  | 'comments';
+  | 'comments'
+  | 'report'
+  | 'campaigns-chart';
 
 export interface Template {
   id: TemplateType;
@@ -170,6 +172,18 @@ export interface AppState {
   stackStyle: SharedStyle | null;
   goal?: number;
   originalFileName: string | null;
+  // Set when the current dataset came from / was saved to the campaign library
+  activeCampaignId: string | null;
+  // ≥2 = "multi mode": per-jar analytics view, cross-campaign sections and
+  // report templates. The merged rows still live in rawData/donations.
+  campaignDatasets: CampaignDataset[] | null;
+}
+
+// One statement inside a multi-campaign working set
+export interface CampaignDataset {
+  id: string;
+  name: string;
+  rawData: RawDonation[];
 }
 
 // Comment analysis results
@@ -177,12 +191,16 @@ export interface RepeatDonor {
   identity: string;      // donor name, emoji, or comment snippet
   count: number;         // number of donations
   totalAmount: number;
+  // Multi-jar "Разом" view only: how many campaign statements this identity
+  // appears in. Absent in single-jar contexts.
+  campaignCount?: number;
 }
 
 export interface CommentInsights {
   totalWithComments: number;                      // donations with a personal comment (not auto-text)
   topEmojis: Array<{ emoji: string; count: number }>;
-  repeatDonors: RepeatDonor[];                    // identities with 2+ donations
+  repeatDonors: RepeatDonor[];                    // identities with 2+ donations, ranked by count
+  topDonorsBySum: RepeatDonor[];                  // all identities, ranked by total amount
   communities: string[];                          // detected group links / mentions
   hasEnoughData: boolean;                         // false when <3% of donations have comments
 }

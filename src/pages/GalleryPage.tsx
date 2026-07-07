@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { Aggregates, CommentInsights, TemplateType } from '../types';
+import type { Aggregates, CommentInsights, TemplateType, CampaignDataset } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -16,6 +16,9 @@ import { FinalReportCard } from '../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../components/templates/CommentsCard';
+import { ReportCard } from '../components/templates/ReportCard';
+import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
+import { buildReport, datasetsToItems } from '../utils/campaignAnalytics';
 import { getPersonalComments } from '../utils/commentAnalyzer';
 import { TEMPLATE_GROUPS as GROUPS } from '../utils/templateConfig';
 
@@ -57,10 +60,12 @@ export function GalleryPage() {
   if (!app.aggregates) return null;
 
   const hasEmojis = (app.commentInsights?.topEmojis.length ?? 0) > 0;
+  const isMulti = (app.campaignDatasets?.length ?? 0) >= 2;
   const visibleIds = (ids: TemplateType[]) =>
     ids.filter((id) => {
       if (id === 'emoji-cloud') return hasEmojis;
       if (id === 'comments') return previewComments.length > 0;
+      if (id === 'report' || id === 'campaigns-chart') return isMulti;
       return true;
     });
 
@@ -92,6 +97,7 @@ export function GalleryPage() {
         {GROUPS.map((group) => {
           const isOpen = openGroups.has(group.id);
           const ids = visibleIds(group.ids);
+          if (ids.length === 0) return null;
           return (
             <div key={group.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
               <button
@@ -147,6 +153,7 @@ export function GalleryPage() {
                             goal={app.goal}
                             commentInsights={app.commentInsights}
                             previewComments={previewComments}
+                            campaignDatasets={app.campaignDatasets}
                           />
                           <div className="p-4 flex flex-col gap-1.5 flex-1">
                             <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
@@ -207,11 +214,19 @@ interface TemplatePreviewProps {
   goal?: number;
   commentInsights: CommentInsights | null;
   previewComments: SelectedComment[];
+  campaignDatasets: CampaignDataset[] | null;
 }
 
-function TemplatePreview({ id, aggregates, goal, commentInsights, previewComments }: TemplatePreviewProps) {
+function TemplatePreview({ id, aggregates, goal, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
+  const { t: tCamp } = useTranslation('campaigns');
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
+
+  const crossItems = useMemo(
+    () => (campaignDatasets && campaignDatasets.length >= 2 ? datasetsToItems(campaignDatasets) : null),
+    [campaignDatasets],
+  );
+  const previewReport = useMemo(() => (crossItems ? buildReport(crossItems, { kind: 'all' }) : null), [crossItems]);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -259,6 +274,8 @@ function TemplatePreview({ id, aggregates, goal, commentInsights, previewComment
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
           {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
+          {id === 'report' && previewReport && <ReportCard report={previewReport} periodLabel={tCamp('report.labelAll')} format="post" />}
+          {id === 'campaigns-chart' && crossItems && <CampaignsChartCard items={crossItems} format="post" />}
         </div>
       )}
     </div>

@@ -108,7 +108,7 @@ export function normalizeDonations(rawDonations: RawDonation[]): NormalizeResult
 /**
  * Parses Ukrainian date format: "DD.MM.YYYY HH:mm"
  */
-function parseUkrainianDate(dateStr: string): Date | null {
+export function parseUkrainianDate(dateStr: string): Date | null {
   if (!dateStr) return null;
 
   try {

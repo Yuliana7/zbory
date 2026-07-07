@@ -32,7 +32,7 @@ function t(key: string, options: Record<string, unknown> = {}): string {
   return raw.replace(/\{\{(\w+)\}\}/g, (_, name) => String(options[name] ?? `<<MISSING VAR ${name}>>`));
 }
 
-const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^﻿/, '');
+const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^\uFEFF/, '');
 const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
 const rawData: RawDonation[] = (parsed.data as Record<string, string>[]).map((row) => ({
   date: row['Дата та час операції'] || '',
