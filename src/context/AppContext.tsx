@@ -26,6 +26,8 @@ import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
 import { saveSession, updateSessionGoal, clearSession, loadSession } from '../utils/session';
+import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
+import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 import { TEMPLATE_GROUPS } from '../utils/templateConfig';
 
 // ─── State ────────────────────────────────────────────────────────────────────
@@ -52,6 +54,7 @@ const INITIAL_APP_STATE: AppState = {
   stackCards: null,
   stackStyle: null,
   originalFileName: null,
+  activeCampaignId: null,
 };
 
 const INITIAL_STATE: FullState = {
@@ -63,7 +66,8 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string } }
+  | { type: 'CAMPAIGN_SAVED'; payload: { id: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
       payload: {
@@ -101,8 +105,19 @@ function appReducer(state: FullState, action: AppAction): FullState {
         ...state,
         isLoading: false,
         error: null,
-        app: { ...state.app, ...action.payload, originalFileName: action.payload.originalFileName ?? null },
+        app: {
+          ...state.app,
+          ...action.payload,
+          originalFileName: action.payload.originalFileName ?? null,
+          // A fresh dataset detaches from any previously opened campaign and
+          // drops a stale goal unless the source (campaign/session) carried one
+          activeCampaignId: action.payload.activeCampaignId ?? null,
+          goal: action.payload.goal,
+        },
       };
+
+    case 'CAMPAIGN_SAVED':
+      return { ...state, app: { ...state.app, activeCampaignId: action.payload.id } };
 
     case 'PROCEED_TO_INSIGHTS':
       return {
@@ -155,6 +170,9 @@ interface AppContextValue {
   handleTemplatesSelect: (templateIds: TemplateType[]) => void;
   handleReset: () => void;
   handleRestoreSession: () => boolean;
+  handleLoadCampaign: (id: string) => Promise<boolean>;
+  handleSaveCampaign: (name: string) => Promise<CampaignMeta | null>;
+  handleMergeFile: (file: File) => Promise<MergeResult | null>;
   goToStep: (step: AppState['step']) => void;
 }
 
@@ -206,6 +224,42 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
+  // Merges another CSV export into the currently loaded dataset (long
+  // campaigns come in chunks); campaign link and goal survive the merge.
+  const handleMergeFile = useCallback(async (file: File): Promise<MergeResult | null> => {
+    if (!state.app.rawData) return null;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const incoming = await parseCSV(file);
+      if (incoming.length === 0) throw new Error(t('errors.csvEmpty'));
+
+      const result = mergeRawDonations(state.app.rawData, incoming);
+      const { donations, withdrawals, currentBalance } = normalizeDonations(result.merged);
+      if (donations.length === 0) throw new Error(t('errors.csvParseError'));
+
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData: result.merged,
+          donations,
+          withdrawals,
+          currentBalance,
+          originalFileName: state.app.originalFileName ?? file.name,
+          goal: state.app.goal,
+          activeCampaignId: state.app.activeCampaignId ?? undefined,
+        },
+      });
+      saveSession(result.merged, state.app.originalFileName ?? file.name);
+      return result;
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
+      });
+      return null;
+    }
+  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, t]);
+
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
       if (!state.app.donations) return;
@@ -256,6 +310,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           withdrawals,
           currentBalance,
           originalFileName: session.fileName ?? undefined,
+          goal: session.goal,
         },
       });
       return true;
@@ -264,9 +319,57 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Opens a saved campaign from the library (IndexedDB)
+  const handleLoadCampaign = useCallback(async (id: string): Promise<boolean> => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const [meta, rawData] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
+      if (!meta || !rawData) throw new Error();
+      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
+      if (donations.length === 0) throw new Error();
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData,
+          donations,
+          withdrawals,
+          currentBalance,
+          originalFileName: meta.fileName ?? undefined,
+          goal: meta.goal,
+          activeCampaignId: id,
+        },
+      });
+      saveSession(rawData, meta.fileName);
+      updateSessionGoal(meta.goal);
+      return true;
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: t('errors.campaignLoadError') });
+      return false;
+    }
+  }, [t]);
+
+  // Saves (or updates, when a campaign is already open) the current dataset
+  const handleSaveCampaign = useCallback(async (name: string): Promise<CampaignMeta | null> => {
+    if (!state.app.rawData) return null;
+    try {
+      const meta = await saveCampaign({
+        id: state.app.activeCampaignId ?? undefined,
+        name,
+        rawData: state.app.rawData,
+        fileName: state.app.originalFileName,
+        goal: state.app.goal,
+      });
+      dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id } });
+      return meta;
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
+      return null;
+    }
+  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, t]);
+
   const goToStep = useCallback(
     (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
+      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4, compare: 1 };
       if (idx[step] < idx[state.app.step]) {
         dispatch({ type: 'GO_TO_STEP', payload: step });
       }
@@ -276,7 +379,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleSaveCampaign, handleMergeFile, goToStep }}
     >
       {children}
     </AppContext.Provider>

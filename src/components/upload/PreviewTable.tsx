@@ -10,11 +10,12 @@ interface PreviewTableProps {
   onProceed: (goal?: number) => void;
   onCancel: () => void;
   onEdit?: () => void;
+  initialGoal?: number; // prefilled when the dataset came with a goal (campaign / restored session)
 }
 
-export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit }: PreviewTableProps) {
+export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit, initialGoal }: PreviewTableProps) {
   const { t } = useTranslation('upload');
-  const [goalInput, setGoalInput] = useState('');
+  const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showErrors, setShowErrors] = useState(false);
 
   const previewDonations = donations.slice(0, 10);

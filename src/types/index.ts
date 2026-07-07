@@ -152,7 +152,7 @@ export interface Template {
 
 // App state
 export interface AppState {
-  step: 'upload' | 'insights' | 'gallery' | 'export';
+  step: 'upload' | 'insights' | 'gallery' | 'export' | 'compare';
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   withdrawals: Withdrawal[] | null;
@@ -170,6 +170,8 @@ export interface AppState {
   stackStyle: SharedStyle | null;
   goal?: number;
   originalFileName: string | null;
+  // Set when the current dataset came from / was saved to the campaign library
+  activeCampaignId: string | null;
 }
 
 // Comment analysis results

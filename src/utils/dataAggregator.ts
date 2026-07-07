@@ -171,7 +171,7 @@ export function aggregateDonations(
  * True when a donor name is just an anonymity marker rather than a person:
  * empty, or contains no letters/digits at all (🐈, ❤️ and similar).
  */
-function isAnonymousDonor(name: string | undefined): boolean {
+export function isAnonymousDonor(name: string | undefined): boolean {
   if (!name || !name.trim()) return true;
   return !/[\p{L}\p{N}]/u.test(name);
 }

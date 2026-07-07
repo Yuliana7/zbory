@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
+import { SaveCampaignControl } from '../components/insights/SaveCampaignControl';
 import { detectMoments } from '../utils/momentDetector';
 
 export function InsightsPage() {
@@ -28,6 +29,7 @@ export function InsightsPage() {
             </svg>
             {t('backButton')}
           </button>
+          <SaveCampaignControl />
           <button
             onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
             className="flex items-center gap-2 text-sm font-semibold text-white
