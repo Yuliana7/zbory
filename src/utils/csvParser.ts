@@ -9,13 +9,14 @@ export interface NormalizeResult {
 
 /**
  * Parses Ukrainian CSV format from Monobank Jar
+ * OR statement file provided by monobank support team
  * Expected columns:
- * - Дата та час операції
- * - Категорія операції
+ * - Дата та час операції / Дата та час
+ * - Категорія операції / Категорія
  * - Сума
  * - Валюта
- * - Додаткова інформація
- * - Коментар до платежу
+ * - Додаткова інформація / Опис
+ * - Коментар до платежу / Коментар
  * - Залишок
  * - Валюта залишку
  */
@@ -28,12 +29,12 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
       complete: (results) => {
         try {
           const rawDonations: RawDonation[] = (results.data as Record<string, string>[]).map((row) => ({
-            date: row['Дата та час операції'] || '',
-            category: row['Категорія операції'] || '',
+            date: row['Дата та час операції'] || row['Дата та час'] || '',
+            category: row['Категорія операції'] || row['Категорія'] || '',
             amount: row['Сума'] || '0',
             currency: row['Валюта'] || 'UAH',
-            additionalInfo: row['Додаткова інформація'] || '',
-            comment: row['Коментар до платежу'] || '',
+            additionalInfo: row['Додаткова інформація'] || row['Опис'] || '',
+            comment: row['Коментар до платежу'] || row['Коментар'] || '',
             balance: row['Залишок'] || '0',
             balanceCurrency: row['Валюта залишку'] || 'UAH',
           }));
