@@ -8,6 +8,7 @@ import { GalleryPage } from './pages/GalleryPage'
 import { ExportPage } from './pages/ExportPage'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
+import { HryvniaIcon } from './components/HryvniaIcon'
 
 const STEP_INDEX: Record<AppState['step'], number> = {
   upload: 1,
@@ -47,8 +48,8 @@ function App() {
               className="flex items-center space-x-3 group cursor-pointer"
               title={t('logoTitle')}
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-xl group-hover:opacity-80 transition-opacity">
-                {t('currency')}
+              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white group-hover:opacity-80 transition-opacity">
+                <HryvniaIcon className="w-5 h-5" />
               </div>
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">{t('appName')}</h1>

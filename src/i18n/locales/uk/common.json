@@ -2,7 +2,6 @@
   "appName": "Zbory",
   "appSubtitle": "Аналітика збору коштів",
   "logoTitle": "На початок",
-  "currency": "₴",
   "steps": {
     "upload": "Завантаження",
     "insights": "Аналітика",
