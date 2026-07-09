@@ -2,9 +2,15 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
+// The app is deployed under this subpath — the manifest's start_url/scope/icon
+// paths must be prefixed with it explicitly, since vite-plugin-pwa does not
+// auto-derive them from `base` (only the manifest link + precached asset URLs
+// get that treatment). A root-absolute path here 404s once actually deployed.
+const BASE = '/zbory/'
+
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/zbory/',
+  base: BASE,
   plugins: [
     react(),
     VitePWA({
@@ -22,29 +28,29 @@ export default defineConfig({
         background_color: '#ffffff',
         display: 'standalone',
         orientation: 'portrait-primary',
-        scope: '/',
-        start_url: '/?source=pwa',
+        scope: BASE,
+        start_url: `${BASE}?source=pwa`,
         icons: [
           {
-            src: '/icon.svg',
+            src: `${BASE}icon.svg`,
             sizes: 'any',
             type: 'image/svg+xml',
             purpose: 'any'
           },
           {
-            src: '/pwa-192x192.png',
+            src: `${BASE}pwa-192x192.png`,
             sizes: '192x192',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/pwa-512x512.png',
+            src: `${BASE}pwa-512x512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any'
           },
           {
-            src: '/pwa-512x512.png',
+            src: `${BASE}pwa-512x512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
@@ -54,7 +60,7 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
-        navigateFallback: '/index.html',
+        navigateFallback: `${BASE}index.html`,
         runtimeCaching: [
           // Google Fonts - cache first
           {
