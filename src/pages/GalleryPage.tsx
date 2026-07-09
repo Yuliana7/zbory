@@ -21,6 +21,7 @@ import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems } from '../utils/campaignAnalytics';
 import { getPersonalComments } from '../utils/commentAnalyzer';
 import { TEMPLATE_GROUPS as GROUPS } from '../utils/templateConfig';
+import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, XIcon } from '../icons';
 
 const NATIVE = 1080;
 
@@ -94,9 +95,7 @@ export function GalleryPage() {
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeftIcon className="w-4 h-4" />
           {t('backButton')}
         </button>
       </div>
@@ -117,12 +116,9 @@ export function GalleryPage() {
                   <h3 className="text-base font-semibold text-gray-800">{t(group.labelKey)}</h3>
                   <span className="text-xs text-gray-400 font-medium">{ids.length}</span>
                 </div>
-                <svg
+                <ChevronDownIcon
                   className={`w-4 h-4 text-gray-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
-                  fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                </svg>
+                />
               </button>
 
               {isOpen && (
@@ -146,7 +142,7 @@ export function GalleryPage() {
                                        ? 'bg-indigo-600 border-indigo-600 text-white'
                                        : 'bg-white/90 border-gray-300 text-transparent hover:text-gray-300 hover:border-indigo-400'}`}
                         >
-                          {selectedIdx >= 0 ? selectedIdx + 1 : '✓'}
+                          {selectedIdx >= 0 ? selectedIdx + 1 : <CheckIcon className="w-3.5 h-3.5" />}
                         </button>
 
                         <button
@@ -203,9 +199,7 @@ export function GalleryPage() {
               title={t('selectBar.clear')}
               className="p-2 text-gray-400 hover:text-gray-600 rounded-lg transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <XIcon className="w-4 h-4" />
             </button>
           </div>
         </div>

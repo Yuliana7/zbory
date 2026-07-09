@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import { getCampaignMeta } from '../../utils/campaignStore';
+import { CheckIcon, SaveIcon } from '../../icons';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const shortDate = (d: Date) => `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()}`;
@@ -74,16 +75,7 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
           : 'flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:border-gray-300 transition-all'
       }
     >
-      {justSaved ? (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-        </svg>
-      ) : (
-        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h9.172a2 2 0 011.414.586l1.828 1.828A2 2 0 0120 6.828V19a2 2 0 01-2 2H7a2 2 0 01-2-2V5z" />
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 4v4h8V4" />
-        </svg>
-      )}
+      {justSaved ? <CheckIcon className="w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
       {justSaved ? t('saved') : app.activeCampaignId ? t('updateButton') : t('saveButton')}
     </button>
   );

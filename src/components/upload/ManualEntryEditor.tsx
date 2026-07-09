@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ManualRow } from '../../types';
 import { manualRowsToCSVString, downloadCSV, computeBalances, sortChronologically } from '../../utils/csvExporter';
 import { generateId } from '../../utils/id';
+import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, PlusIcon, WarningIcon, XIcon } from '../../icons';
 
 const ROWS_PER_PAGE = 10;
 
@@ -236,8 +237,9 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
       {/* Error navigation bar */}
       {errorIndices.length > 0 && (
         <div className="mb-4 flex items-center justify-between gap-3 px-4 py-2.5 bg-red-50 border border-red-200 rounded-xl">
-          <span className="text-sm font-medium text-red-700">
-            ⚠ {t('pagination.rowsWithErrors', { count: errorIndices.length })}
+          <span className="flex items-center gap-1.5 text-sm font-medium text-red-700">
+            <WarningIcon className="w-4 h-4" />
+            {t('pagination.rowsWithErrors', { count: errorIndices.length })}
           </span>
           <div className="flex items-center gap-2 shrink-0">
             <button
@@ -246,9 +248,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
               className="p-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title={t('pagination.prevError')}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeftIcon className="w-3.5 h-3.5" />
             </button>
             {anchorPosInErrors >= 0 ? (
               <button
@@ -278,9 +278,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
               className="p-1.5 rounded-lg border border-red-300 text-red-700 hover:bg-red-100 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title={t('pagination.nextError')}
             >
-              <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ArrowRightIcon className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -403,9 +401,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       title={t('removeRow')}
                       className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                     >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
+                      <XIcon className="w-4 h-4" />
                     </button>
                   </td>
                 </tr>
@@ -421,9 +417,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
           onClick={addRow}
           className="flex items-center gap-1.5 text-indigo-600 hover:text-indigo-800 font-medium text-sm transition-colors"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
+          <PlusIcon className="w-4 h-4" />
           {t('addRow')}
         </button>
 
@@ -435,9 +429,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
               disabled={safePage === 1}
               className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeftIcon className="w-4 h-4" />
             </button>
 
             {/* Page window */}
@@ -468,9 +460,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
               disabled={safePage === totalPages}
               className="p-1.5 rounded-lg border border-gray-200 text-gray-500 hover:bg-gray-50 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-              </svg>
+              <ArrowRightIcon className="w-4 h-4" />
             </button>
 
             {/* Go-to-page */}
@@ -512,9 +502,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
             disabled={isLoading}
             className="flex items-center gap-1.5 px-6 py-3 border border-gray-300 text-gray-600 rounded-xl font-medium hover:bg-gray-50 transition-colors text-sm disabled:opacity-50"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeftIcon className="w-4 h-4" />
             {t('backToPreview')}
           </button>
         )}
@@ -524,9 +512,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
             disabled={isLoading}
             className="flex items-center justify-center gap-2 px-6 py-3 border border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition-colors text-sm disabled:opacity-50"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-            </svg>
+            <DownloadIcon className="w-4 h-4" />
             {t('saveCSV')}
           </button>
           <button

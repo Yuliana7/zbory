@@ -8,7 +8,7 @@ import { GalleryPage } from './pages/GalleryPage'
 import { ExportPage } from './pages/ExportPage'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
-import { HryvniaIcon } from './components/HryvniaIcon'
+import { HryvniaIcon } from './icons/HryvniaIcon'
 
 const STEP_INDEX: Record<AppState['step'], number> = {
   upload: 1,

@@ -1,16 +1,17 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { FileUpload } from '../components/upload/FileUpload';
 import { PreviewTable } from '../components/upload/PreviewTable';
 import { CampaignList } from '../components/upload/CampaignList';
+import { EmptyState } from '../components/upload/EmptyState';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadSession, clearSession } from '../utils/session';
+import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-
-type Tab = 'upload' | 'manual';
+import { ArrowLeftIcon, CheckCircleIcon, EditIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
 
 export function UploadPage() {
   const { t } = useTranslation('upload');
@@ -18,11 +19,17 @@ export function UploadPage() {
   const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile } =
     useAppContext();
   const { app, isLoading } = state;
-  const [activeTab, setActiveTab] = useState<Tab>('upload');
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
   const [savedSession, setSavedSession] = useState(() => loadSession());
   const [showMerge, setShowMerge] = useState(false);
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
+  const [showManual, setShowManual] = useState(false);
+  // null = not loaded yet (avoids flashing the empty state before we know)
+  const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
+
+  useEffect(() => {
+    listCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+  }, []);
 
   const invalidRowCount = useMemo(() => {
     if (!app.rawData) return 0;
@@ -43,6 +50,11 @@ export function UploadPage() {
   const handleEditProceed = (rows: ManualRow[]) => {
     handleManualDataProceed(rows);
     setEditRows(null);
+  };
+
+  const handleManualProceed = (rows: ManualRow[]) => {
+    handleManualDataProceed(rows);
+    setShowManual(false);
   };
 
   // Edit mode: overlay the editor over whatever else would show
@@ -67,8 +79,9 @@ export function UploadPage() {
     return (
       <div className="py-8">
         {mergeResult && (
-          <div className="max-w-5xl mx-auto mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800 animate-fade-in">
-            ✅ {t('merge.result', { added: mergeResult.added, duplicates: mergeResult.duplicates })}
+          <div className="max-w-5xl mx-auto mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800 animate-fade-in flex items-center gap-2">
+            <CheckCircleIcon className="w-5 h-5 shrink-0" />
+            {t('merge.result', { added: mergeResult.added, duplicates: mergeResult.duplicates })}
           </div>
         )}
         <PreviewTable
@@ -108,10 +121,11 @@ export function UploadPage() {
                 setShowMerge(true);
                 setMergeResult(null);
               }}
-              className="text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
+              className="flex items-center gap-1.5 mx-auto text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
                          hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
             >
-              ➕ {t('merge.button')}
+              <PlusIcon className="w-4 h-4" />
+              {t('merge.button')}
             </button>
           )}
         </div>
@@ -119,13 +133,36 @@ export function UploadPage() {
     );
   }
 
-  // Default: tab switcher
+  // Manual entry, opened fresh from the button group / empty state
+  if (showManual) {
+    return (
+      <div className="py-8">
+        <div className="max-w-3xl mx-auto mb-4">
+          <button
+            onClick={() => setShowManual(false)}
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800"
+          >
+            <ArrowLeftIcon className="w-4 h-4" />
+            {t('backToOptions')}
+          </button>
+        </div>
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">
+          {t('manualTitle')}
+        </h2>
+        <ManualEntryEditor onProceed={handleManualProceed} isLoading={isLoading} />
+      </div>
+    );
+  }
+
+  // Default: saved campaigns (if any) go first, with a compact way to add a
+  // new one below; first-run volunteers with no saved campaigns get a
+  // welcoming empty state with a short explainer instead.
   return (
     <div className="py-8 sm:py-12">
       {/* Restore autosaved session */}
       {savedSession && (
         <div className="max-w-xl mx-auto mb-8 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl animate-fade-in">
-          <span className="text-xl leading-none">💾</span>
+          <SaveIcon className="w-5 h-5 text-indigo-500 shrink-0" />
           <div className="flex-1 min-w-0 text-left">
             <p className="text-sm font-medium text-indigo-900">
               {t('restore.title', {
@@ -156,51 +193,30 @@ export function UploadPage() {
             title={t('restore.dismiss')}
             className="shrink-0 p-1.5 text-indigo-400 hover:text-indigo-600 rounded-lg transition-colors"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <XIcon className="w-4 h-4" />
           </button>
         </div>
       )}
 
-      <div className="flex justify-center mb-8">
-        <div className="inline-flex rounded-xl border border-gray-200 bg-gray-50 p-1 gap-1">
-          {(['upload', 'manual'] as Tab[]).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-5 py-2 rounded-lg text-sm font-medium transition-colors ${
-                activeTab === tab
-                  ? 'bg-white text-indigo-700 shadow-sm border border-gray-200'
-                  : 'text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {t(`tabs.${tab}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {activeTab === 'upload' && (
-        <div className="text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">{t('title')}</h2>
-          <p className="text-gray-600 mb-8">{t('subtitle')}</p>
-          <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
-        </div>
+      {campaigns === null ? null : campaigns.length > 0 ? (
+        <>
+          <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} />
+          <div className="max-w-3xl mx-auto">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
+              {t('addNew.title')}
+            </p>
+            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
+              <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
+              <button onClick={() => setShowManual(true)} className="btn-secondary flex items-center justify-center gap-2">
+                <EditIcon className="w-4 h-4" />
+                {t('tabs.manual')}
+              </button>
+            </div>
+          </div>
+        </>
+      ) : (
+        <EmptyState onFileSelect={handleFileSelect} onManualClick={() => setShowManual(true)} isLoading={isLoading} />
       )}
-
-      {activeTab === 'manual' && (
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-6 text-center">
-            {t('manualTitle')}
-          </h2>
-          <ManualEntryEditor onProceed={handleManualDataProceed} isLoading={isLoading} />
-        </div>
-      )}
-
-      <div className="mt-12">
-        <CampaignList />
-      </div>
     </div>
   );
 }

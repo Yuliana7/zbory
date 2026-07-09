@@ -35,6 +35,17 @@ import {
   TEMPLATE_STICKERS,
   TEMPLATE_GROUPS,
 } from '../utils/templateConfig';
+import {
+  ArrowLeftIcon,
+  ArrowRightIcon,
+  CheckIcon,
+  ChevronDownIcon,
+  DownloadIcon,
+  ImageIcon,
+  PlusIcon,
+  SpinnerIcon,
+  TrashIcon,
+} from '../icons';
 
 type Format = 'post' | 'story';
 
@@ -533,9 +544,7 @@ function ExportPageInner() {
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
         >
-          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-          </svg>
+          <ArrowLeftIcon className="w-4 h-4" />
           {t('backButton')}
         </button>
         <div className="flex items-center gap-3">
@@ -652,9 +661,7 @@ function ExportPageInner() {
                   disabled={safeCurrent === 0}
                   className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                  </svg>
+                  <ArrowLeftIcon className="w-4 h-4" />
                 </button>
                 <div className="flex flex-wrap items-center justify-center gap-2 max-w-[240px]">
                   {cards.map((c, i) => (
@@ -673,9 +680,7 @@ function ExportPageInner() {
                   disabled={safeCurrent === cards.length - 1}
                   className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                  </svg>
+                  <ArrowRightIcon className="w-4 h-4" />
                 </button>
               </>
             )}
@@ -686,9 +691,7 @@ function ExportPageInner() {
                 title={t('stack.addTemplate')}
                 className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
               >
-                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-                </svg>
+                <PlusIcon className="w-3.5 h-3.5" />
                 {t('stack.addTemplate')}
               </button>
               {cards.length > 1 && (
@@ -697,9 +700,7 @@ function ExportPageInner() {
                   title={t('stack.removeCard')}
                   className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
                 >
-                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
+                  <TrashIcon className="w-4 h-4" />
                 </button>
               )}
             </div>
@@ -770,9 +771,7 @@ function ExportPageInner() {
                       </span>
                       {style.palette.id === pal.id && (
                         <span className="absolute top-0.5 right-0.5 w-3 h-3 bg-white rounded-full flex items-center justify-center">
-                          <svg className="w-2 h-2 text-indigo-600" fill="currentColor" viewBox="0 0 20 20">
-                            <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                          </svg>
+                          <CheckIcon className="w-2 h-2 text-indigo-600" />
                         </span>
                       )}
                     </button>
@@ -807,7 +806,7 @@ function ExportPageInner() {
                     className={`w-10 h-10 rounded-lg border-2 overflow-hidden flex items-center justify-center transition-all ${style.bgImage ? 'border-indigo-500' : 'border-gray-200 hover:border-gray-400'}`}
                     style={style.bgImage ? { backgroundImage: `url(${style.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}}
                   >
-                    {!style.bgImage && <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>}
+                    {!style.bgImage && <ImageIcon className="w-5 h-5 text-gray-400" />}
                   </button>
                   <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={handleBgUpload} />
                 </div>
@@ -1104,9 +1103,7 @@ function ExportPageInner() {
                     className="w-full flex items-center justify-between px-3 py-2 text-sm border border-gray-200 rounded-lg text-gray-700 hover:border-indigo-300 hover:bg-indigo-50 transition-colors"
                   >
                     {t(`stickers.blocks.${s}`)}
-                    <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                    <DownloadIcon className="w-4 h-4 text-gray-400" />
                   </button>
                 ))}
               </div>
@@ -1140,17 +1137,12 @@ function ExportPageInner() {
           >
             {isExporting ? (
               <>
-                <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                </svg>
+                <SpinnerIcon className="w-5 h-5 animate-spin" />
                 {t('exporting')}
               </>
             ) : (
               <>
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                </svg>
+                <DownloadIcon className="w-5 h-5" />
                 {t('download')}
               </>
             )}
@@ -1204,12 +1196,7 @@ function ExportPageInner() {
                         {t(`gallery:${group.labelKey}`)}
                         <span className="text-gray-300 normal-case">{group.ids.length}</span>
                       </span>
-                      <svg
-                        className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`}
-                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                      </svg>
+                      <ChevronDownIcon className={`w-3.5 h-3.5 text-gray-400 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isOpen && (
                       <div className="pb-1 px-1 space-y-0.5">
@@ -1448,12 +1435,7 @@ function Collapsible({
             </span>
           )}
         </div>
-        <svg
-          className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''} ${purple ? 'text-purple-400' : 'text-gray-400'}`}
-          fill="none" viewBox="0 0 24 24" stroke="currentColor"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDownIcon className={`w-4 h-4 transition-transform ${open ? 'rotate-180' : ''} ${purple ? 'text-purple-400' : 'text-gray-400'}`} />
       </button>
       {open && (
         <div className={`px-4 pb-4 pt-3 border-t ${purple ? 'border-purple-200' : 'border-gray-100'}`}>

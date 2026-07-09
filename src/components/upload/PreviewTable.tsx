@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { Donation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
 import { SaveCampaignControl } from '../insights/SaveCampaignControl';
+import { ArrowLeftIcon, EditIcon, WarningIcon } from '../../icons';
 
 interface PreviewTableProps {
   donations: Donation[];
@@ -47,9 +48,7 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
                          bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                          hover:border-gray-300 transition-all"
             >
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-              </svg>
+              <ArrowLeftIcon className="w-4 h-4" />
               {t('preview.cancelButton')}
             </button>
             <button
@@ -113,7 +112,7 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
         {/* Invalid rows warning — shown only after a proceed attempt */}
         {showErrors && invalidRowCount > 0 && (
           <div className="mt-4 flex items-start gap-3 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl">
-            <span className="text-amber-500 text-base leading-none mt-0.5">⚠</span>
+            <WarningIcon className="w-5 h-5 text-amber-500 shrink-0 mt-0.5" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-amber-800">
                 {t('preview.invalidRows', { count: invalidRowCount })}
@@ -165,9 +164,7 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
         <div className="relative mt-6 flex flex-col sm:flex-row gap-3">
           {onEdit && (
             <button onClick={onEdit} className="btn-secondary flex-1 flex items-center justify-center gap-2">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-              </svg>
+              <EditIcon className="w-4 h-4" />
               {t('preview.editButton')}
             </button>
           )}

@@ -9,6 +9,7 @@ import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
+import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
@@ -57,9 +58,7 @@ export function InsightsPage() {
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"
           >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
+            <ArrowLeftIcon className="w-4 h-4" />
             {t('backButton')}
           </button>
           <button
@@ -68,9 +67,7 @@ export function InsightsPage() {
                        bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 shadow-sm transition-all"
           >
             {t('nextButton')}
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
+            <ArrowRightIcon className="w-4 h-4" />
           </button>
         </div>
       </div>
