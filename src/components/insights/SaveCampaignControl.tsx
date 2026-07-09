@@ -9,10 +9,13 @@ const shortDate = (d: Date) => `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.$
 interface SaveCampaignControlProps {
   /** Matches the unified btn-secondary sizing of sibling action buttons (upload preview row) */
   fullWidth?: boolean;
+  /** Goal value owned by the caller (e.g. the upload preview's not-yet-committed
+   * goal input) — takes precedence over app.goal so saving here can't drop it. */
+  goalOverride?: number;
 }
 
 /** "Зберегти збір": names the current dataset and puts it in the library. */
-export function SaveCampaignControl({ fullWidth }: SaveCampaignControlProps) {
+export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignControlProps) {
   const { t } = useTranslation('campaigns');
   const { state, handleSaveCampaign } = useAppContext();
   const { app } = state;
@@ -54,7 +57,7 @@ export function SaveCampaignControl({ fullWidth }: SaveCampaignControlProps) {
 
   const handleConfirm = async () => {
     if (!name.trim()) return;
-    const meta = await handleSaveCampaign(name);
+    const meta = await handleSaveCampaign(name, goalOverride);
     if (meta) {
       setOpen(false);
       setJustSaved(true);

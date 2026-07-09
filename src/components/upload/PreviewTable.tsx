@@ -171,7 +171,7 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
               {t('preview.editButton')}
             </button>
           )}
-          <SaveCampaignControl fullWidth />
+          <SaveCampaignControl fullWidth goalOverride={parsedGoal ?? undefined} />
         </div>
       </div>
     </div>

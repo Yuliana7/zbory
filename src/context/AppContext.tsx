@@ -175,7 +175,7 @@ interface AppContextValue {
   handleRestoreSession: () => boolean;
   handleLoadCampaign: (id: string) => Promise<boolean>;
   handleLoadCampaigns: (ids: string[]) => Promise<boolean>;
-  handleSaveCampaign: (name: string) => Promise<CampaignMeta | null>;
+  handleSaveCampaign: (name: string, goalOverride?: number) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   goToStep: (step: AppState['step']) => void;
 }
@@ -359,14 +359,31 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const datasets: CampaignDataset[] = [];
+      // Prefill the merged goal from each jar's own saved target, if any —
+      // otherwise the user has to re-type a combined goal from scratch.
+      let goalSum = 0;
+      let hasAnyGoal = false;
       for (const id of ids) {
         const [meta, rawData] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
         if (!meta || !rawData) throw new Error();
         datasets.push({ id, name: meta.name, rawData });
+        if (meta.goal) {
+          goalSum += meta.goal;
+          hasAnyGoal = true;
+        }
       }
       let merged: RawDonation[] = [];
       for (const d of datasets) merged = mergeRawDonations(merged, d.rawData).merged;
-      const { donations, withdrawals, currentBalance } = normalizeDonations(merged);
+      const { donations, withdrawals } = normalizeDonations(merged);
+      // Each campaign is an independent jar with its own Залишок history — the
+      // newest row across the merged set only reflects one jar's balance, not
+      // a combined one. Summing each jar's own currentBalance is what "Разом"
+      // totals actually mean; anything else manufactures a fake impliedRefund
+      // equal to the other jars' balances.
+      const currentBalance = datasets.reduce(
+        (sum, d) => sum + normalizeDonations(d.rawData).currentBalance,
+        0,
+      );
       if (donations.length === 0) throw new Error();
       dispatch({
         type: 'FILE_PARSED',
@@ -375,6 +392,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           donations,
           withdrawals,
           currentBalance,
+          goal: hasAnyGoal ? goalSum : undefined,
           activeCampaignId: ids.length === 1 ? ids[0] : undefined,
           campaignDatasets: datasets.length > 1 ? datasets : undefined,
         },
@@ -386,8 +404,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
-  // Saves (or updates, when a campaign is already open) the current dataset
-  const handleSaveCampaign = useCallback(async (name: string): Promise<CampaignMeta | null> => {
+  // Saves (or updates, when a campaign is already open) the current dataset.
+  // goalOverride lets a caller that owns a not-yet-committed goal value (the
+  // upload preview's goal input, before the user hits "Proceed") save that
+  // value directly — state.app.goal only updates on PROCEED_TO_INSIGHTS, so
+  // saving from the preview screen would otherwise persist a stale/empty goal.
+  const handleSaveCampaign = useCallback(async (name: string, goalOverride?: number): Promise<CampaignMeta | null> => {
     if (!state.app.rawData) return null;
     try {
       const meta = await saveCampaign({
@@ -395,7 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name,
         rawData: state.app.rawData,
         fileName: state.app.originalFileName,
-        goal: state.app.goal,
+        goal: goalOverride !== undefined ? goalOverride : state.app.goal,
       });
       dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id } });
       return meta;

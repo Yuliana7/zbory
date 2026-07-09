@@ -7,7 +7,21 @@ import { CAMPAIGN_COLORS } from '../../utils/campaignColors';
 
 const W = 640;
 const H = 220;
-const P = 8;
+const PT = 10; // top
+const PR = 10; // right
+const PB = 22; // bottom — room for x-axis date labels
+const PL = 48; // left — room for y-axis sum labels
+
+/** Short axis label for large sums: "170 тис ₴", "1.2 млн ₴", "500 ₴" */
+function fmtCompact(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)} млн ₴`;
+  if (n >= 1_000) return `${Math.round(n / 1000)} тис ₴`;
+  return `${Math.round(n)} ₴`;
+}
+
+function shortDate(d: Date): string {
+  return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
 
 interface CumulativeChartProps {
   aggregates: Aggregates; // single-jar fallback: one line from aggregates.cumulative
@@ -49,8 +63,18 @@ export function CumulativeChart({ aggregates, datasets }: CumulativeChartProps) 
     : Math.max(...singleLine.map((p) => p.total), 1);
   const maxDays = isMulti ? Math.max(...(stats?.campaigns.map((c) => c.days) ?? [1]), 1) : Math.max(singleLine.length, 1);
 
-  const px = (i: number) => P + (i / Math.max(maxDays - 1, 1)) * (W - 2 * P);
-  const py = (v: number) => H - P - (v / maxTotal) * (H - 2 * P);
+  const px = (i: number) => PL + (i / Math.max(maxDays - 1, 1)) * (W - PL - PR);
+  const py = (v: number) => H - PB - (v / maxTotal) * (H - PT - PB);
+
+  const yTicks = [0, 0.25, 0.5, 0.75];
+
+  // X-axis: real calendar dates for a single jar, campaign-day numbers when
+  // lines are aligned across jars (each jar started on a different real date).
+  const xAxis = isMulti
+    ? { start: t('compare.dayAxisLabel', { n: 1 }), end: t('compare.dayAxisLabel', { n: maxDays }) }
+    : singleLine.length > 0
+      ? { start: shortDate(new Date(singleLine[0].date)), end: shortDate(new Date(singleLine[singleLine.length - 1].date)) }
+      : null;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -58,9 +82,25 @@ export function CumulativeChart({ aggregates, datasets }: CumulativeChartProps) 
         {t('compare.chartTitle')}
       </p>
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
-        {[0.25, 0.5, 0.75].map((f) => (
-          <line key={f} x1={P} x2={W - P} y1={py(maxTotal * f)} y2={py(maxTotal * f)} stroke="#f3f4f6" strokeWidth={1} />
+        {/* Y-axis: gridlines + sum labels (0 renders as the darker x-axis baseline below) */}
+        {yTicks.map((f) => (
+          <g key={f}>
+            {f > 0 && <line x1={PL} x2={W - PR} y1={py(maxTotal * f)} y2={py(maxTotal * f)} stroke="#f3f4f6" strokeWidth={1} />}
+            <text x={PL - 6} y={py(maxTotal * f)} textAnchor="end" dominantBaseline="middle" fontSize={9} fill="#9ca3af">
+              {fmtCompact(maxTotal * f)}
+            </text>
+          </g>
         ))}
+
+        {/* X-axis baseline */}
+        <line x1={PL} x2={W - PR} y1={py(0)} y2={py(0)} stroke="#e5e7eb" strokeWidth={1} />
+        {xAxis && (
+          <>
+            <text x={PL} y={H - 4} textAnchor="start" fontSize={9} fill="#9ca3af">{xAxis.start}</text>
+            <text x={W - PR} y={H - 4} textAnchor="end" fontSize={9} fill="#9ca3af">{xAxis.end}</text>
+          </>
+        )}
+
         {isMulti
           ? stats?.campaigns.map((c) => (
               <polyline

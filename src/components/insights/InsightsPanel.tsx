@@ -34,156 +34,166 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights, cam
   const actionableInsights = generateActionableInsights(aggregates, t, goal);
 
   return (
-    <div className="space-y-4">
-      {/* Hero stat */}
-      <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-        <p className="text-indigo-200 text-sm font-medium mb-1">{t('totalAmount')}</p>
-        <p className="text-4xl font-bold tracking-tight">
-          {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.currentBalance + aggregates.totalWithdrawn))} ₴
-        </p>
-        <p className="mt-2 text-indigo-200 text-sm">
-          {t('donationsCount', { count: aggregates.donationCount })}{' '}
-          {t('duration', { count: duration })} 💙💛
-        </p>
-      </div>
-      
-      {/* Always-visible cumulative chart: one line per jar, aligned by campaign day in multi mode */}
-      <CumulativeChart aggregates={aggregates} datasets={campaignDatasets ?? null} />
-
-      {/* Charts section */}
-      <CampaignCharts aggregates={aggregates} />
-
-      {/* Regular insight cards */}
-      {insights.slice(1).map((insight, i) => (
-        <div
-          key={i}
-          className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-start gap-3"
-        >
-          <span className="text-2xl leading-none mt-0.5">{insight.icon}</span>
-          <div className="min-w-0 flex-1">
-            <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{insight.title}</p>
-            {insight.value && (
-              <p className="text-lg font-semibold text-gray-900 mt-0.5">{insight.value}</p>
-            )}
-            {insight.stats && (
-              <div className="mt-2 space-y-1.5">
-                {insight.stats.map((stat, j) => (
-                  <div key={j} className="flex items-baseline justify-between gap-3 text-sm">
-                    <span className="text-gray-600">
-                      {stat.icon} {stat.label}
-                    </span>
-                    <span className="font-semibold text-gray-900 tabular-nums shrink-0">{stat.value}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {insight.description && (
-              <p className={`text-xs text-gray-500 leading-relaxed ${insight.stats ? 'mt-2' : 'mt-0.5'}`}>
-                {insight.description}
-              </p>
-            )}
-          </div>
+    <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+      {/* Left column: hero, charts, insight cards */}
+      <div className="space-y-4">
+        {/* Hero stat */}
+        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
+          <p className="text-indigo-200 text-sm font-medium mb-1">{t('totalAmount')}</p>
+          <p className="text-4xl font-bold tracking-tight">
+            {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.currentBalance + aggregates.totalWithdrawn))} ₴
+          </p>
+          <p className="mt-2 text-indigo-200 text-sm">
+            {t('donationsCount', { count: aggregates.donationCount })}{' '}
+            {t('duration', { count: duration })} 💙💛
+          </p>
         </div>
-      ))}
 
-      {/* Actionable recommendations */}
-      {actionableInsights.length > 0 && (
-        <div className="pt-2">
-          <SectionDivider label={t('sections.whatNext')} color="amber" />
-          <div className="space-y-3">
-            {actionableInsights.map((action, i) => (
-              <div
-                key={i}
-                className="bg-amber-50 rounded-xl p-4 border border-amber-200 flex items-start gap-3"
-              >
-                <span className="text-2xl leading-none mt-0.5">{action.icon}</span>
-                <div className="min-w-0">
-                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">{action.title}</p>
-                  <p className="text-base font-semibold text-amber-900 mt-0.5">{action.value}</p>
-                  {action.description && (
-                    <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{action.description}</p>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
+        {/* Cumulative chart: one line per jar, aligned by campaign day in multi mode.
+            Hidden for a campaign that ran within a single day — a one-point line
+            isn't a meaningful "over time" chart. */}
+        {duration > 1 && (
+          <CumulativeChart aggregates={aggregates} datasets={campaignDatasets ?? null} />
+        )}
 
-      {/* Comment analysis */}
-      {commentInsights?.hasEnoughData && (
-        <div className="pt-2">
-          <SectionDivider label={t('sections.comments')} color="purple" />
-          <div className="space-y-3">
+        {/* Charts section */}
+        <CampaignCharts aggregates={aggregates} />
 
-            {commentInsights.topEmojis.length > 0 && (
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  {t('comments.topEmojis')}
-                </p>
-                <div className="flex items-end gap-3 flex-wrap">
-                  {commentInsights.topEmojis.map(({ emoji, count }, i) => (
-                    <div key={i} className="flex flex-col items-center gap-1">
-                      <span
-                        className="leading-none"
-                        style={{ fontSize: i === 0 ? '2rem' : i === 1 ? '1.6rem' : '1.25rem' }}
-                      >
-                        {emoji}
+        {/* Regular insight cards */}
+        {insights.slice(1).map((insight, i) => (
+          <div
+            key={i}
+            className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-start gap-3"
+          >
+            <span className="text-2xl leading-none mt-0.5">{insight.icon}</span>
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-gray-500 font-medium uppercase tracking-wide">{insight.title}</p>
+              {insight.value && (
+                <p className="text-lg font-semibold text-gray-900 mt-0.5">{insight.value}</p>
+              )}
+              {insight.stats && (
+                <div className="mt-2 space-y-1.5">
+                  {insight.stats.map((stat, j) => (
+                    <div key={j} className="flex items-baseline justify-between gap-3 text-sm">
+                      <span className="text-gray-600">
+                        {stat.icon} {stat.label}
                       </span>
-                      <span className="text-xs text-gray-500">{count}×</span>
+                      <span className="font-semibold text-gray-900 tabular-nums shrink-0">{stat.value}</span>
                     </div>
                   ))}
                 </div>
-                <p className="mt-2 text-xs text-gray-400">
-                  {t('comments.emojiUsageFrom', { count: commentInsights.totalWithComments })}
+              )}
+              {insight.description && (
+                <p className={`text-xs text-gray-500 leading-relaxed ${insight.stats ? 'mt-2' : 'mt-0.5'}`}>
+                  {insight.description}
                 </p>
-              </div>
-            )}
-
-            {commentInsights.repeatDonors.length > 0 && (
-              <DonorListCard
-                title={t('comments.repeatDonors')}
-                subtitle={t('comments.repeatDonorsCount', { count: commentInsights.repeatDonors.length })}
-                donors={commentInsights.repeatDonors}
-                metric="count"
-                anonymousCount={aggregates.anonymousDonations}
-                t={t}
-              />
-            )}
-
-            {commentInsights.topDonorsBySum.length > 0 && (
-              <DonorListCard
-                title={t('comments.topDonorsBySum')}
-                donors={commentInsights.topDonorsBySum}
-                metric="sum"
-                t={t}
-              />
-            )}
-
-            {commentInsights.communities.length > 0 && (
-              <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
-                <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
-                  {t('comments.communities')}
-                </p>
-                <p className="text-xs text-gray-500 mb-2">
-                  {t('comments.communitiesCount', { count: commentInsights.communities.length })}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  {commentInsights.communities.map((c, i) => (
-                    <span
-                      key={i}
-                      className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2 py-0.5 font-medium"
-                    >
-                      {c}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
+              )}
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
+
+      {/* Right column: "Що робити далі?" onward */}
+      <div className="space-y-4">
+        {/* Actionable recommendations */}
+        {actionableInsights.length > 0 && (
+          <div className="pt-2 lg:pt-0">
+            <SectionDivider label={t('sections.whatNext')} color="amber" />
+            <div className="space-y-3">
+              {actionableInsights.map((action, i) => (
+                <div
+                  key={i}
+                  className="bg-amber-50 rounded-xl p-4 border border-amber-200 flex items-start gap-3"
+                >
+                  <span className="text-2xl leading-none mt-0.5">{action.icon}</span>
+                  <div className="min-w-0">
+                    <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">{action.title}</p>
+                    <p className="text-base font-semibold text-amber-900 mt-0.5">{action.value}</p>
+                    {action.description && (
+                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{action.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Comment analysis */}
+        {commentInsights?.hasEnoughData && (
+          <div className="pt-2">
+            <SectionDivider label={t('sections.comments')} color="purple" />
+            <div className="space-y-3">
+
+              {commentInsights.topEmojis.length > 0 && (
+                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
+                    {t('comments.topEmojis')}
+                  </p>
+                  <div className="flex items-end gap-3 flex-wrap">
+                    {commentInsights.topEmojis.map(({ emoji, count }, i) => (
+                      <div key={i} className="flex flex-col items-center gap-1">
+                        <span
+                          className="leading-none"
+                          style={{ fontSize: i === 0 ? '2rem' : i === 1 ? '1.6rem' : '1.25rem' }}
+                        >
+                          {emoji}
+                        </span>
+                        <span className="text-xs text-gray-500">{count}×</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-xs text-gray-400">
+                    {t('comments.emojiUsageFrom', { count: commentInsights.totalWithComments })}
+                  </p>
+                </div>
+              )}
+
+              {commentInsights.repeatDonors.length > 0 && (
+                <DonorListCard
+                  title={t('comments.repeatDonors')}
+                  subtitle={t('comments.repeatDonorsCount', { count: commentInsights.repeatDonors.length })}
+                  donors={commentInsights.repeatDonors}
+                  metric="count"
+                  anonymousCount={aggregates.anonymousDonations}
+                  t={t}
+                />
+              )}
+
+              {commentInsights.topDonorsBySum.length > 0 && (
+                <DonorListCard
+                  title={t('comments.topDonorsBySum')}
+                  donors={commentInsights.topDonorsBySum}
+                  metric="sum"
+                  t={t}
+                />
+              )}
+
+              {commentInsights.communities.length > 0 && (
+                <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">
+                  <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mb-3">
+                    {t('comments.communities')}
+                  </p>
+                  <p className="text-xs text-gray-500 mb-2">
+                    {t('comments.communitiesCount', { count: commentInsights.communities.length })}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {commentInsights.communities.map((c, i) => (
+                      <span
+                        key={i}
+                        className="text-xs bg-indigo-50 text-indigo-700 border border-indigo-100 rounded-full px-2 py-0.5 font-medium"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

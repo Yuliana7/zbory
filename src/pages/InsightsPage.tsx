@@ -116,6 +116,13 @@ export function InsightsPage() {
         </div>
       )}
 
+      {/* Cross-campaign analytics — only in multi mode, on the merged view */}
+      {isMerged && datasets && datasets.length >= 2 && (
+        <div className="mt-6 mb-6">
+          <CrossCampaignSection datasets={datasets} />
+        </div>
+      )}
+
       <InsightsPanel
         insights={perJar?.insights ?? app.insights}
         aggregates={perJar?.aggregates ?? app.aggregates}
@@ -124,12 +131,6 @@ export function InsightsPage() {
         campaignDatasets={isMerged ? datasets : null}
       />
 
-      {/* Cross-campaign analytics — only in multi mode, on the merged view */}
-      {isMerged && datasets && datasets.length >= 2 && (
-        <div className="mt-6">
-          <CrossCampaignSection datasets={datasets} />
-        </div>
-      )}
     </div>
   );
 }

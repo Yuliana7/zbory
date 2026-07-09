@@ -37,46 +37,39 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
     impliedRefunds,
     withdrawals,
     byDate,
+    lastDate,
   } = aggregates;
 
   const hasWithdrawals = totalWithdrawn > 0;
   const hasRefunds = impliedRefunds > 500;
 
-  // ── Day columns: donations up + withdrawals down ──────────────────────────
+  // ── Day columns: fixed last-30-day window, donations up + withdrawals down ─
+  // A campaign can run for months, but the daily chart stays a rolling 30-day
+  // window ending on the last activity — matches the "Останні 30 днів" label
+  // and keeps the chart readable regardless of campaign length.
 
   const dayColumns = useMemo(() => {
-    const all = Array.from(byDate.entries()).sort(([a], [b]) => a.localeCompare(b));
-
-    // Aggregate withdrawals by date key
     const wByDay = new Map<string, number>();
     for (const w of withdrawals) {
       const key = dateKeyFromDate(w.timestamp);
       wByDay.set(key, (wByDay.get(key) || 0) + w.amount);
     }
 
-    if (all.length <= 60) {
-      return all.map(([d, v]) => ({
-        dateKey: d,
-        label: shortDate(d),
-        donations: v.amount,
-        withdrawn: wByDay.get(d) || 0,
-      }));
-    }
-
-    // Group into buckets for long campaigns
-    const bucketSize = Math.ceil(all.length / 60);
-    const buckets = [];
-    for (let i = 0; i < all.length; i += bucketSize) {
-      const slice = all.slice(i, i + bucketSize);
-      buckets.push({
-        dateKey: slice[0][0],
-        label: shortDate(slice[0][0]),
-        donations: slice.reduce((s, [, v]) => s + v.amount, 0),
-        withdrawn: slice.reduce((s, [d]) => s + (wByDay.get(d) || 0), 0),
+    const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+    const days = [];
+    for (let i = 29; i >= 0; i--) {
+      const d = new Date(end);
+      d.setDate(d.getDate() - i);
+      const key = dateKeyFromDate(d);
+      days.push({
+        dateKey: key,
+        label: shortDate(key),
+        donations: byDate.get(key)?.amount ?? 0,
+        withdrawn: wByDay.get(key) ?? 0,
       });
     }
-    return buckets;
-  }, [byDate, withdrawals]);
+    return days;
+  }, [byDate, withdrawals, lastDate]);
 
   // ── Withdrawal events (sorted oldest → newest) ────────────────────────────
 

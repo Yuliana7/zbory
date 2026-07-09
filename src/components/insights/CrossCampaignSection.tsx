@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CampaignDataset } from '../../types';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
@@ -9,6 +9,8 @@ const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
   return y && m && d ? `${d}.${m}.${y.slice(2)}` : iso;
 };
+
+const PAGE_SIZE = 5;
 
 /**
  * Side-by-side campaign comparison table. The aligned cumulative chart,
@@ -30,6 +32,13 @@ export function CrossCampaignSection({ datasets }: { datasets: CampaignDataset[]
       else next.add(id);
       return next;
     });
+
+  const totalPages = Math.max(1, Math.ceil(stats.campaigns.length / PAGE_SIZE));
+  const [page, setPage] = useState(0);
+  // Toggling a campaign's visibility can shrink the list below the current page
+  useEffect(() => setPage(0), [hidden]);
+  const safePage = Math.min(page, totalPages - 1);
+  const pageCampaigns = stats.campaigns.slice(safePage * PAGE_SIZE, safePage * PAGE_SIZE + PAGE_SIZE);
 
   if (datasets.length < 2) return null;
 
@@ -67,7 +76,7 @@ export function CrossCampaignSection({ datasets }: { datasets: CampaignDataset[]
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {stats.campaigns.map((c) => (
+            {pageCampaigns.map((c) => (
               <tr key={c.meta.id}>
                 <td className="px-3 py-2.5 font-medium text-gray-900">
                   <span className="inline-block w-2.5 h-2.5 rounded-full mr-2" style={{ backgroundColor: colorOf(c.meta.id) }} />
@@ -86,6 +95,28 @@ export function CrossCampaignSection({ datasets }: { datasets: CampaignDataset[]
           </tbody>
         </table>
       </div>
+
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">
+          <button
+            onClick={() => setPage((p) => Math.max(0, p - 1))}
+            disabled={safePage === 0}
+            className="text-xs font-medium text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:hover:text-gray-500 px-2 py-1"
+          >
+            {t('compare.table.prevPage')}
+          </button>
+          <span className="text-xs text-gray-400">
+            {t('compare.table.pageOf', { current: safePage + 1, total: totalPages })}
+          </span>
+          <button
+            onClick={() => setPage((p) => Math.min(totalPages - 1, p + 1))}
+            disabled={safePage === totalPages - 1}
+            className="text-xs font-medium text-gray-500 hover:text-gray-800 disabled:opacity-30 disabled:hover:text-gray-500 px-2 py-1"
+          >
+            {t('compare.table.nextPage')}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

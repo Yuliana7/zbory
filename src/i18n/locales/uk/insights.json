@@ -17,7 +17,7 @@
   "daysWord_other": "днів",
   "sections": {
     "whatNext": "Що робити далі?",
-    "comments": "Коментарі донатерів"
+    "comments": "Аудиторія"
   },
   "moments": {
     "title": "Готові моменти для допису",
@@ -37,7 +37,7 @@
     "withdrawn": "Витрачено",
     "balance": "На рахунку",
     "refunds": "Повернуто",
-    "dailyLabel": "Донати по днях",
+    "dailyLabel": "Останні 30 днів",
     "donationsBar": "Донати за день",
     "bestDay": "Найкращий день",
     "withdrawalDay": "День зняття",

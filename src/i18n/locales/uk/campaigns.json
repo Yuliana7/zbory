@@ -11,6 +11,10 @@
   "donations_many": "{{count}} донатів",
   "donations_other": "{{count}} донатів",
   "viewMerged": "Разом",
+  "multiModeBadge_one": "Дані: {{count}} збір",
+  "multiModeBadge_few": "Дані: {{count}} збори разом",
+  "multiModeBadge_many": "Дані: {{count}} зборів разом",
+  "multiModeBadge_other": "Дані: {{count}} збори разом",
   "select": "Обрати для спільного аналізу",
   "analyzeTogether": "Аналізувати разом ({{count}}) →",
   "saveButton": "Зберегти",
@@ -32,8 +36,9 @@
       "donations": "Донатів",
       "uniqueDonors": "Унікальних донатерів"
     },
-    "chartTitle": "Динаміка зборів",
+    "chartTitle": "Динаміка",
     "chartHint": "Криві вирівняні за днями зборів: день 1 — перший донат кожного збору",
+    "dayAxisLabel": "День {{n}}",
     "chartDays": "днів: {{count}}",
     "tableTitle": "Порівняння зборів",
     "table": {
@@ -43,7 +48,10 @@
       "donations": "Донатів",
       "total": "Зібрано",
       "median": "Медіана",
-      "perDay": "₴/день"
+      "perDay": "₴/день",
+      "prevPage": "← Назад",
+      "nextPage": "Далі →",
+      "pageOf": "Сторінка {{current}} з {{total}}"
     },
     "crossTitle": "Хто найчастіше і найбільше донатить",
     "crossHint": "Люди, які підтримали більш ніж один збір (за підписом переказу)",

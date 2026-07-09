@@ -26,6 +26,7 @@ const NATIVE = 1080;
 
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
+  const { t: tCamp } = useTranslation('campaigns');
   const { state, dispatch, handleTemplateSelect, handleTemplatesSelect } = useAppContext();
   const { app } = state;
   // Selection (series, insertion order = export order) and open groups live in
@@ -78,8 +79,15 @@ export function GalleryPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+      <div className="mb-8 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+          {app.campaignDatasets && app.campaignDatasets.length >= 2 && (
+            <span className="text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
+              {tCamp('multiModeBadge', { count: app.campaignDatasets.length })}
+            </span>
+          )}
+        </div>
         <button
           onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'insights' })}
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
