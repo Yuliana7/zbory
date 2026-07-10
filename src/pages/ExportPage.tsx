@@ -548,11 +548,12 @@ function ExportPageInner() {
           {t('backButton')}
         </button>
         <div className="flex items-center gap-3">
-          {app.campaignDatasets && app.campaignDatasets.length >= 2 && (
+          {/* We might not need this? */}
+          {/* {app.campaignDatasets && app.campaignDatasets.length >= 2 && (
             <span className="text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
               {t('campaigns:multiModeBadge', { count: app.campaignDatasets.length })}
             </span>
-          )}
+          )} */}
           <div className="text-sm font-medium text-gray-700">
             {t(`templateNames.${templateId}`)}
             {cards.length > 1 && (

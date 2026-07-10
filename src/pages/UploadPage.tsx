@@ -27,9 +27,16 @@ export function UploadPage() {
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
 
+  // UploadPage doesn't unmount between "preview" and "default" (both are just
+  // branches of this same component while app.step stays 'upload') — so a
+  // campaign saved from the preview screen wouldn't show up on cancel without
+  // this refetch. Re-running whenever donations clear covers both that path
+  // and the initial mount, matching the fresh listCampaigns() a real remount
+  // (e.g. coming back via Insights → "Назад") already gets for free.
   useEffect(() => {
+    if (app.donations) return;
     listCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
-  }, []);
+  }, [app.donations]);
 
   const invalidRowCount = useMemo(() => {
     if (!app.rawData) return 0;
