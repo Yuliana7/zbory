@@ -3,7 +3,7 @@
   "subtitle": "Заповніть таблицю нижче. Поля з * — обов'язкові.",
   "editTitle": "Редагування виписки",
   "editSubtitle": "Відредагуйте рядки нижче. Поля з * — обов'язкові.",
-  "backToPreview": "Назад до перегляду",
+  "backToPreview": "Назад",
   "columns": {
     "date": "Дата *",
     "time": "Час",
@@ -24,9 +24,7 @@
   },
   "addRow": "Додати рядок",
   "removeRow": "Видалити рядок",
-  "saveCSV": "Зберегти CSV",
-  "proceed": "Продовжити до аналітики →",
-  "downloadFilename": "Jar_statement_manual.csv",
+  "proceed": "Готово",
   "validation": {
     "dateRequired": "Вкажіть дату",
     "amountRequired": "Сума має бути більше 0",

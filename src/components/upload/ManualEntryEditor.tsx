@@ -1,9 +1,9 @@
 import { useState, useCallback, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { ManualRow } from '../../types';
-import { manualRowsToCSVString, downloadCSV, computeBalances, sortChronologically } from '../../utils/csvExporter';
+import { computeBalances, sortChronologically } from '../../utils/csvExporter';
 import { generateId } from '../../utils/id';
-import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, PlusIcon, WarningIcon, XIcon } from '../../icons';
+import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, WarningIcon, XIcon } from '../../icons';
 
 const ROWS_PER_PAGE = 10;
 
@@ -210,15 +210,6 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
   };
 
   const handleProceed = () => { if (validate()) onProceed(rows); };
-
-  const handleSaveCSV = () => {
-    if (!validate()) return;
-    const csv = manualRowsToCSVString(rows);
-    const now = new Date();
-    const pad = (n: number) => String(n).padStart(2, '0');
-    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
-    downloadCSV(csv, `jar_statement_${stamp}.csv`);
-  };
 
   const handleJumpCommit = () => {
     const p = parseInt(jumpInput, 10);
@@ -495,7 +486,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
       )}
 
       {/* Action buttons */}
-      <div className="mt-6 flex flex-col sm:flex-row gap-3 sm:justify-between">
+      <div className="mt-6 flex flex-row justify-end gap-3">
         {onCancel && (
           <button
             onClick={onCancel}
@@ -506,23 +497,13 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
             {t('backToPreview')}
           </button>
         )}
-        <div className="flex flex-col sm:flex-row gap-3 sm:ml-auto">
-          <button
-            onClick={handleSaveCSV}
-            disabled={isLoading}
-            className="flex items-center justify-center gap-2 px-6 py-3 border border-indigo-600 text-indigo-600 rounded-xl font-medium hover:bg-indigo-50 transition-colors text-sm disabled:opacity-50"
-          >
-            <DownloadIcon className="w-4 h-4" />
-            {t('saveCSV')}
-          </button>
-          <button
-            onClick={handleProceed}
-            disabled={isLoading}
-            className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50"
-          >
-            {t('proceed')}
-          </button>
-        </div>
+        <button
+          onClick={handleProceed}
+          disabled={isLoading}
+          className="px-6 py-3 bg-indigo-600 text-white rounded-xl font-medium hover:bg-indigo-700 transition-colors text-sm disabled:opacity-50"
+        >
+          {t('proceed')}
+        </button>
       </div>
     </div>
   );

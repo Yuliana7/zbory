@@ -93,6 +93,7 @@ export function UploadPage() {
         )}
         <PreviewTable
           donations={app.donations}
+          rawData={app.rawData ?? []}
           totalCount={app.donations.length}
           invalidRowCount={invalidRowCount}
           onProceed={handleProceedToInsights}

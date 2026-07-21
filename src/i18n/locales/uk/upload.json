@@ -64,9 +64,10 @@
     "invalidRows_many": "{{count}} рядків не вдалося розпізнати",
     "invalidRows_other": "{{count}} рядки не вдалося розпізнати",
     "invalidRowsHint": "Відредагуйте дані перед продовженням",
-    "cancelButton": "Інший файл",
+    "cancelButton": "Назад",
     "editButton": "Редагувати",
-    "proceedButton": "Продовжити до аналітики →",
-    "proceedAnywayButton": "Продовжити без виправлень →"
+    "saveCSVButton": "Завантажити",
+    "proceedButton": "Далі",
+    "proceedAnywayButton": "Продовжити без виправлень"
   }
 }

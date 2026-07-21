@@ -1,12 +1,14 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Donation } from '../../types';
+import type { Donation, RawDonation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
 import { SaveCampaignControl } from '../insights/SaveCampaignControl';
-import { ArrowLeftIcon, EditIcon, WarningIcon } from '../../icons';
+import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, EditIcon, WarningIcon } from '../../icons';
+import { rawDonationsToManualRows, manualRowsToCSVString, downloadCSV } from '../../utils/csvExporter';
 
 interface PreviewTableProps {
   donations: Donation[];
+  rawData: RawDonation[];
   totalCount: number;
   invalidRowCount?: number;
   onProceed: (goal?: number) => void;
@@ -15,7 +17,7 @@ interface PreviewTableProps {
   initialGoal?: number; // prefilled when the dataset came with a goal (campaign / restored session)
 }
 
-export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit, initialGoal }: PreviewTableProps) {
+export function PreviewTable({ donations, rawData, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit, initialGoal }: PreviewTableProps) {
   const { t } = useTranslation('upload');
   const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showErrors, setShowErrors] = useState(false);
@@ -30,6 +32,14 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
     }
     onProceed(parsedGoal ?? undefined);
   }
+
+  const handleSaveCSV = () => {
+    const csv = manualRowsToCSVString(rawDonationsToManualRows(rawData));
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const stamp = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}_${pad(now.getHours())}-${pad(now.getMinutes())}`;
+    downloadCSV(csv, `jar_statement_${stamp}.csv`);
+  };
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
@@ -52,6 +62,15 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
               {t('preview.cancelButton')}
             </button>
             <button
+              onClick={handleSaveCSV}
+              className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+                         bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
+                         hover:border-gray-300 transition-all"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              {t('preview.saveCSVButton')}
+            </button>
+            <button
               onClick={handleProceed}
               className="flex items-center gap-2 text-sm font-semibold text-white
                          bg-indigo-600 hover:bg-indigo-700 rounded-lg px-4 py-2 shadow-sm transition-all"
@@ -59,6 +78,7 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
               {showErrors && invalidRowCount > 0
                 ? t('preview.proceedAnywayButton')
                 : t('preview.proceedButton')}
+                <ArrowRightIcon className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
@@ -70,9 +90,8 @@ export function PreviewTable({ donations, totalCount, invalidRowCount = 0, onPro
                 {(['date', 'time', 'donor', 'amount', 'category'] as const).map((col) => (
                   <th
                     key={col}
-                    className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${
-                      col === 'amount' ? 'text-right' : 'text-left'
-                    }`}
+                    className={`px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider ${col === 'amount' ? 'text-right' : 'text-left'
+                      }`}
                   >
                     {t(`preview.columns.${col}`)}
                   </th>

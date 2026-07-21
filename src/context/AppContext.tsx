@@ -210,6 +210,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
+  // Handles both fresh manual entry (state.app is empty, so the campaign link
+  // below is already null) and editing rows of an already-loaded dataset —
+  // in the latter case, preserving activeCampaignId/originalFileName/goal is
+  // what keeps "Зберегти" showing as "Оновити" for the same campaign instead
+  // of silently treating the edit as a brand-new, unlinked dataset.
   const handleManualDataProceed = useCallback((rows: ManualRow[]) => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
@@ -218,15 +223,26 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (donations.length === 0) {
         throw new Error(t('errors.manualProcessError'));
       }
-      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance } });
-      saveSession(rawData, null);
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData,
+          donations,
+          withdrawals,
+          currentBalance,
+          originalFileName: state.app.originalFileName ?? undefined,
+          goal: state.app.goal,
+          activeCampaignId: state.app.activeCampaignId ?? undefined,
+        },
+      });
+      saveSession(rawData, state.app.originalFileName ?? null);
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, [t]);
+  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, t]);
 
   // Merges another CSV export into the currently loaded dataset (long
   // campaigns come in chunks); campaign link and goal survive the merge.
