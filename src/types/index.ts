@@ -99,6 +99,7 @@ export interface CardState {
   textOverrides: Record<string, string>;
   showHeader: boolean;
   showFooter: boolean;
+  showUAFlag: boolean;
   showChart: boolean;
   showBars: boolean;
   showBestDay: boolean;

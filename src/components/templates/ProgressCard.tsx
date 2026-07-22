@@ -18,10 +18,11 @@ interface ProgressCardProps {
   safeZonePad?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
+  showUAFlag?: boolean;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -42,17 +43,17 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
       progressPct === null
         ? ''
         : progressPct > 100
-        ? 'linear-gradient(90deg, #22d3ee, #06b6d4)'
-        : progressPct === 100
-        ? 'linear-gradient(90deg, #4ade80, #22c55e)'
-        : 'linear-gradient(90deg, #fbbf24, #f59e0b)';
+          ? 'linear-gradient(90deg, #22d3ee, #06b6d4)'
+          : progressPct === 100
+            ? 'linear-gradient(90deg, #4ade80, #22c55e)'
+            : 'linear-gradient(90deg, #fbbf24, #f59e0b)';
 
     const pctLabel =
       progressPct === null
         ? ''
         : progressPct > 100
-        ? `${progressPct}% ${t('progress.targetSurplus')}`
-        : `${progressPct}%`;
+          ? `${progressPct}% ${t('progress.targetSurplus')}`
+          : `${progressPct}%`;
 
     return (
       <div
@@ -104,32 +105,32 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div data-sticker="hero">
-          <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
-            {tx('collectedLabel')}
-          </div>
-          <div
-            style={{
-              fontSize: fz(112),
-              fontWeight: 800,
-              letterSpacing: '-3px',
-              lineHeight: 1,
-              background: `${p.accentGradient} text`,
-              WebkitTextFillColor: 'transparent',
-            }}
-          >
-            {formattedTotal}
-          </div>
-          <div
-            style={{
-              fontSize: fz(48),
-              fontWeight: 600,
-              color: p.secondary,
-              marginTop: 8,
-              letterSpacing: '-1px',
-            }}
-          >
-            {tx('currencyLabel')}
-          </div>
+            <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
+              {tx('collectedLabel')}
+            </div>
+            <div
+              style={{
+                fontSize: fz(112),
+                fontWeight: 800,
+                letterSpacing: '-3px',
+                lineHeight: 1,
+                background: `${p.accentGradient} text`,
+                WebkitTextFillColor: 'transparent',
+              }}
+            >
+              {formattedTotal}
+            </div>
+            <div
+              style={{
+                fontSize: fz(48),
+                fontWeight: 600,
+                color: p.secondary,
+                marginTop: 8,
+                letterSpacing: '-1px',
+              }}
+            >
+              {tx('currencyLabel')}
+            </div>
           </div>
 
           {progressPct !== null && (
@@ -178,8 +179,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
           />
         )}
-
-        <div
+        {showUAFlag && (<div
           style={{
             position: 'absolute',
             bottom: 0,
@@ -188,7 +188,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             height: 8,
             background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
           }}
-        />
+        />)}
       </div>
     );
   }

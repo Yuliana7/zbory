@@ -80,6 +80,7 @@ function makeCard(templateId: TemplateType, personalComments: Array<{ text: stri
     textOverrides: {},
     showHeader: true,
     showFooter: true,
+    showUAFlag: true,
     showChart: true,
     showBars: true,
     showBestDay: true,
@@ -239,7 +240,6 @@ function ExportPageInner() {
   const [commentsOpen, setCommentsOpen] = useState(false);
   const [captionOpen, setCaptionOpen] = useState(false);
   const [stickersOpen, setStickersOpen] = useState(false);
-  const [statsOpen, setStatsOpen] = useState(false);
 
   const templateRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -549,12 +549,6 @@ function ExportPageInner() {
           {t('backButton')}
         </button>
         <div className="flex items-center gap-3">
-          {/* We might not need this? */}
-          {/* {app.campaignDatasets && app.campaignDatasets.length >= 2 && (
-            <span className="text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
-              {t('campaigns:multiModeBadge', { count: app.campaignDatasets.length })}
-            </span>
-          )} */}
           <div className="text-sm font-medium text-gray-700">
             {t(`templateNames.${templateId}`)}
             {cards.length > 1 && (
@@ -671,9 +665,8 @@ function ExportPageInner() {
                       key={i}
                       onClick={() => setCurrent(i)}
                       title={t(`templateNames.${c.templateId}`)}
-                      className={`relative w-3 h-3 rounded-full transition-all ${
-                        i === safeCurrent ? 'bg-indigo-600 scale-125' : c.touched ? 'bg-indigo-300' : 'bg-gray-300 hover:bg-gray-400'
-                      }`}
+                      className={`relative w-3 h-3 rounded-full transition-all ${i === safeCurrent ? 'bg-indigo-600 scale-125' : c.touched ? 'bg-indigo-300' : 'bg-gray-300 hover:bg-gray-400'
+                        }`}
                     />
                   ))}
                 </div>
@@ -916,6 +909,7 @@ function ExportPageInner() {
                 {hasFooterToggle && (
                   <ToggleRow label={t('layout.footer')} value={card.showFooter} onChange={(v) => updateCard({ showFooter: v })} />
                 )}
+                <ToggleRow label={t('layout.UAFlag')} value={card.showUAFlag} onChange={(v) => updateCard({ showUAFlag: v })} />
                 {templateId === 'daily-activity' && (
                   <>
                     <ToggleRow label={t('layout.chart')} value={card.showChart} onChange={(v) => updateCard({ showChart: v })} />
@@ -1020,9 +1014,8 @@ function ExportPageInner() {
                       return (
                         <label
                           key={c.text}
-                          className={`flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${
-                            disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
-                          }`}
+                          className={`flex items-start gap-2 px-2 py-1.5 rounded-lg text-sm transition-colors ${disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-50'
+                            }`}
                         >
                           <input
                             type="checkbox"
@@ -1061,11 +1054,10 @@ function ExportPageInner() {
             <div className="mt-2 flex items-center gap-2">
               <button
                 onClick={handleCopyCaption}
-                className={`flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
-                  captionCopied
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-indigo-600 hover:bg-indigo-700 text-white'
-                }`}
+                className={`flex-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${captionCopied
+                  ? 'bg-green-100 text-green-700'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                  }`}
               >
                 {captionCopied ? t('caption.copied') : t('caption.copy')}
               </button>
@@ -1082,11 +1074,10 @@ function ExportPageInner() {
             {cards.length > 1 && (
               <button
                 onClick={handleCopyAllCaptions}
-                className={`mt-2 w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
-                  allCaptionsCopied
-                    ? 'bg-green-100 border-green-200 text-green-700'
-                    : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
-                }`}
+                className={`mt-2 w-full px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${allCaptionsCopied
+                  ? 'bg-green-100 border-green-200 text-green-700'
+                  : 'border-indigo-200 text-indigo-700 hover:bg-indigo-50'
+                  }`}
               >
                 {allCaptionsCopied ? t('caption.copied') : t('stack.copyAllCaptions', { count: cards.length })}
               </button>
@@ -1111,22 +1102,6 @@ function ExportPageInner() {
               </div>
             </Collapsible>
           )}
-
-          {/* Stats — collapsible */}
-          <Collapsible label={t('stats.title')} open={statsOpen} onToggle={() => setStatsOpen(o => !o)}>
-            <div className="space-y-3">
-              {[
-                { label: t('stats.collected'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.totalAmount)) + ' ₴' },
-                { label: t('stats.donations'), value: String(filteredAggregates.donationCount) },
-                { label: t('stats.average'), value: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.avgDonation)) + ' ₴' },
-              ].map((s) => (
-                <div key={s.label} className="flex justify-between text-sm">
-                  <span className="text-gray-500">{s.label}</span>
-                  <span className="font-medium text-gray-900">{s.value}</span>
-                </div>
-              ))}
-            </div>
-          </Collapsible>
 
           {/* Download current card */}
           <button
@@ -1313,6 +1288,7 @@ function CardCanvas({ card, style, aggregates, goal, commentInsights, crossItems
         bgOverride={bgOverride}
         showHeader={card.showHeader}
         showFooter={card.showFooter}
+        showUAFlag={card.showUAFlag}
         showChart={card.showChart}
         showBars={card.showBars}
         showBestDay={card.showBestDay}
@@ -1340,6 +1316,7 @@ interface RendererProps {
   bgOverride?: string;
   showHeader: boolean;
   showFooter: boolean;
+  showUAFlag: boolean;
   showChart: boolean;
   showBars: boolean;
   showBestDay: boolean;
@@ -1349,7 +1326,28 @@ interface RendererProps {
   selectedComments: SelectedComment[];
 }
 
-function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, palette, textOverrides, fontScale, showRefunds, bgOverride, showHeader, showFooter, showChart, showBars, showBestDay, safeZonePad, commentInsights, crossItems, selectedComments }: RendererProps) {
+function TemplateRenderer({
+  templateId,
+  templateRef,
+  aggregates,
+  goal,
+  format,
+  palette,
+  textOverrides,
+  fontScale,
+  showRefunds,
+  bgOverride,
+  showHeader,
+  showFooter,
+  showUAFlag,
+  showChart,
+  showBars,
+  showBestDay,
+  safeZonePad,
+  commentInsights,
+  crossItems,
+  selectedComments
+}: RendererProps) {
   const { t: tCamp } = useTranslation('campaigns');
   // Report period rides in textOverrides (key 'periodKey') so it survives
   // card persistence and batch export without a new CardState field.
@@ -1373,7 +1371,7 @@ function TemplateRenderer({ templateId, templateRef, aggregates, goal, format, p
 
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad };
   switch (templateId) {
-    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} showUAFlag={showUAFlag} />;
     case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
     case 'thank-you': return <ThankYouCard {...shared} />;
     case 'milestone': return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
