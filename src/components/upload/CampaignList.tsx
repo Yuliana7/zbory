@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import { deleteCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { formatCurrency } from '../../utils/dataAggregator';
-import { CheckIcon, FolderIcon, TrashIcon } from '../../icons';
+import { ArrowRightIcon, CheckIcon, FolderIcon, TrashIcon } from '../../icons';
 
 const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -98,6 +98,7 @@ export function CampaignList({ campaigns, onCampaignsChange }: CampaignListProps
           className="mt-3 w-full px-4 py-2.5 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-colors animate-fade-in"
         >
           {t('analyzeTogether', { count: selected.size })}
+          <ArrowRightIcon className="inline-block w-3.5 h-3.5 ml-1 align-middle" />
         </button>
       )}
     </div>

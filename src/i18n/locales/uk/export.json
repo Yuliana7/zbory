@@ -3,8 +3,10 @@
   "format": {
     "label": "Формат",
     "post": "Пост 1:1",
+    "post45": "Пост 4:5",
     "story": "Сторіс 9:16",
     "postShort": "1:1 Пост",
+    "post45Short": "4:5 Пост",
     "storyShort": "9:16 Сторіс"
   },
   "palette": {

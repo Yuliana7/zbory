@@ -47,10 +47,11 @@ import {
   TrashIcon,
 } from '../icons';
 
-type Format = 'post' | 'story';
+type Format = 'post' | 'post-4-5' | 'story';
 
 const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
   post: { width: 1080, height: 1080, label: '1080×1080' },
+  'post-4-5': { width: 1080, height: 1350, label: '1080×1350' },
   story: { width: 1080, height: 1920, label: '1080×1920' },
 };
 
@@ -713,14 +714,14 @@ function ExportPageInner() {
           {/* Format — per card */}
           <Collapsible label={t('format.label')} open={formatOpen} onToggle={() => setFormatOpen(o => !o)}>
             <div className="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm w-fit">
-              {(['post', 'story'] as Format[]).map((f) => (
+              {(['post', 'post-4-5', 'story'] as Format[]).map((f) => (
                 <button
                   key={f}
                   onClick={() => updateCard({ format: f })}
                   className={`px-4 py-2 text-xs font-medium transition-colors ${card.format === f ? 'bg-indigo-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
                     }`}
                 >
-                  {f === 'post' ? t('format.postShort') : t('format.storyShort')}
+                  {f === 'post' ? t('format.postShort') : f === 'post-4-5' ? t('format.post45Short') : t('format.storyShort')}
                 </button>
               ))}
             </div>

@@ -9,7 +9,7 @@ import { cardPadding } from '../../utils/units';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
-  format?: 'post' | 'story';
+  format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
@@ -24,7 +24,7 @@ interface DailyActivityCardProps {
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
     const { t } = useTranslation('templates');
-    const isPost = format === 'post';
+    const isPost = format !== 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`daily-activity.${key}`);
@@ -73,7 +73,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         ref={ref}
         style={{
           width: 1080,
-          height: isPost ? 1080 : 1920,
+          height: format === 'story' ? 1920 : format === 'post-4-5' ? 1350 : 1080,
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',

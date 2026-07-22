@@ -125,6 +125,9 @@ html = renderToStaticMarkup(<FinalReportCard aggregates={aggregates} format="sto
 check('safeZonePad off: normal story padding', html.includes('padding:100px 80px'));
 html = renderToStaticMarkup(<FinalReportCard aggregates={aggregates} format="post" safeZonePad />);
 check('safeZonePad ignored for post format', html.includes('padding:80px'));
+html = renderToStaticMarkup(<FinalReportCard aggregates={aggregates} format="post-4-5" safeZonePad />);
+check('safeZonePad ignored for post-4-5 format', html.includes('padding:80px'));
+check('post-4-5 renders at 1080x1350', html.includes('height:1350px'));
 
 // ── Moments ──
 const moments = detectMoments(aggregates, tInsights, 10000);

@@ -95,7 +95,7 @@ export interface SharedStyle {
 // Everything content-related that one card in the editing stack owns
 export interface CardState {
   templateId: TemplateType;
-  format: 'post' | 'story';
+  format: 'post' | 'post-4-5' | 'story';
   textOverrides: Record<string, string>;
   showHeader: boolean;
   showFooter: boolean;
@@ -148,7 +148,7 @@ export interface Template {
   id: TemplateType;
   name: string;
   description: string;
-  format: 'post' | 'story'; // post: 1080x1080, story: 1080x1920
+  format: 'post' | 'post-4-5' | 'story'; // post: 1080x1080, post-4-5: 1080x1350, story: 1080x1920
   requiresGoal?: boolean;
 }
 

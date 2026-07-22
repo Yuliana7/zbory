@@ -8,7 +8,7 @@ import { NoWrap, CardHeader } from './shared';
 interface ReportCardProps {
   report: ReportStats;
   periodLabel: string; // «за К3 2026 року», «за 2026 рік», «за весь час»
-  format?: 'post' | 'story';
+  format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
@@ -36,7 +36,7 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
         ref={ref}
         style={{
           width: 1080,
-          height: isStory ? 1920 : 1080,
+          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',

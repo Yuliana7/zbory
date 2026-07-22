@@ -8,7 +8,7 @@ import { cardPadding } from '../../utils/units';
 interface EmojiCloudCardProps {
   aggregates: Aggregates;
   commentInsights?: CommentInsights | null;
-  format?: 'post' | 'story';
+  format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
@@ -33,7 +33,7 @@ export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
         ref={ref}
         style={{
           width: 1080,
-          height: isStory ? 1920 : 1080,
+          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
