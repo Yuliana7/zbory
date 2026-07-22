@@ -316,14 +316,18 @@ function ExportPageInner() {
     return 'achievedLabel_0';
   })();
 
-  // Default value shown in the text editor before the user overrides a field
+  // Default value shown in the text editor before the user overrides a field.
+  // "title" defaults to the saved campaign's name (e.g. "FVP fundraiser") once
+  // the project has been saved to the library; unsaved projects keep each
+  // template's own default title text.
   const textDefaultFor = useCallback(
     (key: string): string => {
+      if (key === 'title' && app.activeCampaignName) return app.activeCampaignName;
       if (key === 'achievedLabel' && templateId === 'milestone') return t(`templates:milestone.${milestoneAchievedKey}`);
       if (key === 'dateRange') return `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`;
       return t(`templates:${templateId}.${key}`);
     },
-    [templateId, milestoneAchievedKey, filteredAggregates, t],
+    [app.activeCampaignName, templateId, milestoneAchievedKey, filteredAggregates, t],
   );
 
   // Which sticker blocks are actually present in the rendered template
@@ -474,6 +478,7 @@ function ExportPageInner() {
       commentInsights={commentInsights}
       crossItems={crossItems}
       selectedComments={overrides?.selectedComments ?? commentsFor(c)}
+      activeCampaignName={app.activeCampaignName}
       safeZonePad={showSafeZones}
       {...refs}
     />

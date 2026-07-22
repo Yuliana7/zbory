@@ -33,9 +33,11 @@ interface CardCanvasProps {
   safeZonePad: boolean;
   templateRef: React.RefObject<HTMLDivElement>;
   exRef?: React.RefObject<HTMLDivElement>;
+  /** Saved campaign name — used as the default "title" text (single-campaign only) */
+  activeCampaignName?: string | null;
 }
 
-export function CardCanvas({ card, style, aggregates, goal, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef }: CardCanvasProps) {
+export function CardCanvas({ card, style, aggregates, goal, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -90,6 +92,7 @@ export function CardCanvas({ card, style, aggregates, goal, commentInsights, cro
         commentInsights={commentInsights}
         crossItems={crossItems}
         selectedComments={selectedComments}
+        activeCampaignName={activeCampaignName}
       />
     </div>
   );
@@ -118,7 +121,12 @@ interface RendererProps {
   commentInsights: CommentInsights | null;
   crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
+  activeCampaignName?: string | null;
 }
+
+// Multi-campaign templates keep their own default title — a saved single
+// campaign's name doesn't describe a combined report/comparison across jars.
+const MULTI_CAMPAIGN_TEMPLATES = new Set<TemplateType>(['report', 'campaigns-chart']);
 
 function TemplateRenderer({
   templateId,
@@ -140,8 +148,16 @@ function TemplateRenderer({
   safeZonePad,
   commentInsights,
   crossItems,
-  selectedComments
+  selectedComments,
+  activeCampaignName,
 }: RendererProps) {
+  // Default "title" to the saved campaign's name until the user sets their own
+  // override for this card — never for multi-campaign templates. Checked with
+  // `=== undefined` (not falsy) so a deliberately-cleared, blank title is kept.
+  const effectiveTextOverrides =
+    activeCampaignName && textOverrides.title === undefined && !MULTI_CAMPAIGN_TEMPLATES.has(templateId)
+      ? { ...textOverrides, title: activeCampaignName }
+      : textOverrides;
   const { t: tCamp } = useTranslation('campaigns');
   // Report period rides in textOverrides (key 'periodKey') so it survives
   // card persistence and batch export without a new CardState field.
@@ -163,7 +179,7 @@ function TemplateRenderer({
         ? tCamp('report.labelYear', { year: period.year })
         : tCamp('report.labelQuarter', { quarter: period.quarter, year: period.year });
 
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad, showUAFlag };
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides: effectiveTextOverrides, fontScale, bgOverride, safeZonePad, showUAFlag };
   switch (templateId) {
     case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
     case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;

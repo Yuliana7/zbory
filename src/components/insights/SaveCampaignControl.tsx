@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
-import { getCampaignMeta } from '../../utils/campaignStore';
 import { CheckIcon, SaveIcon } from '../../icons';
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
@@ -29,28 +28,23 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
   // Prefill: current campaign name → file name → date-range fallback
   useEffect(() => {
     if (!open) return;
-    let cancelled = false;
-    const fallback = () => {
-      if (app.originalFileName) return app.originalFileName.replace(/\.csv$/i, '');
-      if (app.aggregates) {
-        return t('defaultName', {
-          from: shortDate(app.aggregates.firstDate),
-          to: shortDate(app.aggregates.lastDate),
-        });
-      }
-      return '';
-    };
-    if (app.activeCampaignId) {
-      getCampaignMeta(app.activeCampaignId).then((meta) => {
-        if (!cancelled) setName(meta?.name ?? fallback());
-      });
-    } else {
-      setName(fallback());
+    if (app.activeCampaignName) {
+      setName(app.activeCampaignName);
+      return;
     }
-    return () => {
-      cancelled = true;
-    };
-  }, [open, app.activeCampaignId, app.originalFileName, app.aggregates, t]);
+    if (app.originalFileName) {
+      setName(app.originalFileName.replace(/\.csv$/i, ''));
+      return;
+    }
+    if (app.aggregates) {
+      setName(t('defaultName', {
+        from: shortDate(app.aggregates.firstDate),
+        to: shortDate(app.aggregates.lastDate),
+      }));
+      return;
+    }
+    setName('');
+  }, [open, app.activeCampaignName, app.originalFileName, app.aggregates, t]);
 
   useEffect(() => () => {
     if (savedTimer.current) clearTimeout(savedTimer.current);

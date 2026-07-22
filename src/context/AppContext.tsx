@@ -56,6 +56,7 @@ const INITIAL_APP_STATE: AppState = {
   stackStyle: null,
   originalFileName: null,
   activeCampaignId: null,
+  activeCampaignName: null,
   campaignDatasets: null,
 };
 
@@ -68,8 +69,8 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; campaignDatasets?: CampaignDataset[] } }
-  | { type: 'CAMPAIGN_SAVED'; payload: { id: string } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[] } }
+  | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
       payload: {
@@ -114,13 +115,17 @@ function appReducer(state: FullState, action: AppAction): FullState {
           // A fresh dataset detaches from any previously opened campaign and
           // drops a stale goal unless the source (campaign/session) carried one
           activeCampaignId: action.payload.activeCampaignId ?? null,
+          activeCampaignName: action.payload.activeCampaignName ?? null,
           campaignDatasets: action.payload.campaignDatasets ?? null,
           goal: action.payload.goal,
         },
       };
 
     case 'CAMPAIGN_SAVED':
-      return { ...state, app: { ...state.app, activeCampaignId: action.payload.id } };
+      return {
+        ...state,
+        app: { ...state.app, activeCampaignId: action.payload.id, activeCampaignName: action.payload.name },
+      };
 
     case 'PROCEED_TO_INSIGHTS':
       return {
@@ -233,6 +238,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           originalFileName: state.app.originalFileName ?? undefined,
           goal: state.app.goal,
           activeCampaignId: state.app.activeCampaignId ?? undefined,
+          activeCampaignName: state.app.activeCampaignName ?? undefined,
         },
       });
       saveSession(rawData, state.app.originalFileName ?? null);
@@ -242,7 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, t]);
+  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, t]);
 
   // Merges another CSV export into the currently loaded dataset (long
   // campaigns come in chunks); campaign link and goal survive the merge.
@@ -267,6 +273,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           originalFileName: state.app.originalFileName ?? file.name,
           goal: state.app.goal,
           activeCampaignId: state.app.activeCampaignId ?? undefined,
+          activeCampaignName: state.app.activeCampaignName ?? undefined,
         },
       });
       saveSession(result.merged, state.app.originalFileName ?? file.name);
@@ -278,7 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, t]);
+  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, t]);
 
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
@@ -357,6 +364,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           originalFileName: meta.fileName ?? undefined,
           goal: meta.goal,
           activeCampaignId: id,
+          activeCampaignName: meta.name,
         },
       });
       saveSession(rawData, meta.fileName);
@@ -410,6 +418,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           currentBalance,
           goal: hasAnyGoal ? goalSum : undefined,
           activeCampaignId: ids.length === 1 ? ids[0] : undefined,
+          activeCampaignName: ids.length === 1 ? datasets[0].name : undefined,
           campaignDatasets: datasets.length > 1 ? datasets : undefined,
         },
       });
@@ -435,7 +444,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fileName: state.app.originalFileName,
         goal: goalOverride !== undefined ? goalOverride : state.app.goal,
       });
-      dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id } });
+      dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id, name: meta.name } });
       return meta;
     } catch {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });

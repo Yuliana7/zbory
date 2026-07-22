@@ -175,6 +175,9 @@ export interface AppState {
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;
+  // The saved campaign's display name (e.g. "FVP fundraiser") — null when
+  // unsaved or when multiple campaigns are merged (no single name applies)
+  activeCampaignName: string | null;
   // ≥2 = "multi mode": per-jar analytics view, cross-campaign sections and
   // report templates. The merged rows still live in rawData/donations.
   campaignDatasets: CampaignDataset[] | null;
