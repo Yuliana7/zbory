@@ -1,10 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
-import Papa from 'papaparse';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import type { RawDonation } from '../../src/types';
+import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { MilestoneCard } from '../../src/components/templates/MilestoneCard';
 import { UrgencyCard } from '../../src/components/templates/UrgencyCard';
@@ -16,18 +14,7 @@ import { TopDonorsCard } from '../../src/components/templates/TopDonorsCard';
 import { DonorsCountCard } from '../../src/components/templates/DonorsCountCard';
 import { ThankYouCard } from '../../src/components/templates/ThankYouCard';
 
-const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^\uFEFF/, '');
-const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-const rawData: RawDonation[] = (parsed.data as Record<string, string>[]).map((row) => ({
-  date: row['Дата та час операції'] || '',
-  category: row['Категорія операції'] || '',
-  amount: row['Сума'] || '0',
-  currency: row['Валюта'] || 'UAH',
-  additionalInfo: row['Додаткова інформація'] || '',
-  comment: row['Коментар до платежу'] || '',
-  balance: row['Залишок'] || '0',
-  balanceCurrency: row['Валюта залишку'] || 'UAH',
-}));
+const rawData = loadRawDonations('testData/Zbir_1.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
 const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
 
@@ -42,14 +29,14 @@ const strip = (html: string) => html.replace(/<[^>]+>/g, ' ');
 // ── Progress card ──
 let html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" />);
 check('Progress: no subtitle text', !html.includes('Аналітика збору'));
-check('Progress: header date range', html.includes('1 липня 2026') && html.includes('5 липня 2026'));
-check('Progress: footer median 100 ₴ (not average 213)', strip(html).includes('Медіана') && /100\s*₴/.test(strip(html)));
-check('Progress: footer max 1 111 ₴', /1\s?111\s*₴/.test(strip(html).replace(/\u00A0/g, ' ')));
+check('Progress: header date range (single-day campaign)', html.includes('16 червня 2026'));
+check('Progress: footer median 333 ₴ (not average 511)', strip(html).includes('Медіана') && /333\s*₴/.test(strip(html)));
+check('Progress: footer max 5 000 ₴', /5\s?000\s*₴/.test(strip(html).replace(/\u00A0/g, ' ')));
 check('Progress: footer Зібрано present', (strip(html).match(/Зібрано/g) || []).length >= 2);
 
 // header/footer toggles
 html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" showHeader={false} showFooter={false} />);
-check('Progress: hidden header/footer', !html.includes('Медіана') && !html.includes('липня 2026'));
+check('Progress: hidden header/footer', !html.includes('Медіана') && !html.includes('червня 2026'));
 
 // editable date range override
 html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" textOverrides={{ dateRange: 'МІЙ ДІАПАЗОН' }} />);

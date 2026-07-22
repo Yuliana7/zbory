@@ -3,13 +3,13 @@ import type { Aggregates } from '../../types';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, CardFooter, NoWrap } from './shared';
+import { CardHeader, CardFooter, NoWrap, UAFlagBar } from './shared';
 import { cardPadding } from '../../utils/units';
 
 interface MilestoneCardProps {
   aggregates: Aggregates;
   goal?: number;
-  format?: 'post' | 'story';
+  format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
@@ -17,10 +17,11 @@ interface MilestoneCardProps {
   safeZonePad?: boolean;
   showHeader?: boolean;
   showFooter?: boolean;
+  showUAFlag?: boolean;
 }
 
 export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -54,7 +55,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         ref={ref}
         style={{
           width: 1080,
-          height: isStory ? 1920 : 1080,
+          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
@@ -186,16 +187,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           />
         )}
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />
+        <UAFlagBar show={showUAFlag} />
       </div>
     );
   }

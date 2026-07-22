@@ -4,12 +4,12 @@ import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/da
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, NoWrap } from './shared';
+import { CardHeader, NoWrap, UAFlagBar } from './shared';
 import { cardPadding } from '../../utils/units';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
-  format?: 'post' | 'story';
+  format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
   fontScale?: number;
@@ -19,12 +19,13 @@ interface DailyActivityCardProps {
   showChart?: boolean;
   showBars?: boolean;
   showBestDay?: boolean;
+  showUAFlag?: boolean;
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
-    const isPost = format === 'post';
+    const isPost = format !== 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`daily-activity.${key}`);
@@ -42,8 +43,10 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
 
     const maxVal = chartPoints[chartPoints.length - 1]?.total || 1;
 
+    // chartPoints.length - 1 is 0 for a single-day campaign (only one point) —
+    // guard against dividing by zero, which produced NaN coordinates.
     const toSvgX = (i: number) =>
-      padX + (i / (chartPoints.length - 1)) * (svgW - padX * 2);
+      padX + (i / Math.max(1, chartPoints.length - 1)) * (svgW - padX * 2);
     const toSvgY = (val: number) =>
       padY + (1 - val / maxVal) * (svgH - padY * 2);
 
@@ -55,7 +58,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
       linePath +
       ` L ${toSvgX(chartPoints.length - 1)} ${svgH - padY} L ${toSvgX(0)} ${svgH - padY} Z`;
 
-    const labelIndices = [0, Math.floor(chartPoints.length / 2), chartPoints.length - 1];
+    // Deduped — a single-day campaign has one chart point, so all three
+    // positions (start/middle/end) would otherwise collapse onto the same index.
+    const labelIndices = [...new Set([0, Math.floor(chartPoints.length / 2), chartPoints.length - 1])];
     const formatShort = (dateStr: string) => {
       const d = new Date(dateStr);
       return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -73,7 +78,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         ref={ref}
         style={{
           width: 1080,
-          height: isPost ? 1080 : 1920,
+          height: format === 'story' ? 1920 : format === 'post-4-5' ? 1350 : 1080,
           background: bgOverride ?? p.background,
           display: 'flex',
           flexDirection: 'column',
@@ -274,16 +279,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           ))}
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 10,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />
+        <UAFlagBar show={showUAFlag} height={10} />
       </div>
     );
   }

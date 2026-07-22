@@ -16,7 +16,7 @@
   "multiModeBadge_many": "Дані: {{count}} зборів разом",
   "multiModeBadge_other": "Дані: {{count}} збори разом",
   "select": "Обрати для спільного аналізу",
-  "analyzeTogether": "Аналізувати разом ({{count}}) →",
+  "analyzeTogether": "Аналізувати разом ({{count}})",
   "saveButton": "Зберегти",
   "updateButton": "Оновити",
   "saved": "Збережено ✓",

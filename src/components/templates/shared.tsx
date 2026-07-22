@@ -12,6 +12,23 @@ export function NoWrap({ children, style }: { children: ReactNode; style?: CSSPr
   return <span style={{ whiteSpace: 'nowrap', ...style }}>{children}</span>;
 }
 
+/** UA flag accent bar pinned to the card's bottom edge — optional per card. */
+export function UAFlagBar({ show = true, height = 8 }: { show?: boolean; height?: number }) {
+  if (!show) return null;
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        height,
+        background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
+      }}
+    />
+  );
+}
+
 interface CardHeaderProps {
   palette: Palette;
   fz: (n: number) => string;

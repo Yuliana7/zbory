@@ -95,10 +95,11 @@ export interface SharedStyle {
 // Everything content-related that one card in the editing stack owns
 export interface CardState {
   templateId: TemplateType;
-  format: 'post' | 'story';
+  format: 'post' | 'post-4-5' | 'story';
   textOverrides: Record<string, string>;
   showHeader: boolean;
   showFooter: boolean;
+  showUAFlag: boolean;
   showChart: boolean;
   showBars: boolean;
   showBestDay: boolean;
@@ -148,7 +149,7 @@ export interface Template {
   id: TemplateType;
   name: string;
   description: string;
-  format: 'post' | 'story'; // post: 1080x1080, story: 1080x1920
+  format: 'post' | 'post-4-5' | 'story'; // post: 1080x1080, post-4-5: 1080x1350, story: 1080x1920
   requiresGoal?: boolean;
 }
 
@@ -174,6 +175,9 @@ export interface AppState {
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;
+  // The saved campaign's display name (e.g. "FVP fundraiser") — null when
+  // unsaved or when multiple campaigns are merged (no single name applies)
+  activeCampaignName: string | null;
   // ≥2 = "multi mode": per-jar analytics view, cross-campaign sections and
   // report templates. The merged rows still live in rawData/donations.
   campaignDatasets: CampaignDataset[] | null;
