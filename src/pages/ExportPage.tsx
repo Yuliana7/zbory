@@ -1,7 +1,7 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { TemplateType, Donation, Aggregates, CommentInsights, CardState, SharedStyle } from '../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -20,16 +20,23 @@ import { ReportCard } from '../components/templates/ReportCard';
 import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
 import { analyzeCampaigns, buildReport, datasetsToItems, type ReportPeriod } from '../utils/campaignAnalytics';
 import { exportToPNG, renderToPNGDataUrl, dataUrlToBytes } from '../utils/exportPNG';
-import { aggregateDonations, formatUkrainianDate } from '../utils/dataAggregator';
+import { formatUkrainianDate } from '../utils/dataAggregator';
 import { generateCaption } from '../utils/captionGenerator';
 import { getPersonalComments } from '../utils/commentAnalyzer';
 import { createZip } from '../utils/zip';
-import { PALETTES, DEFAULT_PALETTE } from '../utils/palettes';
+import { PALETTES } from '../utils/palettes';
+import {
+  type Format,
+  FORMAT_DIMS,
+  DEFAULT_SHARED_STYLE,
+  toDateInput,
+  mergeCards,
+  filterAggregates,
+} from '../utils/exportStack';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
   TEMPLATE_REQUIRES_GOAL,
-  TEMPLATE_DEFAULT_FORMAT,
   TEMPLATE_HAS_HEADER,
   TEMPLATE_HAS_FOOTER,
   TEMPLATE_STICKERS,
@@ -46,93 +53,6 @@ import {
   SpinnerIcon,
   TrashIcon,
 } from '../icons';
-
-type Format = 'post' | 'post-4-5' | 'story';
-
-const FORMAT_DIMS: Record<Format, { width: number; height: number; label: string }> = {
-  post: { width: 1080, height: 1080, label: '1080×1080' },
-  'post-4-5': { width: 1080, height: 1350, label: '1080×1350' },
-  story: { width: 1080, height: 1920, label: '1080×1920' },
-};
-
-const DEFAULT_SHARED_STYLE: SharedStyle = {
-  palette: DEFAULT_PALETTE,
-  bgImage: null,
-  bgColor: null,
-  bgTransparent: false,
-  bgBrightness: 1,
-  bgOpacity: 1,
-  bgZoom: 1,
-  bgOffsetX: 0,
-  bgOffsetY: 0,
-  bgRotate: 0,
-  fontScale: 1,
-};
-
-function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10);
-}
-
-function makeCard(templateId: TemplateType, personalComments: Array<{ text: string }>): CardState {
-  return {
-    templateId,
-    format: TEMPLATE_DEFAULT_FORMAT[templateId],
-    textOverrides: {},
-    showHeader: true,
-    showFooter: true,
-    showUAFlag: true,
-    showChart: true,
-    showBars: true,
-    showBestDay: true,
-    showRefunds: false,
-    dateFrom: '',
-    dateTo: '',
-    selectedCommentKeys:
-      templateId === 'comments' ? personalComments.slice(0, 3).map((c) => c.text) : [],
-    captionText: null,
-    styleOverride: null,
-    touched: false,
-  };
-}
-
-/**
- * Builds the card list for a template id sequence, reusing previously edited
- * cards (matched by template, consumed in order) so adding/removing/reordering
- * templates never discards edits.
- */
-function mergeCards(
-  ids: TemplateType[],
-  existing: CardState[],
-  personalComments: Array<{ text: string }>,
-): CardState[] {
-  const pool = [...existing];
-  return ids.map((id) => {
-    const idx = pool.findIndex((c) => c.templateId === id);
-    if (idx >= 0) return pool.splice(idx, 1)[0];
-    return makeCard(id, personalComments);
-  });
-}
-
-function filterAggregates(
-  donations: Donation[],
-  fullAggregates: Aggregates,
-  dateFrom: string,
-  dateTo: string,
-): Aggregates {
-  if (!dateFrom && !dateTo) return fullAggregates;
-  const from = dateFrom ? new Date(dateFrom).getTime() : 0;
-  const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
-  const filtered = donations.filter((d) => {
-    const ts = d.timestamp.getTime();
-    return ts >= from && ts <= to;
-  });
-  if (filtered.length === 0) return fullAggregates;
-  try {
-    return aggregateDonations(filtered);
-  } catch {
-    return fullAggregates;
-  }
-}
 
 export function ExportPage() {
   const { state } = useAppContext();
@@ -161,39 +81,37 @@ function ExportPageInner() {
   );
   const crossQuarters = useMemo(() => (crossItems ? analyzeCampaigns(crossItems).quarters : []), [crossItems]);
 
-  // ── Stack state — restored from context so gallery ⇄ export keeps edits ──
-  const [cards, setCards] = useState<CardState[]>(() =>
-    mergeCards(stackIds, app.stackCards ?? [], personalComments),
+  // ── Stack data lives in AppContext (app.stackCards/app.stackStyle) — no
+  // local mirror copy, so there's nothing to fall out of sync on a gallery
+  // ⇄ export round trip. mergeCards reconciles against the current template
+  // selection every render (cheap: it matches existing card objects by
+  // templateId), so edits dispatched into context show up immediately.
+  const cards = useMemo(
+    () => mergeCards(stackIds, app.stackCards ?? [], personalComments),
+    [stackIds, personalComments, app.stackCards],
   );
   const [current, setCurrent] = useState(0);
   const safeCurrent = Math.min(current, cards.length - 1);
   const card = cards[safeCurrent];
   const templateId = card.templateId;
+  const sharedStyle = app.stackStyle ?? DEFAULT_SHARED_STYLE;
 
-  // Re-merge when the selection changes while mounted (e.g. "+ додати шаблон")
+  // Persist the reconciled card list into context on mount and whenever the
+  // template selection changes while mounted (e.g. "+ додати шаблон"), guarded
+  // by idsKey so per-keystroke edits (which also change app.stackCards) don't
+  // re-trigger this.
   const idsKey = stackIds.join(',');
-  const prevIdsKey = useRef(idsKey);
+  const prevIdsKey = useRef<string | null>(null);
   useEffect(() => {
     if (prevIdsKey.current === idsKey) return;
     prevIdsKey.current = idsKey;
-    setCards((prev) => mergeCards(stackIds, prev, personalComments));
-  }, [idsKey, stackIds, personalComments]);
-
-  // ── Shared style (series-wide) with optional per-card override ──
-  // Restored from context — losing it on a gallery round-trip silently
-  // reverted linked cards to the default style on export.
-  const [sharedStyle, setSharedStyle] = useState<SharedStyle>(
-    () => app.stackStyle ?? DEFAULT_SHARED_STYLE,
-  );
-
-  // Mirror edits into context so they survive navigating away
-  useEffect(() => {
     dispatch({ type: 'STACK_UPDATED', payload: { cards, style: sharedStyle } });
-  }, [cards, sharedStyle, dispatch]);
+  }, [idsKey, cards, sharedStyle, dispatch]);
 
   const updateCard = useCallback((patch: Partial<CardState>) => {
-    setCards((prev) => prev.map((c, i) => (i === safeCurrent ? { ...c, ...patch, touched: true } : c)));
-  }, [safeCurrent]);
+    const nextCards = cards.map((c, i) => (i === safeCurrent ? { ...c, ...patch, touched: true } : c));
+    dispatch({ type: 'STACK_UPDATED', payload: { cards: nextCards, style: sharedStyle } });
+  }, [cards, safeCurrent, sharedStyle, dispatch]);
 
   const style = card.styleOverride ?? sharedStyle;
   const styleUnlinked = card.styleOverride !== null;
@@ -202,7 +120,7 @@ function ExportPageInner() {
     if (card.styleOverride) {
       updateCard({ styleOverride: { ...card.styleOverride, ...patch } });
     } else {
-      setSharedStyle((prev) => ({ ...prev, ...patch }));
+      dispatch({ type: 'STACK_UPDATED', payload: { cards, style: { ...sharedStyle, ...patch } } });
     }
   };
 
@@ -228,18 +146,16 @@ function ExportPageInner() {
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
     () => new Set([TEMPLATE_GROUPS[0].id]),
   );
-  // Sidebar sections
-  const [formatOpen, setFormatOpen] = useState(true);
-  const [bgOpen, setBgOpen] = useState(false);
-  const [fontOpen, setFontOpen] = useState(false);
-  const [dateOpen, setDateOpen] = useState(false);
-  const [refundsOpen, setRefundsOpen] = useState(false);
-  const [layoutOpen, setLayoutOpen] = useState(false);
-  const [goalOpen, setGoalOpen] = useState(false);
-  const [textEditorOpen, setTextEditorOpen] = useState(false);
-  const [commentsOpen, setCommentsOpen] = useState(false);
-  const [captionOpen, setCaptionOpen] = useState(false);
-  const [stickersOpen, setStickersOpen] = useState(false);
+  // Sidebar sections — which <Collapsible> panels are expanded
+  const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['format']));
+  const toggleSection = useCallback((id: string) => {
+    setOpenSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
 
   const templateRef = useRef<HTMLDivElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
@@ -536,6 +452,28 @@ function ExportPageInner() {
 
   const zipCard = zipCurrentIdx !== null ? cards[zipCurrentIdx] : null;
 
+  // Renders a card's canvas — shared by the live preview and the offscreen ZIP
+  // renderer so a new per-card field only needs wiring into CardCanvas once.
+  // `overrides` lets the live preview reuse its memoized aggregates/comments
+  // instead of recomputing them (aggregation over large campaigns isn't cheap).
+  const renderCard = (
+    c: CardState,
+    refs: { templateRef: React.RefObject<HTMLDivElement>; exRef?: React.RefObject<HTMLDivElement> },
+    overrides?: { aggregates?: Aggregates; selectedComments?: SelectedComment[] },
+  ) => (
+    <CardCanvas
+      card={c}
+      style={c.styleOverride ?? sharedStyle}
+      aggregates={overrides?.aggregates ?? filterAggregates(donations, fullAggregates, c.dateFrom, c.dateTo)}
+      goal={goalValue}
+      commentInsights={commentInsights}
+      crossItems={crossItems}
+      selectedComments={overrides?.selectedComments ?? commentsFor(c)}
+      safeZonePad={showSafeZones}
+      {...refs}
+    />
+  );
+
   return (
     <div>
       <div className="mb-6 flex items-center justify-between">
@@ -623,18 +561,7 @@ function ExportPageInner() {
                 position: 'relative',
               }}
             >
-              <CardCanvas
-                card={card}
-                style={style}
-                aggregates={filteredAggregates}
-                goal={goalValue}
-                commentInsights={commentInsights}
-                crossItems={crossItems}
-                selectedComments={selectedComments}
-                safeZonePad={showSafeZones}
-                exRef={exportRef}
-                templateRef={templateRef}
-              />
+              {renderCard(card, { exRef: exportRef, templateRef }, { aggregates: filteredAggregates, selectedComments })}
 
               {/* Instagram story safe zones — preview only, never exported
                   (the overlay is a sibling of exportRef, outside the capture) */}
@@ -705,7 +632,7 @@ function ExportPageInner() {
         {/* Sidebar */}
         <div className="space-y-4">
           {/* Format — per card */}
-          <Collapsible label={t('format.label')} open={formatOpen} onToggle={() => setFormatOpen(o => !o)}>
+          <Collapsible label={t('format.label')} open={openSections.has('format')} onToggle={() => toggleSection('format')}>
             <div className="flex rounded-lg border border-gray-200 overflow-hidden shadow-sm w-fit">
               {(['post', 'post-4-5', 'story'] as Format[]).map((f) => (
                 <button
@@ -731,8 +658,8 @@ function ExportPageInner() {
             label={t('background.label')}
             badge={styleBadge}
             badgeColor="indigo"
-            open={bgOpen}
-            onToggle={() => setBgOpen(o => !o)}
+            open={openSections.has('background')}
+            onToggle={() => toggleSection('background')}
           >
             <div className="space-y-4">
               {cards.length > 1 && (
@@ -849,8 +776,8 @@ function ExportPageInner() {
           <Collapsible
             label={t('fontScale.label')}
             badge={`${style.fontScale.toFixed(2)}×${styleBadge ? ` · ${styleBadge}` : ''}`}
-            open={fontOpen}
-            onToggle={() => setFontOpen(o => !o)}
+            open={openSections.has('font')}
+            onToggle={() => toggleSection('font')}
           >
             <input type="range" min={0.75} max={2.5} step={0.05} value={style.fontScale} onChange={(e) => patchStyle({ fontScale: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
             <div className="flex justify-between text-[10px] text-gray-400 mt-1">
@@ -864,8 +791,8 @@ function ExportPageInner() {
               label={t('dateRange.label')}
               badge={(card.dateFrom || card.dateTo) ? t('dateRange.filtered', { count: filteredAggregates.donationCount }) : undefined}
               badgeColor="indigo"
-              open={dateOpen}
-              onToggle={() => setDateOpen(o => !o)}
+              open={openSections.has('date')}
+              onToggle={() => toggleSection('date')}
             >
               <div className="space-y-2">
                 <div>
@@ -885,7 +812,7 @@ function ExportPageInner() {
 
           {/* Refunds — per card, conditional */}
           {templateId === 'funds-flow' && filteredAggregates.impliedRefunds > 500 && (
-            <Collapsible label={t('refundsPanel.title')} icon="↩️" open={refundsOpen} onToggle={() => setRefundsOpen(o => !o)} purple>
+            <Collapsible label={t('refundsPanel.title')} icon="↩️" open={openSections.has('refunds')} onToggle={() => toggleSection('refunds')} purple>
               <p className="text-xs text-purple-700 leading-relaxed mb-3">
                 {t('refundsPanel.description', { amount: new Intl.NumberFormat('uk-UA').format(Math.round(filteredAggregates.impliedRefunds)) })}
               </p>
@@ -901,7 +828,7 @@ function ExportPageInner() {
 
           {/* Template sections — per card, conditional */}
           {hasLayoutSection && (
-            <Collapsible label={t('layout.label')} open={layoutOpen} onToggle={() => setLayoutOpen(o => !o)}>
+            <Collapsible label={t('layout.label')} open={openSections.has('layout')} onToggle={() => toggleSection('layout')}>
               <div className="space-y-3">
                 {hasHeaderToggle && (
                   <ToggleRow label={t('layout.header')} value={card.showHeader} onChange={(v) => updateCard({ showHeader: v })} />
@@ -925,7 +852,7 @@ function ExportPageInner() {
 
           {/* Goal — global, conditional */}
           {showGoal && (
-            <Collapsible label={t('goal.label')} open={goalOpen} onToggle={() => setGoalOpen(o => !o)}>
+            <Collapsible label={t('goal.label')} open={openSections.has('goal')} onToggle={() => toggleSection('goal')}>
               <div className="relative">
                 <input
                   type="text"
@@ -964,7 +891,7 @@ function ExportPageInner() {
           )}
 
           {/* Text editor — per card */}
-          <Collapsible label={t('textEditor.label')} open={textEditorOpen} onToggle={() => setTextEditorOpen(o => !o)}>
+          <Collapsible label={t('textEditor.label')} open={openSections.has('textEditor')} onToggle={() => toggleSection('textEditor')}>
             <div className="space-y-3">
               {textFields.map((field) => {
                 const defaultValue =
@@ -999,8 +926,8 @@ function ExportPageInner() {
               label={t('commentPicker.label')}
               badge={`${selectedComments.length}/5`}
               badgeColor="indigo"
-              open={commentsOpen}
-              onToggle={() => setCommentsOpen(o => !o)}
+              open={openSections.has('comments')}
+              onToggle={() => toggleSection('comments')}
             >
               {personalComments.length === 0 ? (
                 <p className="text-xs text-gray-400">{t('commentPicker.empty')}</p>
@@ -1044,7 +971,7 @@ function ExportPageInner() {
           )}
 
           {/* Caption for the post — per card */}
-          <Collapsible label={t('caption.label')} open={captionOpen} onToggle={() => setCaptionOpen(o => !o)}>
+          <Collapsible label={t('caption.label')} open={openSections.has('caption')} onToggle={() => toggleSection('caption')}>
             <textarea
               value={captionValue}
               onChange={(e) => updateCard({ captionText: e.target.value })}
@@ -1086,7 +1013,7 @@ function ExportPageInner() {
 
           {/* Sticker export — per card, conditional */}
           {availableStickers.length > 0 && (
-            <Collapsible label={t('stickers.label')} open={stickersOpen} onToggle={() => setStickersOpen(o => !o)}>
+            <Collapsible label={t('stickers.label')} open={openSections.has('stickers')} onToggle={() => toggleSection('stickers')}>
               <p className="text-xs text-gray-400 mb-2">{t('stickers.hint')}</p>
               <div className="space-y-1.5">
                 {availableStickers.map((s) => (
@@ -1208,17 +1135,7 @@ function ExportPageInner() {
               overflow: 'hidden',
             }}
           >
-            <CardCanvas
-              card={zipCard}
-              style={zipCard.styleOverride ?? sharedStyle}
-              aggregates={filterAggregates(donations, fullAggregates, zipCard.dateFrom, zipCard.dateTo)}
-              goal={goalValue}
-              commentInsights={commentInsights}
-              crossItems={crossItems}
-              selectedComments={commentsFor(zipCard)}
-              safeZonePad={showSafeZones}
-              templateRef={zipInnerRef}
-            />
+            {renderCard(zipCard, { templateRef: zipInnerRef })}
           </div>
         </div>
       )}
