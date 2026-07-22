@@ -16,6 +16,7 @@ interface TextEditorPanelProps {
 
 export function TextEditorPanel({ open, onToggle, templateId, textFields, textOverrides, onSetOverride, onReset, defaultFor }: TextEditorPanelProps) {
   const { t } = useTranslation('export');
+  console.log('>>>', textFields);
   return (
     <Collapsible label={t('textEditor.label')} open={open} onToggle={onToggle}>
       <div className="space-y-3">

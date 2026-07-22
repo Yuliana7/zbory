@@ -1,6 +1,5 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
-import Papa from 'papaparse';
 import '../../src/i18n';
 import i18n from '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
@@ -10,24 +9,13 @@ import { detectMoments } from '../../src/utils/momentDetector';
 import { generateActionableInsights } from '../../src/utils/insightGenerator';
 import { analyzeComments, getPersonalComments } from '../../src/utils/commentAnalyzer';
 import { createZip } from '../../src/utils/zip';
-import type { RawDonation } from '../../src/types';
 import { FinalReportCard } from '../../src/components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../../src/components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../../src/components/templates/EmojiCloudCard';
 import { CommentsCard } from '../../src/components/templates/CommentsCard';
+import { loadRawDonations } from './testFixture';
 
-const csvText = readFileSync('testData/jar_statement_2026-07-05_10-48.csv', 'utf-8').replace(/^\uFEFF/, '');
-const parsed = Papa.parse(csvText, { header: true, skipEmptyLines: true });
-const rawData: RawDonation[] = (parsed.data as Record<string, string>[]).map((row) => ({
-  date: row['Дата та час операції'] || '',
-  category: row['Категорія операції'] || '',
-  amount: row['Сума'] || '0',
-  currency: row['Валюта'] || 'UAH',
-  additionalInfo: row['Додаткова інформація'] || '',
-  comment: row['Коментар до платежу'] || '',
-  balance: row['Залишок'] || '0',
-  balanceCurrency: row['Валюта залишку'] || 'UAH',
-}));
+const rawData = loadRawDonations('testData/Zbir_1.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
 const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
 
@@ -42,21 +30,21 @@ const tExport = i18n.getFixedT('uk', 'export');
 const tInsights = i18n.getFixedT('uk', 'insights');
 
 // ── Caption generator ──
-const caption = generateCaption('progress', aggregates, tExport, { goal: 10000, linkUrl: 'send.monobank.ua/jar/x' });
-console.log('─── Caption (progress, goal 10 000) ───\n' + caption + '\n');
+const caption = generateCaption('progress', aggregates, tExport, { goal: 20000, linkUrl: 'send.monobank.ua/jar/x' });
+console.log('─── Caption (progress, goal 20 000) ───\n' + caption + '\n');
 check('caption: no missing i18n', !caption.includes('caption.') && !caption.includes('{{'));
-check('caption: has stats + link + hashtags', /5\s755/.test(caption.replace(/[\u00A0\u202F]/g, ' ')) && caption.includes('🔗') && caption.includes('#збір'));
+check('caption: has stats + link + hashtags', /11\s?752/.test(caption.replace(/[\u00A0\u202F]/g, ' ')) && caption.includes('🔗') && caption.includes('#збір'));
 
-const askCaption = generateCaption('concrete-ask', aggregates, tExport, { goal: 10000 });
-check('caption ask: concrete units', /по\s.*100/.test(askCaption), askCaption);
+const askCaption = generateCaption('concrete-ask', aggregates, tExport, { goal: 20000 });
+check('caption ask: concrete units', /по\s.*200/.test(askCaption), askCaption);
 
-// ── Concrete ask math: goal 10000, total 5755 → remaining 4245, median 100 → unit 100 → 43 донати ──
-check('defaultAskUnit(median 100) = 100', defaultAskUnit(aggregates.medianDonation) === 100);
-let html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} goal={10000} format="post" />);
-check('ConcreteAsk: 43 донатів по 100 ₴', html.includes('43') && /по.*100\s*₴/.test(html.replace(/<[^>]+>/g, ' ')));
-check('ConcreteAsk: remaining 4 245', /4\s?245/.test(html.replace(/ /g, ' ')));
-html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} goal={10000} format="post" textOverrides={{ unitAmount: '500' }} />);
-check('ConcreteAsk: unit override 500 → 9 донатів', html.includes('>Ще 9 донатів<') || html.replace(/<[^>]+>/g, ' ').includes('Ще 9 донатів'));
+// ── Concrete ask math: goal 20000, total 11752 → remaining 8248, median 333 → unit 200 → 42 донати ──
+check('defaultAskUnit(median 333) = 200', defaultAskUnit(aggregates.medianDonation) === 200);
+let html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} goal={20000} format="post" />);
+check('ConcreteAsk: 42 донатів по 200 ₴', html.includes('42') && /по.*200\s*₴/.test(html.replace(/<[^>]+>/g, ' ')));
+check('ConcreteAsk: remaining 8 248', /8\s?248/.test(html.replace(/ /g, ' ')));
+html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} goal={20000} format="post" textOverrides={{ unitAmount: '500' }} />);
+check('ConcreteAsk: unit override 500 → 17 донатів', html.includes('>Ще 17 донатів<') || html.replace(/<[^>]+>/g, ' ').includes('Ще 17 донатів'));
 html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} goal={5000} format="post" />);
 check('ConcreteAsk: goal reached state', html.includes('Мету досягнуто'));
 html = renderToStaticMarkup(<ConcreteAskCard aggregates={aggregates} format="post" />);
@@ -65,7 +53,7 @@ check('ConcreteAsk: no-goal fallback', html.includes('Підтримай збі�
 // ── Final report ──
 html = renderToStaticMarkup(<FinalReportCard aggregates={aggregates} format="post" />);
 const text = html.replace(/<[^>]+>/g, ' ');
-check('FinalReport: hero total 5 755', /5\s?755/.test(text.replace(/ /g, ' ')));
+check('FinalReport: hero total 11 752', /11\s?752/.test(text.replace(/ /g, ' ')));
 check('FinalReport: days + donations + best day', text.includes('Днів') && text.includes('Донатів') && text.includes('Найкращий день'));
 check('FinalReport: thank-you message', text.includes('Дякуємо кожному'));
 check('FinalReport: standard footer', text.includes('Медіана') || text.includes('Типовий'));
@@ -130,18 +118,18 @@ check('safeZonePad ignored for post-4-5 format', html.includes('padding:80px'));
 check('post-4-5 renders at 1080x1350', html.includes('height:1350px'));
 
 // ── Moments ──
-const moments = detectMoments(aggregates, tInsights, 10000);
-console.log('─── Moments (goal 10 000) ───');
+const moments = detectMoments(aggregates, tInsights, 20000);
+console.log('─── Moments (goal 20 000) ───');
 for (const m of moments) console.log(`  ${m.icon} ${m.text} → ${m.templateId}`);
 check('moments: goal 50% detected', moments.some((m) => m.id === 'goal-50'));
-check('moments: record day is stale (best day = 1 July, last = 5 July) → absent', !moments.some((m) => m.id === 'record-day'));
+check('moments: record day is fresh (single-day campaign, best day = last day) → present', moments.some((m) => m.id === 'record-day'));
 check('moments: no missing i18n', moments.every((m) => !m.text.includes('moments.') && !m.text.includes('{{')));
 
 // ── Concrete-ask action insight ──
-const actions = generateActionableInsights(aggregates, tInsights, 10000);
+const actions = generateActionableInsights(aggregates, tInsights, 20000);
 const ask = actions.find((a) => a.icon === '🧮');
 console.log(`─── Ask insight ───\n  ${ask?.value}\n  ${ask?.description}\n`);
-check('ask insight present with 43 units', !!ask && ask.value!.includes('43'));
+check('ask insight present with 42 units', !!ask && ask.value!.includes('42'));
 
 // ── ZIP writer: build a zip, verify with unzip ──
 const zipBlob = createZip([

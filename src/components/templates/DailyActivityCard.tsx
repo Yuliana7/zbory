@@ -42,8 +42,10 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
 
     const maxVal = chartPoints[chartPoints.length - 1]?.total || 1;
 
+    // chartPoints.length - 1 is 0 for a single-day campaign (only one point) —
+    // guard against dividing by zero, which produced NaN coordinates.
     const toSvgX = (i: number) =>
-      padX + (i / (chartPoints.length - 1)) * (svgW - padX * 2);
+      padX + (i / Math.max(1, chartPoints.length - 1)) * (svgW - padX * 2);
     const toSvgY = (val: number) =>
       padY + (1 - val / maxVal) * (svgH - padY * 2);
 
@@ -55,7 +57,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
       linePath +
       ` L ${toSvgX(chartPoints.length - 1)} ${svgH - padY} L ${toSvgX(0)} ${svgH - padY} Z`;
 
-    const labelIndices = [0, Math.floor(chartPoints.length / 2), chartPoints.length - 1];
+    // Deduped — a single-day campaign has one chart point, so all three
+    // positions (start/middle/end) would otherwise collapse onto the same index.
+    const labelIndices = [...new Set([0, Math.floor(chartPoints.length / 2), chartPoints.length - 1])];
     const formatShort = (dateStr: string) => {
       const d = new Date(dateStr);
       return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
