@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ReportStats } from '../../utils/campaignAnalytics';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem, cardPadding } from '../../utils/units';
-import { NoWrap, CardHeader } from './shared';
+import { NoWrap, CardHeader, UAFlagBar } from './shared';
 
 interface ReportCardProps {
   report: ReportStats;
@@ -14,6 +14,7 @@ interface ReportCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
+  showUAFlag?: boolean;
 }
 
 const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -22,7 +23,7 @@ const fmtDate = (d: Date) =>
 
 /** Cross-campaign report («Звіти»): totals for a quarter / year / all time as one shareable image. */
 export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
-  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
+  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -162,16 +163,7 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
           {tx('thanks')}
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />
+        <UAFlagBar show={showUAFlag} />
       </div>
     );
   },

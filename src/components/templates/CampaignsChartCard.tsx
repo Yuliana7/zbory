@@ -5,7 +5,7 @@ import type { CampaignMeta } from '../../utils/campaignStore';
 import { analyzeCampaigns } from '../../utils/campaignAnalytics';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem, cardPadding } from '../../utils/units';
-import { NoWrap, CardHeader } from './shared';
+import { NoWrap, CardHeader, UAFlagBar } from './shared';
 
 interface CampaignsChartCardProps {
   items: Array<{ meta: CampaignMeta; rawData: RawDonation[] }>;
@@ -15,6 +15,7 @@ interface CampaignsChartCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
+  showUAFlag?: boolean;
 }
 
 const LINE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
@@ -22,7 +23,7 @@ const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n)
 
 /** Multi-campaign template: cumulative curves aligned by campaign day + per-jar totals. */
 export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardProps>(
-  ({ items, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad }, ref) => {
+  ({ items, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -124,16 +125,7 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
           ))}
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />
+        <UAFlagBar show={showUAFlag} />
       </div>
     );
   },

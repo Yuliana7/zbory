@@ -163,9 +163,9 @@ function TemplateRenderer({
         ? tCamp('report.labelYear', { year: period.year })
         : tCamp('report.labelQuarter', { quarter: period.quarter, year: period.year });
 
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad };
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides, fontScale, bgOverride, safeZonePad, showUAFlag };
   switch (templateId) {
-    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} showUAFlag={showUAFlag} />;
+    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
     case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
     case 'thank-you': return <ThankYouCard {...shared} />;
     case 'milestone': return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;

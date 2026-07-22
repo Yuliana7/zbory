@@ -4,7 +4,7 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, CardFooter, NoWrap } from './shared';
+import { CardHeader, CardFooter, NoWrap, UAFlagBar } from './shared';
 import { cardPadding } from '../../utils/units';
 
 interface ProgressCardProps {
@@ -179,16 +179,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
           />
         )}
-        {showUAFlag && (<div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 8,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />)}
+        <UAFlagBar show={showUAFlag} />
       </div>
     );
   }

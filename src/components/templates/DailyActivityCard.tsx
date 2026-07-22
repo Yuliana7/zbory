@@ -4,7 +4,7 @@ import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/da
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, NoWrap } from './shared';
+import { CardHeader, NoWrap, UAFlagBar } from './shared';
 import { cardPadding } from '../../utils/units';
 
 interface DailyActivityCardProps {
@@ -19,10 +19,11 @@ interface DailyActivityCardProps {
   showChart?: boolean;
   showBars?: boolean;
   showBestDay?: boolean;
+  showUAFlag?: boolean;
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const isPost = format !== 'story';
     const p = palette;
@@ -278,16 +279,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
           ))}
         </div>
 
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 10,
-            background: 'linear-gradient(90deg, #005BBB 50%, #FFD500 50%)',
-          }}
-        />
+        <UAFlagBar show={showUAFlag} height={10} />
       </div>
     );
   }
