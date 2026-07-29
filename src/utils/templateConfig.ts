@@ -203,46 +203,45 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   'campaigns-chart': 'story',
 };
 
-// Which templates render the standard toggleable header (₴ badge + title)
-export const TEMPLATE_HAS_HEADER: Record<TemplateType, boolean> = {
-  progress: true,
-  'daily-activity': true,
-  'thank-you': false,
-  milestone: true,
-  'top-donors': false,
-  'top-donors-count': false,
-  'donors-count': false,
-  urgency: true,
-  'weekly-recap': true,
-  speed: true,
-  'funds-flow': true,
-  'final-report': true,
-  'concrete-ask': true,
-  'emoji-cloud': false,
-  comments: false,
-  report: false,
-  'campaigns-chart': false,
-};
+// Elements the tap-to-remove editor can hide, per template. `id` matches the
+// data-element="id" attribute in the card markup; `field` is the CardState
+// boolean it flips. `storyOnly` hides the entry itself in post format (the
+// element doesn't render there at all, e.g. Daily Activity's bars chart).
+export interface RemovableElement {
+  id: string;
+  labelKey: string;
+  field: 'showHeader' | 'showFooter' | 'showUAFlag' | 'showChart' | 'showBars' | 'showBestDay';
+  storyOnly?: boolean;
+}
 
-// Progress-category templates share the standard toggleable footer
-export const TEMPLATE_HAS_FOOTER: Record<TemplateType, boolean> = {
-  progress: true,
-  'daily-activity': false,
-  'thank-you': false,
-  milestone: true,
-  'top-donors': false,
-  'top-donors-count': false,
-  'donors-count': false,
-  urgency: true,
-  'weekly-recap': true,
-  speed: true,
-  'funds-flow': true,
-  'final-report': true,
-  'concrete-ask': true,
-  'emoji-cloud': false,
-  comments: false,
-  report: false,
-  'campaigns-chart': false,
+const HEADER: RemovableElement = { id: 'header', labelKey: 'layout.header', field: 'showHeader' };
+const FOOTER: RemovableElement = { id: 'footer', labelKey: 'layout.footer', field: 'showFooter' };
+const UA_FLAG: RemovableElement = { id: 'uaflag', labelKey: 'layout.UAFlag', field: 'showUAFlag' };
+
+export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[]> = {
+  progress: [HEADER, FOOTER, UA_FLAG],
+  'daily-activity': [
+    HEADER,
+    UA_FLAG,
+    { id: 'chart', labelKey: 'layout.chart', field: 'showChart' },
+    { id: 'bars', labelKey: 'layout.bars', field: 'showBars', storyOnly: true },
+    { id: 'bestDay', labelKey: 'layout.bestDay', field: 'showBestDay' },
+  ],
+  'thank-you': [UA_FLAG],
+  milestone: [HEADER, FOOTER, UA_FLAG],
+  'top-donors': [UA_FLAG],
+  'top-donors-count': [UA_FLAG],
+  'donors-count': [UA_FLAG],
+  urgency: [HEADER, FOOTER, UA_FLAG],
+  'weekly-recap': [HEADER, FOOTER, UA_FLAG],
+  speed: [HEADER, FOOTER, UA_FLAG],
+  'funds-flow': [HEADER, FOOTER, UA_FLAG],
+  'final-report': [HEADER, FOOTER, UA_FLAG],
+  'concrete-ask': [HEADER, FOOTER, UA_FLAG],
+  'emoji-cloud': [UA_FLAG],
+  comments: [UA_FLAG],
+  report: [UA_FLAG],
+  'campaigns-chart': [UA_FLAG],
 };
 
 // Gallery categories — also used by the editor's "add template" picker

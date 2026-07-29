@@ -21,8 +21,7 @@ import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
   TEMPLATE_REQUIRES_GOAL,
-  TEMPLATE_HAS_HEADER,
-  TEMPLATE_HAS_FOOTER,
+  TEMPLATE_REMOVABLE_ELEMENTS,
   TEMPLATE_STICKERS,
   TEMPLATE_GROUPS,
 } from '../../utils/templateConfig';
@@ -35,6 +34,7 @@ import {
   TrashIcon,
 } from '../../icons';
 import { CardCanvas } from './CardCanvas';
+import { ElementsOverlay } from './ElementsOverlay';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
 import { FontScalePanel } from './panels/FontScalePanel';
@@ -133,6 +133,11 @@ function ExportPageInner() {
   const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
   const [isExporting, setIsExporting] = useState(false);
   const [showSafeZones, setShowSafeZones] = useState(false);
+  // Element edit mode: freezes background drag/zoom + swipe-nav and shows
+  // the tap-to-remove overlay over the preview instead.
+  const [elementsEditMode, setElementsEditMode] = useState(false);
+  const elementsEditModeRef = useRef(elementsEditMode);
+  elementsEditModeRef.current = elementsEditMode;
   const [captionCopied, setCaptionCopied] = useState(false);
   const [allCaptionsCopied, setAllCaptionsCopied] = useState(false);
   const [availableStickers, setAvailableStickers] = useState<string[]>([]);
@@ -229,7 +234,7 @@ function ExportPageInner() {
     const el = previewClipRef.current;
     if (!el) return;
     const onWheel = (e: WheelEvent) => {
-      if (!styleRef.current.bgImage) return;
+      if (!styleRef.current.bgImage || elementsEditModeRef.current) return;
       e.preventDefault();
       const next = Math.min(3, Math.max(1, styleRef.current.bgZoom + (e.deltaY < 0 ? 0.08 : -0.08)));
       patchStyleRef.current({ bgZoom: Math.round(next * 100) / 100 });
@@ -447,17 +452,21 @@ function ExportPageInner() {
     );
   }, [commentInsights, personalComments, crossItems]);
 
-  const previewW = Math.round(dims.width * effectiveScale);
-  const previewH = Math.round(dims.height * effectiveScale);
+  // Ceil, not round: previewClipRef clips the scaled-down card at exactly
+  // these pixel dimensions. Rounding down even by a fraction of a pixel made
+  // the clip box marginally smaller than the true scaled content, which the
+  // live compositor would crop right at the edge (most visible on trailing
+  // glyphs like emoji, whose visual ink often extends past their advance box)
+  // — exports/screenshots render the native, unscaled card and never hit this.
+  const previewW = Math.ceil(dims.width * effectiveScale);
+  const previewH = Math.ceil(dims.height * effectiveScale);
 
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
   const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report';
 
-  const hasHeaderToggle = TEMPLATE_HAS_HEADER[templateId];
-  const hasFooterToggle = TEMPLATE_HAS_FOOTER[templateId];
-  const hasLayoutSection = hasHeaderToggle || hasFooterToggle || templateId === 'daily-activity';
+  const removableElements = TEMPLATE_REMOVABLE_ELEMENTS[templateId];
 
   const zipCard = zipCurrentIdx !== null ? cards[zipCurrentIdx] : null;
 
@@ -513,12 +522,13 @@ function ExportPageInner() {
           className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
           style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
           onTouchStart={(e) => {
-            // With a background photo, touch on the preview drags the photo instead
-            if (style.bgImage) return;
+            // With a background photo, touch on the preview drags the photo instead;
+            // element edit mode freezes the canvas entirely (no drag, no swipe)
+            if (style.bgImage || elementsEditMode) return;
             touchStartX.current = e.touches[0].clientX;
           }}
           onTouchEnd={(e) => {
-            if (touchStartX.current === null) return;
+            if (touchStartX.current === null || elementsEditMode) return;
             const delta = e.changedTouches[0].clientX - touchStartX.current;
             touchStartX.current = null;
             if (Math.abs(delta) < 60) return;
@@ -535,12 +545,12 @@ function ExportPageInner() {
               borderRadius: 8,
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
-              cursor: style.bgImage ? (bgDrag.current ? 'grabbing' : 'grab') : undefined,
-              touchAction: style.bgImage ? 'none' : undefined,
-              userSelect: style.bgImage ? 'none' : undefined,
+              cursor: elementsEditMode ? undefined : style.bgImage ? (bgDrag.current ? 'grabbing' : 'grab') : undefined,
+              touchAction: style.bgImage && !elementsEditMode ? 'none' : undefined,
+              userSelect: style.bgImage && !elementsEditMode ? 'none' : undefined,
             }}
             onPointerDown={(e) => {
-              if (!style.bgImage) return;
+              if (!style.bgImage || elementsEditMode) return;
               e.currentTarget.setPointerCapture(e.pointerId);
               bgDrag.current = {
                 startX: e.clientX,
@@ -566,8 +576,15 @@ function ExportPageInner() {
               style={{
                 width: dims.width,
                 height: dims.height,
-                transform: `scale(${effectiveScale})`,
-                transformOrigin: 'top left',
+                // zoom, not transform: scale() — zoom makes the browser
+                // actually re-layout/re-paint this subtree at the final
+                // size instead of rasterizing at native 1080px and visually
+                // transforming it after the fact. The transform+overflow:
+                // hidden combination was leaving stale/partial paints in
+                // Firefox (clipped emoji glyphs) that a forced reflow only
+                // fixed momentarily — zoom sidesteps that bug category
+                // entirely rather than working around it.
+                zoom: effectiveScale,
                 position: 'relative',
               }}
             >
@@ -580,6 +597,18 @@ function ExportPageInner() {
                   <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 250, background: 'rgba(244,63,94,0.14)', borderBottom: '3px dashed rgba(244,63,94,0.55)', pointerEvents: 'none' }} />
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 310, background: 'rgba(244,63,94,0.14)', borderTop: '3px dashed rgba(244,63,94,0.55)', pointerEvents: 'none' }} />
                 </>
+              )}
+
+              {/* Tap-to-remove overlay — preview only, never exported (same
+                  sibling-of-exportRef technique as the safe zones above) */}
+              {elementsEditMode && (
+                <ElementsOverlay
+                  templateRef={templateRef}
+                  elements={removableElements}
+                  card={card}
+                  effectiveScale={effectiveScale}
+                  onHide={(field) => updateCard({ [field]: false })}
+                />
               )}
             </div>
           </div>
@@ -696,28 +725,14 @@ function ExportPageInner() {
             />
           )}
 
-          {hasLayoutSection && (
-            <LayoutPanel
-              open={openSections.has('layout')}
-              onToggle={() => toggleSection('layout')}
-              isDailyActivity={templateId === 'daily-activity'}
-              format={card.format}
-              hasHeaderToggle={hasHeaderToggle}
-              hasFooterToggle={hasFooterToggle}
-              showHeader={card.showHeader}
-              onShowHeaderChange={(v) => updateCard({ showHeader: v })}
-              showFooter={card.showFooter}
-              onShowFooterChange={(v) => updateCard({ showFooter: v })}
-              showUAFlag={card.showUAFlag}
-              onShowUAFlagChange={(v) => updateCard({ showUAFlag: v })}
-              showChart={card.showChart}
-              onShowChartChange={(v) => updateCard({ showChart: v })}
-              showBars={card.showBars}
-              onShowBarsChange={(v) => updateCard({ showBars: v })}
-              showBestDay={card.showBestDay}
-              onShowBestDayChange={(v) => updateCard({ showBestDay: v })}
-            />
-          )}
+          <LayoutPanel
+            elements={removableElements}
+            format={card.format}
+            card={card}
+            editMode={elementsEditMode}
+            onToggleEditMode={() => setElementsEditMode((v) => !v)}
+            onRestore={(field) => updateCard({ [field]: true })}
+          />
 
           {showGoal && (
             <GoalPanel

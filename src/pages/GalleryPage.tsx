@@ -255,8 +255,8 @@ function TemplatePreview({ id, aggregates, goal, commentInsights, previewComment
             left: 0,
             width: NATIVE,
             height: NATIVE,
-            transform: `scale(${scale})`,
-            transformOrigin: 'top left',
+            // zoom, not transform: scale() — see ExportPage/index.tsx for why.
+            zoom: scale,
             pointerEvents: 'none',
             userSelect: 'none',
           }}

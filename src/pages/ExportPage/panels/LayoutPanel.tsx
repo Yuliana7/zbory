@@ -1,59 +1,56 @@
 import { useTranslation } from 'react-i18next';
+import type { CardState } from '../../../types';
 import type { Format } from '../../../utils/exportStack';
-import { Collapsible, ToggleRow } from '../shared';
+import type { RemovableElement } from '../../../utils/templateConfig';
+import { PlusIcon } from '../../../icons';
 
 interface LayoutPanelProps {
-  open: boolean;
-  onToggle: () => void;
-  isDailyActivity: boolean;
+  elements: RemovableElement[];
   format: Format;
-  hasHeaderToggle: boolean;
-  hasFooterToggle: boolean;
-  showHeader: boolean;
-  onShowHeaderChange: (v: boolean) => void;
-  showFooter: boolean;
-  onShowFooterChange: (v: boolean) => void;
-  showUAFlag: boolean;
-  onShowUAFlagChange: (v: boolean) => void;
-  showChart: boolean;
-  onShowChartChange: (v: boolean) => void;
-  showBars: boolean;
-  onShowBarsChange: (v: boolean) => void;
-  showBestDay: boolean;
-  onShowBestDayChange: (v: boolean) => void;
+  card: CardState;
+  editMode: boolean;
+  onToggleEditMode: () => void;
+  onRestore: (field: RemovableElement['field']) => void;
 }
 
-export function LayoutPanel({
-  open, onToggle, isDailyActivity, format,
-  hasHeaderToggle, hasFooterToggle,
-  showHeader, onShowHeaderChange,
-  showFooter, onShowFooterChange,
-  showUAFlag, onShowUAFlagChange,
-  showChart, onShowChartChange,
-  showBars, onShowBarsChange,
-  showBestDay, onShowBestDayChange,
-}: LayoutPanelProps) {
+/**
+ * Replaces the old flat switch list: one button arms "element edit mode"
+ * (tap elements on the canvas to hide them — see ElementsOverlay), and
+ * hidden elements surface here as restore chips instead of a permanent
+ * toggle row per element.
+ */
+export function LayoutPanel({ elements, format, card, editMode, onToggleEditMode, onRestore }: LayoutPanelProps) {
   const { t } = useTranslation('export');
+  const visible = elements.filter((e) => !e.storyOnly || format === 'story');
+  const hidden = visible.filter((e) => !card[e.field]);
+
   return (
-    <Collapsible label={t('layout.label')} open={open} onToggle={onToggle}>
-      <div className="space-y-3">
-        {hasHeaderToggle && (
-          <ToggleRow label={t('layout.header')} value={showHeader} onChange={onShowHeaderChange} />
-        )}
-        {hasFooterToggle && (
-          <ToggleRow label={t('layout.footer')} value={showFooter} onChange={onShowFooterChange} />
-        )}
-        <ToggleRow label={t('layout.UAFlag')} value={showUAFlag} onChange={onShowUAFlagChange} />
-        {isDailyActivity && (
-          <>
-            <ToggleRow label={t('layout.chart')} value={showChart} onChange={onShowChartChange} />
-            {format === 'story' && (
-              <ToggleRow label={t('layout.bars')} value={showBars} onChange={onShowBarsChange} />
-            )}
-            <ToggleRow label={t('layout.bestDay')} value={showBestDay} onChange={onShowBestDayChange} />
-          </>
-        )}
-      </div>
-    </Collapsible>
+    <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
+      <button
+        onClick={onToggleEditMode}
+        className={`w-full px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors ${editMode ? 'bg-indigo-600 text-white' : 'bg-indigo-50 text-indigo-700 hover:bg-indigo-100'
+          }`}
+      >
+        {editMode ? t('layout.done') : t('layout.editButton')}
+      </button>
+      {editMode && <p className="text-xs text-gray-400 text-center">{t('layout.editHint')}</p>}
+      {hidden.length > 0 && (
+        <div>
+          <p className="text-xs text-gray-400 mb-1.5">{t('layout.hiddenLabel')}</p>
+          <div className="flex flex-wrap gap-1.5">
+            {hidden.map((e) => (
+              <button
+                key={e.id}
+                onClick={() => onRestore(e.field)}
+                className="flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-full transition-colors"
+              >
+                {t(e.labelKey)}
+                <PlusIcon className="w-3 h-3" />
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
