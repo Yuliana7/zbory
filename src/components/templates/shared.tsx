@@ -17,6 +17,7 @@ export function UAFlagBar({ show = true, height = 8 }: { show?: boolean; height?
   if (!show) return null;
   return (
     <div
+      data-element="uaflag"
       style={{
         position: 'absolute',
         bottom: 0,
@@ -41,7 +42,7 @@ interface CardHeaderProps {
 /** Standard template header: ₴ badge + title, no bordered box */
 export function CardHeader({ palette: p, fz, title, right, marginBottom = 0 }: CardHeaderProps) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom }}>
+    <div data-element="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         <div
           style={{
@@ -89,6 +90,7 @@ export function CardFooter({ palette: p, fz, aggregates, labels }: CardFooterPro
   ];
   return (
     <div
+      data-element="footer"
       style={{
         display: 'flex',
         justifyContent: 'space-between',
