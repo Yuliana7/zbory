@@ -28,7 +28,9 @@ import {
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  CheckIcon,
   DownloadIcon,
+  EditIcon,
   PlusIcon,
   SpinnerIcon,
   TrashIcon,
@@ -40,7 +42,7 @@ import { BackgroundPanel } from './panels/BackgroundPanel';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
 import { RefundsPanel } from './panels/RefundsPanel';
-import { LayoutPanel } from './panels/LayoutPanel';
+import { HiddenElementsChips } from './panels/HiddenElementsChips';
 import { GoalPanel } from './panels/GoalPanel';
 import { ReportPeriodPanel } from './panels/ReportPeriodPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
@@ -536,6 +538,24 @@ function ExportPageInner() {
             else goNext();
           }}
         >
+          {/* Element edit mode — sits above the preview, mirroring "Додати
+              шаблон" below it (same pill style); both are actions on the
+              whole card, not a specific field, so they read as a matched
+              pair bookending the canvas. Lives inside the sticky preview
+              container (not the sidebar list) so it's always reachable
+              without scrolling, on any viewport. */}
+          <button
+            onClick={() => setElementsEditMode((v) => !v)}
+            title={elementsEditMode ? t('layout.done') : t('layout.editButton')}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shadow-sm transition-all ${elementsEditMode
+              ? 'bg-indigo-600 border border-indigo-600 text-white hover:bg-indigo-700'
+              : 'bg-white border border-dashed border-gray-300 text-gray-500 hover:text-indigo-700 hover:border-indigo-400'
+              }`}
+          >
+            {elementsEditMode ? <CheckIcon className="w-3.5 h-3.5" /> : <EditIcon className="w-3.5 h-3.5" />}
+            {elementsEditMode ? t('layout.done') : t('layout.editButton')}
+          </button>
+
           <div
             ref={previewClipRef}
             style={{
@@ -612,6 +632,16 @@ function ExportPageInner() {
               )}
             </div>
           </div>
+
+          {elementsEditMode && (
+            <p className="text-xs text-gray-400 text-center max-w-full">{t('layout.editHint')}</p>
+          )}
+          <HiddenElementsChips
+            elements={removableElements}
+            format={card.format}
+            card={card}
+            onRestore={(field) => updateCard({ [field]: true })}
+          />
 
           {/* Stack navigation — wraps onto extra lines instead of overflowing
               the preview box once enough cards make the dots row too wide */}
@@ -724,15 +754,6 @@ function ExportPageInner() {
               onShowRefundsChange={(v) => updateCard({ showRefunds: v })}
             />
           )}
-
-          <LayoutPanel
-            elements={removableElements}
-            format={card.format}
-            card={card}
-            editMode={elementsEditMode}
-            onToggleEditMode={() => setElementsEditMode((v) => !v)}
-            onRestore={(field) => updateCard({ [field]: true })}
-          />
 
           {showGoal && (
             <GoalPanel

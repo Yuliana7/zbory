@@ -12,6 +12,13 @@ interface ElementBox {
   height: number;
 }
 
+// Constant on-screen sizes (CSS px) for the remove button — see the
+// effectiveScale division below for why these can't just be plain numbers.
+// 44px matches the standard minimum recommended touch-target size.
+const BUTTON_SIZE = 44;
+const ICON_SIZE = 20;
+const BORDER_WIDTH = 2;
+
 interface ElementsOverlayProps {
   templateRef: React.RefObject<HTMLDivElement>;
   elements: RemovableElement[];
@@ -71,6 +78,16 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
     });
   });
 
+  // The overlay lives inside the same zoomed wrapper as the card, so a fixed
+  // native-space (1080-design) size shrinks right along with the preview —
+  // on mobile, where the preview is zoomed down a lot to leave room for the
+  // control panel, that made the remove button too small to reliably tap.
+  // Dividing by effectiveScale here keeps the button/icon/border at a
+  // constant size on screen no matter how zoomed-out the preview is.
+  const btnSize = BUTTON_SIZE / effectiveScale;
+  const iconSize = ICON_SIZE / effectiveScale;
+  const borderWidth = BORDER_WIDTH / effectiveScale;
+
   return (
     <>
       {boxes.map((b) => (
@@ -82,7 +99,7 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
             top: b.top,
             width: b.width,
             height: b.height,
-            border: '3px dashed rgba(99,102,241,0.9)',
+            border: `${borderWidth}px dashed rgba(99,102,241,0.9)`,
             borderRadius: 10,
             pointerEvents: 'none',
           }}
@@ -91,20 +108,22 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
             onClick={() => onHide(b.field)}
             style={{
               position: 'absolute',
-              top: -16,
-              right: -16,
-              width: 36,
-              height: 36,
+              top: '50%',
+              left: '50%',
+              transform: 'translate(-50%, -50%)',
+              width: btnSize,
+              height: btnSize,
               borderRadius: '50%',
-              background: '#dc2626',
               boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
               pointerEvents: 'auto',
               cursor: 'pointer',
               border: 'none',
             }}
-            className="flex items-center justify-center text-white hover:bg-red-700 transition-colors"
+            className="flex items-center justify-center bg-gray-600/90 hover:bg-gray-700 text-white transition-colors"
           >
-            <XIcon className="w-4 h-4" />
+            <span style={{ width: iconSize, height: iconSize }}>
+              <XIcon className="w-full h-full" />
+            </span>
           </button>
         </div>
       ))}
