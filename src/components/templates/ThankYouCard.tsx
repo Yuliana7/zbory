@@ -4,8 +4,7 @@ import { generateThankYouMessage } from '../../utils/insightGenerator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { cardPadding } from '../../utils/units';
-import { UAFlagBar } from './shared';
+import { UAFlagBar, CardShell, GlowBlob } from './shared';
 
 interface ThankYouCardProps {
   aggregates: Aggregates;
@@ -22,7 +21,6 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
   ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
     const { t: tInsights } = useTranslation('insights');
-    const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`thank-you.${key}`);
@@ -31,38 +29,8 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
     const formattedTotal = new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount));
 
     return (
-      <div
-        ref={ref}
-        style={{
-          width: 1080,
-          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
-          background: bgOverride ?? p.background,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: cardPadding(isStory, safeZonePad, '120px 80px'),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: p.primary,
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflow: 'hidden',
-          textAlign: 'center',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: '50%',
-            left: '50%',
-            transform: 'translate(-50%, -50%)',
-            width: 800,
-            height: 800,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 65%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="120px 80px" center>
+        <GlowBlob palette={p} fade={65} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, height: 800 }} />
 
         {[
           { top: 40, left: 40 },
@@ -163,7 +131,7 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
         </div>
 
         <UAFlagBar show={showUAFlag} />
-      </div>
+      </CardShell>
     );
   }
 );

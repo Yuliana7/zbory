@@ -4,8 +4,7 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, CardFooter, NoWrap, UAFlagBar } from './shared';
-import { cardPadding } from '../../utils/units';
+import { CardHeader, CardFooter, NoWrap, UAFlagBar, CardShell, GlowBlob } from './shared';
 
 interface ProgressCardProps {
   aggregates: Aggregates;
@@ -24,7 +23,6 @@ interface ProgressCardProps {
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
   ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
     const { t } = useTranslation('templates');
-    const isStory = format === 'story';
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
     const tx = (key: string, fallback?: string) => textOverrides[key] ?? fallback ?? t(`progress.${key}`);
@@ -56,46 +54,9 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           : `${progressPct}%`;
 
     return (
-      <div
-        ref={ref}
-        style={{
-          width: 1080,
-          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
-          background: bgOverride ?? p.background,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: p.primary,
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: -200,
-            right: -200,
-            width: 700,
-            height: 700,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }}
-        />
-        <div
-          style={{
-            position: 'absolute',
-            bottom: -150,
-            left: -150,
-            width: 500,
-            height: 500,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
+        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        <GlowBlob palette={p} style={{ bottom: -150, left: -150, width: 500, height: 500 }} />
 
         {/* Header */}
         {showHeader && (
@@ -180,7 +141,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
           />
         )}
         <UAFlagBar show={showUAFlag} />
-      </div>
+      </CardShell>
     );
   }
 );

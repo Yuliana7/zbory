@@ -14,7 +14,7 @@ import { TopDonorsCard } from '../../src/components/templates/TopDonorsCard';
 import { DonorsCountCard } from '../../src/components/templates/DonorsCountCard';
 import { ThankYouCard } from '../../src/components/templates/ThankYouCard';
 
-const rawData = loadRawDonations('testData/Zbir_1.csv');
+const rawData = loadRawDonations('tests/data/Zbir_short.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
 const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
 
@@ -29,14 +29,14 @@ const strip = (html: string) => html.replace(/<[^>]+>/g, ' ');
 // ── Progress card ──
 let html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" />);
 check('Progress: no subtitle text', !html.includes('Аналітика збору'));
-check('Progress: header date range (single-day campaign)', html.includes('16 червня 2026'));
-check('Progress: footer median 333 ₴ (not average 511)', strip(html).includes('Медіана') && /333\s*₴/.test(strip(html)));
-check('Progress: footer max 5 000 ₴', /5\s?000\s*₴/.test(strip(html).replace(/\u00A0/g, ' ')));
+check('Progress: header date range (single-day campaign)', html.includes('12 травня 2026'));
+check('Progress: footer median 200 ₴ (not average 320)', strip(html).includes('Медіана') && /200\s*₴/.test(strip(html)));
+check('Progress: footer max 1 000 ₴', /1\s?000\s*₴/.test(strip(html).replace(/\u00A0/g, ' ')));
 check('Progress: footer Зібрано present', (strip(html).match(/Зібрано/g) || []).length >= 2);
 
 // header/footer toggles
 html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" showHeader={false} showFooter={false} />);
-check('Progress: hidden header/footer', !html.includes('Медіана') && !html.includes('червня 2026'));
+check('Progress: hidden header/footer', !html.includes('Медіана') && !html.includes('травня 2026'));
 
 // editable date range override
 html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" textOverrides={{ dateRange: 'МІЙ ДІАПАЗОН' }} />);
