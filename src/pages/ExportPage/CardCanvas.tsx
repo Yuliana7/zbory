@@ -42,6 +42,7 @@ export function CardCanvas({ card, style, aggregates, goal, commentInsights, cro
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
   const bgOverride = style.bgTransparent || style.bgImage ? 'transparent' : style.bgColor ?? undefined;
+  const hidden = useMemo(() => new Set(card.hiddenElements), [card.hiddenElements]);
 
   return (
     <div
@@ -82,12 +83,7 @@ export function CardCanvas({ card, style, aggregates, goal, commentInsights, cro
         fontScale={style.fontScale}
         showRefunds={card.showRefunds}
         bgOverride={bgOverride}
-        showHeader={card.showHeader}
-        showFooter={card.showFooter}
-        showUAFlag={card.showUAFlag}
-        showChart={card.showChart}
-        showBars={card.showBars}
-        showBestDay={card.showBestDay}
+        hidden={hidden}
         safeZonePad={safeZonePad}
         commentInsights={commentInsights}
         crossItems={crossItems}
@@ -111,12 +107,7 @@ interface RendererProps {
   fontScale: number;
   showRefunds: boolean;
   bgOverride?: string;
-  showHeader: boolean;
-  showFooter: boolean;
-  showUAFlag: boolean;
-  showChart: boolean;
-  showBars: boolean;
-  showBestDay: boolean;
+  hidden: Set<string>;
   safeZonePad?: boolean;
   commentInsights: CommentInsights | null;
   crossItems: ReturnType<typeof datasetsToItems> | null;
@@ -139,12 +130,7 @@ function TemplateRenderer({
   fontScale,
   showRefunds,
   bgOverride,
-  showHeader,
-  showFooter,
-  showUAFlag,
-  showChart,
-  showBars,
-  showBestDay,
+  hidden,
   safeZonePad,
   commentInsights,
   crossItems,
@@ -179,21 +165,21 @@ function TemplateRenderer({
         ? tCamp('report.labelYear', { year: period.year })
         : tCamp('report.labelQuarter', { quarter: period.quarter, year: period.year });
 
-  const shared = { ref: templateRef, aggregates, format, palette, textOverrides: effectiveTextOverrides, fontScale, bgOverride, safeZonePad, showUAFlag };
+  const shared = { ref: templateRef, aggregates, format, palette, textOverrides: effectiveTextOverrides, fontScale, bgOverride, safeZonePad, hidden };
   switch (templateId) {
-    case 'progress': return <ProgressCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
-    case 'daily-activity': return <DailyActivityCard {...shared} showHeader={showHeader} showChart={showChart} showBars={showBars} showBestDay={showBestDay} />;
+    case 'progress': return <ProgressCard {...shared} goal={goal} />;
+    case 'daily-activity': return <DailyActivityCard {...shared} />;
     case 'thank-you': return <ThankYouCard {...shared} />;
-    case 'milestone': return <MilestoneCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'milestone': return <MilestoneCard {...shared} goal={goal} />;
     case 'donors-count': return <DonorsCountCard {...shared} />;
-    case 'urgency': return <UrgencyCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'urgency': return <UrgencyCard {...shared} goal={goal} />;
     case 'top-donors': return <TopDonorsCard {...shared} mode="sum" />;
     case 'top-donors-count': return <TopDonorsCard {...shared} mode="count" />;
-    case 'weekly-recap': return <WeeklyRecapCard {...shared} showHeader={showHeader} showFooter={showFooter} />;
-    case 'speed': return <SpeedCard {...shared} showHeader={showHeader} showFooter={showFooter} />;
-    case 'funds-flow': return <FundsFlowCard {...shared} showRefunds={showRefunds} showHeader={showHeader} showFooter={showFooter} />;
-    case 'final-report': return <FinalReportCard {...shared} showHeader={showHeader} showFooter={showFooter} />;
-    case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} showHeader={showHeader} showFooter={showFooter} />;
+    case 'weekly-recap': return <WeeklyRecapCard {...shared} />;
+    case 'speed': return <SpeedCard {...shared} />;
+    case 'funds-flow': return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
+    case 'final-report': return <FinalReportCard {...shared} />;
+    case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} />;
     case 'emoji-cloud': return <EmojiCloudCard {...shared} commentInsights={commentInsights} />;
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;

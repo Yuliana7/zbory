@@ -14,7 +14,7 @@ interface ReportCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
@@ -23,7 +23,7 @@ const fmtDate = (d: Date) =>
 
 /** Cross-campaign report («Звіти»): totals for a quarter / year / all time as one shareable image. */
 export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
-  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ report, periodLabel, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -34,21 +34,28 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
-        <CardHeader
-          palette={p}
-          fz={fz}
-          title={tx('title')}
-          right={
-            report.firstDate && report.lastDate ? (
-              <NoWrap>{`${fmtDate(report.firstDate)} — ${fmtDate(report.lastDate)}`}</NoWrap>
-            ) : undefined
-          }
-        />
+        {!hidden.has('header') && (
+          <CardHeader
+            palette={p}
+            fz={fz}
+            title={tx('title')}
+            right={
+              report.firstDate && report.lastDate ? (
+                <NoWrap>{`${fmtDate(report.firstDate)} — ${fmtDate(report.lastDate)}`}</NoWrap>
+              ) : undefined
+            }
+          />
+        )}
 
         {/* Hero: total for the period */}
-        <div data-sticker="report-hero" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        {!hidden.has('report-hero') && (
+        <div data-element="report-hero" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <div
             style={{
               fontSize: fz(isStory ? 116 : 96),
@@ -66,9 +73,11 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
             {periodLabel}
           </div>
         </div>
+        )}
 
         {/* Stats grid */}
-        <div data-sticker="report-stats" style={{ display: 'flex', gap: 20, marginBottom: isStory ? 48 : 36 }}>
+        {!hidden.has('report-stats') && (
+        <div data-element="report-stats" style={{ display: 'flex', gap: 20, marginBottom: isStory ? 48 : 36 }}>
           {[
             { label: tx('campaigns'), value: fmtUA(report.campaignCount) },
             { label: tx('donations'), value: fmtUA(report.donationCount) },
@@ -90,11 +99,12 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
             </div>
           ))}
         </div>
+        )}
 
         {/* Biggest jars of the period */}
-        {report.topCampaigns.length > 0 && (
+        {!hidden.has('report-top') && report.topCampaigns.length > 0 && (
           <div
-            data-sticker="report-top"
+            data-element="report-top"
             style={{
               background: p.cardBg,
               border: `1px solid ${p.cardBorder}`,
@@ -133,11 +143,13 @@ export const ReportCard = forwardRef<HTMLDivElement, ReportCardProps>(
         )}
 
         {/* Thank-you line */}
-        <div style={{ fontSize: fz(30), fontWeight: 600, color: p.accent, textAlign: 'center', marginBottom: 20 }}>
+        {!hidden.has('thanksLine') && (
+        <div data-element="thanksLine" style={{ fontSize: fz(30), fontWeight: 600, color: p.accent, textAlign: 'center', marginBottom: 20 }}>
           {tx('thanks')}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   },

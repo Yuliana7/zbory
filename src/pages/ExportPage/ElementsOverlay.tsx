@@ -5,7 +5,6 @@ import { XIcon } from '../../icons';
 
 interface ElementBox {
   id: string;
-  field: RemovableElement['field'];
   left: number;
   top: number;
   width: number;
@@ -24,7 +23,7 @@ interface ElementsOverlayProps {
   elements: RemovableElement[];
   card: CardState;
   effectiveScale: number;
-  onHide: (field: RemovableElement['field']) => void;
+  onHide: (id: string) => void;
 }
 
 /**
@@ -54,13 +53,12 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
     const rootRect = root.getBoundingClientRect();
     const next: ElementBox[] = [];
     for (const el of elements) {
-      if (!card[el.field]) continue; // already hidden — nothing to outline
+      if (card.hiddenElements.includes(el.id)) continue; // already hidden — nothing to outline
       const node = root.querySelector<HTMLElement>(`[data-element="${el.id}"]`);
       if (!node) continue;
       const r = node.getBoundingClientRect();
       next.push({
         id: el.id,
-        field: el.field,
         left: (r.left - rootRect.left) / effectiveScale,
         top: (r.top - rootRect.top) / effectiveScale,
         width: r.width / effectiveScale,
@@ -105,7 +103,7 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
           }}
         >
           <button
-            onClick={() => onHide(b.field)}
+            onClick={() => onHide(b.id)}
             style={{
               position: 'absolute',
               top: '50%',

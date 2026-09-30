@@ -14,11 +14,11 @@ interface ThankYouCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const { t: tInsights } = useTranslation('insights');
     const p = palette;
@@ -30,8 +30,14 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="120px 80px" center>
-        <GlowBlob palette={p} fade={65} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, height: 800 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: '50%', left: '50%', transform: 'translate(-50%, -50%)', width: 800, height: 800 }} />
+          </div>
+        )}
 
+        {!hidden.has('decorations') && (
+        <div data-element="decorations">
         {[
           { top: 40, left: 40 },
           { top: 40, right: 40 },
@@ -64,10 +70,16 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             />
           </div>
         ))}
+        </div>
+        )}
 
-        <div style={{ fontSize: fz(80), lineHeight: 1, marginBottom: 32 }}>💙💛</div>
+        {!hidden.has('emojiLine') && (
+          <div data-element="emojiLine" style={{ fontSize: fz(80), lineHeight: 1, marginBottom: 32 }}>💙💛</div>
+        )}
 
+        {!hidden.has('title') && (
         <div
+          data-element="title"
           style={{
             fontSize: fz(96),
             fontWeight: 900,
@@ -81,15 +93,22 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
         >
           {tx('title')}
         </div>
+        )}
 
-        <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8, whiteSpace: 'nowrap' }}>
-          {formattedTotal} ₴
+        {!hidden.has('hero') && (
+        <div data-element="hero">
+          <div style={{ fontSize: fz(72), fontWeight: 800, letterSpacing: '-2px', color: p.primary, marginBottom: 8, whiteSpace: 'nowrap' }}>
+            {formattedTotal} ₴
+          </div>
+          <div style={{ fontSize: fz(30), color: p.secondary, marginBottom: 48 }}>
+            {tx('amountLabel')}
+          </div>
         </div>
-        <div style={{ fontSize: fz(30), color: p.secondary, marginBottom: 48 }}>
-          {tx('amountLabel')}
-        </div>
+        )}
 
+        {!hidden.has('message') && (
         <div
+          data-element="message"
           style={{
             fontSize: fz(32),
             lineHeight: 1.5,
@@ -100,8 +119,11 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
         >
           {message}
         </div>
+        )}
 
+        {!hidden.has('donorPill') && (
         <div
+          data-element="donorPill"
           style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -117,8 +139,11 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
             {aggregates.donationCount}
           </span>
         </div>
+        )}
 
+        {!hidden.has('branding') && (
         <div
+          data-element="branding"
           style={{
             position: 'absolute',
             bottom: 56,
@@ -129,8 +154,9 @@ export const ThankYouCard = forwardRef<HTMLDivElement, ThankYouCardProps>(
         >
           {tx('branding')}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

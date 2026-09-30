@@ -14,12 +14,12 @@ interface EmojiCloudCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 /** The emotions of the fundraiser: top emojis from donor comments, sized by frequency. */
 export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
-  ({ commentInsights, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ commentInsights, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -31,10 +31,16 @@ export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="120px 80px" center>
-        <GlowBlob palette={p} fade={65} style={{ top: '45%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: '45%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+          </div>
+        )}
 
         {/* Title */}
+        {!hidden.has('title') && (
         <div
+          data-element="title"
           style={{
             fontSize: fz(56),
             fontWeight: 800,
@@ -46,10 +52,12 @@ export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
         >
           {tx('title')}
         </div>
+        )}
 
         {/* Cloud */}
+        {!hidden.has('cloud') && (
         <div
-          data-sticker="cloud"
+          data-element="cloud"
           style={{
             display: 'flex',
             alignItems: 'flex-end',
@@ -74,15 +82,16 @@ export const EmojiCloudCard = forwardRef<HTMLDivElement, EmojiCloudCardProps>(
             })
           )}
         </div>
+        )}
 
         {/* Source line */}
-        {commentInsights && commentInsights.totalWithComments > 0 && (
-          <div style={{ fontSize: fz(26), color: p.secondary }}>
+        {!hidden.has('sourceLine') && commentInsights && commentInsights.totalWithComments > 0 && (
+          <div data-element="sourceLine" style={{ fontSize: fz(26), color: p.secondary }}>
             {tx('fromCommentsLabel')} {commentInsights.totalWithComments}
           </div>
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

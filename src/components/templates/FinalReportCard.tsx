@@ -14,14 +14,12 @@ interface FinalReportCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 /** The campaign wrap-up post: totals, duration, best day, funds flow, thanks. */
 export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
-  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -44,10 +42,14 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} fade={65} style={{ top: '35%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: '35%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader
             palette={p}
             fz={fz}
@@ -59,7 +61,8 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
         {/* Main */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 64 : 44 }}>
           {/* Hero total */}
-          <div>
+          {!hidden.has('hero') && (
+          <div data-element="hero">
             <div
               style={{
                 fontSize: fz(112),
@@ -76,9 +79,11 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
               {tx('currencyLabel')}
             </div>
           </div>
+          )}
 
           {/* Stats grid */}
-          <div data-sticker="statsGrid" style={{ display: 'flex', gap: 24 }}>
+          {!hidden.has('statsGrid') && (
+          <div data-element="statsGrid" style={{ display: 'flex', gap: 24 }}>
             {stats.map((s) => (
               <div
                 key={s.label}
@@ -96,10 +101,11 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
               </div>
             ))}
           </div>
+          )}
 
           {/* Funds flow line — only when money was actually spent */}
-          {hasWithdrawals && (
-            <div style={{ fontSize: fz(26), color: p.secondary, textAlign: 'center' }}>
+          {!hidden.has('fundsFlowLine') && hasWithdrawals && (
+            <div data-element="fundsFlowLine" style={{ fontSize: fz(26), color: p.secondary, textAlign: 'center' }}>
               {tx('spentLabel')}{' '}
               <NoWrap style={{ fontWeight: 800, color: '#f59e0b' }}>{fmt(aggregates.totalWithdrawn)} ₴</NoWrap>
               {' · '}
@@ -109,7 +115,9 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
           )}
 
           {/* Thank-you message */}
+          {!hidden.has('thankYouMessage') && (
           <div
+            data-element="thankYouMessage"
             style={{
               fontSize: fz(32),
               lineHeight: 1.45,
@@ -120,10 +128,11 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
           >
             {tx('message')}
           </div>
+          )}
         </div>
 
         {/* Footer */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -132,7 +141,7 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
           />
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

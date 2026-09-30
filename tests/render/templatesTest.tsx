@@ -35,7 +35,7 @@ check('Progress: footer max 1 000 ₴', /1\s?000\s*₴/.test(strip(html).replace
 check('Progress: footer Зібрано present', (strip(html).match(/Зібрано/g) || []).length >= 2);
 
 // header/footer toggles
-html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" showHeader={false} showFooter={false} />);
+html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" hidden={new Set(['header', 'footer'])} />);
 check('Progress: hidden header/footer', !html.includes('Медіана') && !html.includes('травня 2026'));
 
 // editable date range override
@@ -63,7 +63,7 @@ check('FundsFlow: standard footer', html.includes('Медіана'));
 // ── DailyActivity toggles ──
 html = renderToStaticMarkup(<DailyActivityCard aggregates={aggregates} format="story" />);
 check('DailyActivity: default has chart+bars+bestDay', html.includes('Прогрес збору') && html.includes('Останні 14 днів') && html.includes('Найкращий день'));
-html = renderToStaticMarkup(<DailyActivityCard aggregates={aggregates} format="story" showChart={false} showBars={false} showBestDay={false} showHeader={false} />);
+html = renderToStaticMarkup(<DailyActivityCard aggregates={aggregates} format="story" hidden={new Set(['chart', 'bars', 'bestDay', 'header'])} />);
 check('DailyActivity: all toggles off', !html.includes('Прогрес збору') && !html.includes('Останні 14 днів') && !html.includes('Найкращий день'));
 
 // ── Speed: peak box has no donations count ──
@@ -72,7 +72,7 @@ const peakSection = html.slice(html.indexOf('Пік активності'));
 check('Speed: peak box без кількості донатів', !/·\s*\d+\s*донатів/.test(strip(peakSection).slice(0, 200)));
 
 // ── WeeklyRecap header toggle ──
-html = renderToStaticMarkup(<WeeklyRecapCard aggregates={aggregates} format="story" showHeader={false} />);
+html = renderToStaticMarkup(<WeeklyRecapCard aggregates={aggregates} format="story" hidden={new Set(['header'])} />);
 check('WeeklyRecap: header hidden', !html.includes('Тижневий звіт'));
 
 // ── TopDonors modes ──

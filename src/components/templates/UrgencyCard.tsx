@@ -14,13 +14,11 @@ interface UrgencyCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -39,17 +37,21 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} fade={65} style={{ top: -200, left: '50%', transform: 'translateX(-50%)', width: 800, height: 800 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: -200, left: '50%', transform: 'translateX(-50%)', width: 800, height: 800 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 80 : 60} />
         )}
 
         {/* Hero */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          {remainingFormatted !== null ? (
-            <div data-sticker="hero">
+          {!hidden.has('hero') && (remainingFormatted !== null ? (
+            <div data-element="hero">
               <div style={{ fontSize: fz(28), color: p.secondary, marginBottom: 12 }}>
                 {tx('remainingLabel')}
               </div>
@@ -83,10 +85,11 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
             >
               {tx('ctaNoGoal')}
             </div>
-          )}
+          ))}
 
           {/* Progress bar */}
-          <div data-sticker="progressBar" style={{ marginBottom: 56 }}>
+          {!hidden.has('progressBar') && (
+          <div data-element="progressBar" style={{ marginBottom: 56 }}>
             {goalFormatted && (
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 12 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary }}>
@@ -120,10 +123,12 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
               </div>
             )}
           </div>
+          )}
 
           {/* Jar link — rendered only when the volunteer pasted a URL */}
-          {textOverrides.linkUrl?.trim() && (
+          {!hidden.has('linkBox') && textOverrides.linkUrl?.trim() && (
             <div
+              data-element="linkBox"
               style={{
                 background: p.cardBg,
                 border: `1px solid ${p.cardBorder}`,
@@ -148,7 +153,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
         </div>
 
         {/* Footer */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -157,7 +162,7 @@ export const UrgencyCard = forwardRef<HTMLDivElement, UrgencyCardProps>(
           />
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

@@ -10,14 +10,12 @@ import { getPersonalComments } from '../../utils/commentAnalyzer';
 import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
 import { useCardStack } from './hooks/useCardStack';
 import { useZipExport } from './hooks/useZipExport';
-import { useCaptionClipboard } from './hooks/useCaptionClipboard';
 import { useBackgroundPan } from './hooks/useBackgroundPan';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
   TEMPLATE_REQUIRES_GOAL,
   TEMPLATE_REMOVABLE_ELEMENTS,
-  TEMPLATE_STICKERS,
   TEMPLATE_GROUPS,
 } from '../../utils/templateConfig';
 import {
@@ -42,8 +40,6 @@ import { GoalPanel } from './panels/GoalPanel';
 import { ReportPeriodPanel } from './panels/ReportPeriodPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
 import { CommentPickerPanel } from './panels/CommentPickerPanel';
-import { CaptionPanel } from './panels/CaptionPanel';
-import { StickersPanel } from './panels/StickersPanel';
 import { AddTemplateModal } from './panels/AddTemplateModal';
 
 export function ExportPage() {
@@ -101,7 +97,6 @@ function ExportPageInner() {
   // Element edit mode: freezes background drag/zoom + swipe-nav and shows
   // the tap-to-remove overlay over the preview instead.
   const [elementsEditMode, setElementsEditMode] = useState(false);
-  const [availableStickers, setAvailableStickers] = useState<string[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
@@ -199,15 +194,6 @@ function ExportPageInner() {
 
   const selectedComments = useMemo(() => commentsFor(card), [commentsFor, card]);
 
-  const { captionFor, captionCopied, allCaptionsCopied, copyCaption, copyAllCaptions } = useCaptionClipboard(
-    donations,
-    fullAggregates,
-    t,
-    goalValue,
-    commentsFor,
-  );
-  const captionValue = captionFor(card);
-
   const milestoneAchievedKey = (() => {
     const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
     if (pct === null) return 'achievedLabel_noGoal';
@@ -231,31 +217,6 @@ function ExportPageInner() {
     },
     [app.activeCampaignName, templateId, milestoneAchievedKey, filteredAggregates, t],
   );
-
-  // Which sticker blocks are actually present in the rendered template
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const root = templateRef.current;
-      if (!root) {
-        setAvailableStickers([]);
-        return;
-      }
-      setAvailableStickers(
-        TEMPLATE_STICKERS[templateId].filter((s) => root.querySelector(`[data-sticker="${s}"]`)),
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [templateId, card, goalValue, filteredAggregates, selectedComments]);
-
-  const handleStickerExport = async (stickerId: string) => {
-    const el = templateRef.current?.querySelector<HTMLElement>(`[data-sticker="${stickerId}"]`);
-    if (!el) return;
-    try {
-      await exportToPNG(el, `zbory-${templateId}-${stickerId}.png`, el.offsetWidth, el.offsetHeight);
-    } catch (err) {
-      console.error('Sticker export failed:', err);
-    }
-  };
 
   const handleExport = async () => {
     const exportEl = exportRef.current ?? templateRef.current;
@@ -445,7 +406,7 @@ function ExportPageInner() {
                   elements={removableElements}
                   card={card}
                   effectiveScale={effectiveScale}
-                  onHide={(field) => updateCard({ [field]: false })}
+                  onHide={(id) => updateCard({ hiddenElements: [...card.hiddenElements, id] })}
                 />
               )}
             </div>
@@ -458,7 +419,7 @@ function ExportPageInner() {
             elements={removableElements}
             format={card.format}
             card={card}
-            onRestore={(field) => updateCard({ [field]: true })}
+            onRestore={(id) => updateCard({ hiddenElements: card.hiddenElements.filter((x) => x !== id) })}
           />
 
           {/* Stack navigation — wraps onto extra lines instead of overflowing
@@ -617,30 +578,6 @@ function ExportPageInner() {
                     : [...card.selectedCommentKeys, text],
                 });
               }}
-            />
-          )}
-
-          <CaptionPanel
-            open={openSections.has('caption')}
-            onToggle={() => toggleSection('caption')}
-            captionValue={captionValue}
-            onCaptionChange={(v) => updateCard({ captionText: v })}
-            isEdited={card.captionText !== null}
-            onRegenerate={() => updateCard({ captionText: null })}
-            onCopy={() => copyCaption(captionValue)}
-            copied={captionCopied}
-            multiCard={cards.length > 1}
-            cardCount={cards.length}
-            onCopyAll={() => copyAllCaptions(cards)}
-            allCopied={allCaptionsCopied}
-          />
-
-          {availableStickers.length > 0 && (
-            <StickersPanel
-              open={openSections.has('stickers')}
-              onToggle={() => toggleSection('stickers')}
-              availableStickers={availableStickers}
-              onExport={handleStickerExport}
             />
           )}
 

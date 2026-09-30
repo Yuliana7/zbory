@@ -204,44 +204,152 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
 };
 
 // Elements the tap-to-remove editor can hide, per template. `id` matches the
-// data-element="id" attribute in the card markup; `field` is the CardState
-// boolean it flips. `storyOnly` hides the entry itself in post format (the
-// element doesn't render there at all, e.g. Daily Activity's bars chart).
+// data-element="id" attribute in the card markup and is also the key stored
+// in CardState.hiddenElements. `storyOnly` hides the entry itself in post
+// format (the element doesn't render there at all, e.g. Daily Activity's
+// bars chart).
 export interface RemovableElement {
   id: string;
   labelKey: string;
-  field: 'showHeader' | 'showFooter' | 'showUAFlag' | 'showChart' | 'showBars' | 'showBestDay';
   storyOnly?: boolean;
 }
 
-const HEADER: RemovableElement = { id: 'header', labelKey: 'layout.header', field: 'showHeader' };
-const FOOTER: RemovableElement = { id: 'footer', labelKey: 'layout.footer', field: 'showFooter' };
-const UA_FLAG: RemovableElement = { id: 'uaflag', labelKey: 'layout.UAFlag', field: 'showUAFlag' };
+const GLOW: RemovableElement = { id: 'glow', labelKey: 'layout.glow' };
+const HEADER: RemovableElement = { id: 'header', labelKey: 'layout.header' };
+const FOOTER: RemovableElement = { id: 'footer', labelKey: 'layout.footer' };
+const UA_FLAG: RemovableElement = { id: 'uaflag', labelKey: 'layout.UAFlag' };
+const el = (id: string, labelKey: string, storyOnly?: boolean): RemovableElement => ({ id, labelKey, storyOnly });
 
 export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[]> = {
-  progress: [HEADER, FOOTER, UA_FLAG],
+  progress: [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('progressBar', 'layout.progressBar'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
   'daily-activity': [
     HEADER,
+    el('total', 'layout.total'),
+    el('chart', 'layout.chart'),
+    el('bars', 'layout.bars', true),
+    el('bestDay', 'layout.bestDay'),
+    FOOTER,
     UA_FLAG,
-    { id: 'chart', labelKey: 'layout.chart', field: 'showChart' },
-    { id: 'bars', labelKey: 'layout.bars', field: 'showBars', storyOnly: true },
-    { id: 'bestDay', labelKey: 'layout.bestDay', field: 'showBestDay' },
+    GLOW,
   ],
-  'thank-you': [UA_FLAG],
-  milestone: [HEADER, FOOTER, UA_FLAG],
-  'top-donors': [UA_FLAG],
-  'top-donors-count': [UA_FLAG],
-  'donors-count': [UA_FLAG],
-  urgency: [HEADER, FOOTER, UA_FLAG],
-  'weekly-recap': [HEADER, FOOTER, UA_FLAG],
-  speed: [HEADER, FOOTER, UA_FLAG],
-  'funds-flow': [HEADER, FOOTER, UA_FLAG],
-  'final-report': [HEADER, FOOTER, UA_FLAG],
-  'concrete-ask': [HEADER, FOOTER, UA_FLAG],
-  'emoji-cloud': [UA_FLAG],
-  comments: [UA_FLAG],
-  report: [UA_FLAG],
-  'campaigns-chart': [UA_FLAG],
+  'thank-you': [
+    el('decorations', 'layout.decorations'),
+    el('emojiLine', 'layout.emojiLine'),
+    el('title', 'layout.title'),
+    el('hero', 'layout.hero'),
+    el('message', 'layout.message'),
+    el('donorPill', 'layout.donorPill'),
+    el('branding', 'layout.branding'),
+    UA_FLAG,
+    GLOW,
+  ],
+  milestone: [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('achievedLabel', 'layout.achievedLabel'),
+    el('progressBar', 'layout.progressBar'),
+    el('collectedGoalLine', 'layout.collectedGoalLine'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  'donors-count': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('anonymousLine', 'layout.anonymousLine'),
+    el('statsRow', 'layout.statsRow'),
+    el('distribution', 'layout.distribution'),
+    UA_FLAG,
+    GLOW,
+  ],
+  urgency: [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('progressBar', 'layout.progressBar'),
+    el('linkBox', 'layout.linkBox'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  'top-donors': [HEADER, el('list', 'layout.list'), FOOTER, UA_FLAG, GLOW],
+  'top-donors-count': [HEADER, el('list', 'layout.list'), FOOTER, UA_FLAG, GLOW],
+  'weekly-recap': [
+    HEADER,
+    el('weekTotal', 'layout.weekTotal'),
+    el('chart', 'layout.chart'),
+    el('bestDay', 'layout.bestDay'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  speed: [
+    HEADER,
+    el('statsRow', 'layout.statsRow'),
+    el('hourly', 'layout.hourly'),
+    el('peak', 'layout.peak'),
+    el('footer', 'layout.footer', true),
+    UA_FLAG,
+    GLOW,
+  ],
+  'funds-flow': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('flowBar', 'layout.flowBar'),
+    el('breakdown', 'layout.breakdown'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  'final-report': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('statsGrid', 'layout.statsGrid'),
+    el('fundsFlowLine', 'layout.fundsFlowLine'),
+    el('thankYouMessage', 'layout.thankYouMessage'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  'concrete-ask': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('progressBar', 'layout.progressBar'),
+    el('linkBox', 'layout.linkBox'),
+    FOOTER,
+    UA_FLAG,
+    GLOW,
+  ],
+  'emoji-cloud': [
+    el('title', 'layout.title'),
+    el('cloud', 'layout.cloud'),
+    el('sourceLine', 'layout.sourceLine'),
+    UA_FLAG,
+    GLOW,
+  ],
+  comments: [el('title', 'layout.title'), el('quotes', 'layout.quotes'), UA_FLAG, GLOW],
+  report: [
+    HEADER,
+    el('report-hero', 'layout.reportHero'),
+    el('report-stats', 'layout.reportStats'),
+    el('report-top', 'layout.reportTop'),
+    el('thanksLine', 'layout.thanksLine'),
+    UA_FLAG,
+    GLOW,
+  ],
+  'campaigns-chart': [
+    HEADER,
+    el('chart', 'layout.chart'),
+    el('legend', 'layout.legend'),
+    UA_FLAG,
+    GLOW,
+  ],
 };
 
 // Gallery categories — also used by the editor's "add template" picker
@@ -258,25 +366,3 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
 ];
-
-// Blocks inside each template that can be exported alone as a transparent PNG
-// "sticker". Ids must match the data-sticker attribute in the card markup.
-export const TEMPLATE_STICKERS: Record<TemplateType, string[]> = {
-  progress: ['hero', 'progressBar'],
-  'daily-activity': ['chart', 'bars', 'bestDay'],
-  'thank-you': [],
-  milestone: ['hero'],
-  'top-donors': ['list'],
-  'top-donors-count': ['list'],
-  'donors-count': ['distribution'],
-  urgency: ['hero', 'progressBar'],
-  'weekly-recap': ['chart', 'bestDay'],
-  speed: ['hourly', 'peak'],
-  'funds-flow': ['flowBar', 'breakdown'],
-  'final-report': ['statsGrid'],
-  'concrete-ask': ['hero'],
-  'emoji-cloud': ['cloud'],
-  comments: ['quotes'],
-  report: ['report-hero', 'report-stats', 'report-top'],
-  'campaigns-chart': ['chart'],
-};
