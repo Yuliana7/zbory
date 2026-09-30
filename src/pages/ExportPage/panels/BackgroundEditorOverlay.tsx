@@ -5,11 +5,6 @@ import type { SelectedComment } from '../../../components/templates/CommentsCard
 import { useBackgroundGestures } from '../hooks/useBackgroundGestures';
 import { CheckIcon } from '../../../icons';
 
-// Reserve vertical space for the bottom control sheet when fitting the card
-// to the viewport — an approximation (the sheet's real height varies a little
-// with font rendering), generous enough that the card never hides behind it.
-const CONTROLS_H = 300;
-
 interface BackgroundEditorOverlayProps {
   card: CardState;
   style: SharedStyle;
@@ -39,6 +34,7 @@ export function BackgroundEditorOverlay({
   const { t } = useTranslation('export');
   const templateRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLDivElement>(null);
+  const sheetRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -51,8 +47,12 @@ export function BackgroundEditorOverlay({
   const [scale, setScale] = useState(0.5);
   useLayoutEffect(() => {
     const calc = () => {
+      // Measured, not guessed — the sheet's real height varies with font
+      // wrapping (the gesture hint wraps to two lines on narrow screens),
+      // and a fixed estimate there previously clipped the card's top/bottom.
+      const controlsH = sheetRef.current?.offsetHeight ?? 0;
       const availW = window.innerWidth * 0.92;
-      const availH = (window.innerHeight - CONTROLS_H) * 0.92;
+      const availH = (window.innerHeight - controlsH) * 0.92;
       setScale(Math.min(availW / dims.width, availH / dims.height, 1));
     };
     calc();
@@ -101,7 +101,7 @@ export function BackgroundEditorOverlay({
         </div>
       </div>
 
-      <div className="bg-white rounded-t-3xl px-5 pt-4 pb-6 space-y-3 max-h-[45vh] overflow-y-auto">
+      <div ref={sheetRef} className="bg-white rounded-t-3xl px-5 pt-4 pb-6 space-y-3 max-h-[45vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <p className="text-sm font-semibold text-gray-800">{t('background.editPosition')}</p>
           <button
