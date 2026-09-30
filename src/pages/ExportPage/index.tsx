@@ -1,4 +1,5 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
+import { revealInput } from '../../utils/revealInput';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
@@ -180,6 +181,17 @@ function ExportPageInner() {
     };
   }, []);
 
+  // Any text field focused in the controls must end up below the pinned preview
+  // and above the keyboard (see revealInput).
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const el = e.target;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) revealInput(el);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, []);
+
   const effectiveScale = scale * (1 - 0.45 * scrollShrink);
 
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
@@ -318,6 +330,7 @@ function ExportPageInner() {
         {/* Preview */}
         <div
           ref={previewContainerRef}
+          data-pinned-preview
           className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
           style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
           onTouchStart={(e) => {
