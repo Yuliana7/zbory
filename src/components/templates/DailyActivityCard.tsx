@@ -4,8 +4,7 @@ import { findBestDay, formatCurrency, formatUkrainianDate } from '../../utils/da
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, NoWrap, UAFlagBar } from './shared';
-import { cardPadding } from '../../utils/units';
+import { CardHeader, NoWrap, UAFlagBar, CardShell, GlowBlob } from './shared';
 
 interface DailyActivityCardProps {
   aggregates: Aggregates;
@@ -74,34 +73,8 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
     const gradId = `areaGrad-${p.id}`;
 
     return (
-      <div
-        ref={ref}
-        style={{
-          width: 1080,
-          height: format === 'story' ? 1920 : format === 'post-4-5' ? 1350 : 1080,
-          background: bgOverride ?? p.background,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: cardPadding(!isPost, safeZonePad, '80px'),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: p.primary,
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: -300,
-            right: -300,
-            width: 900,
-            height: 900,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 65%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="80px">
+        <GlowBlob palette={p} fade={65} style={{ top: -300, right: -300, width: 900, height: 900 }} />
 
         {/* Header */}
         {showHeader && <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={60} />}
@@ -280,7 +253,7 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         </div>
 
         <UAFlagBar show={showUAFlag} height={10} />
-      </div>
+      </CardShell>
     );
   }
 );

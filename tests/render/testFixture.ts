@@ -3,7 +3,7 @@ import Papa from 'papaparse';
 import type { RawDonation } from '../../src/types';
 
 /**
- * Loads a testData/*.csv fixture the same way parseCSV() does in the app —
+ * Loads a tests/data/*.csv fixture the same way parseCSV() does in the app —
  * mirrors both the standard Monobank Jar export headers and the alternate
  * "statement from the support team" headers (see src/utils/csvParser.ts).
  */

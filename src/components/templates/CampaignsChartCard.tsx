@@ -4,8 +4,8 @@ import type { RawDonation } from '../../types';
 import type { CampaignMeta } from '../../utils/campaignStore';
 import { analyzeCampaigns } from '../../utils/campaignAnalytics';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
-import { rem, cardPadding } from '../../utils/units';
-import { NoWrap, CardHeader, UAFlagBar } from './shared';
+import { rem } from '../../utils/units';
+import { NoWrap, CardHeader, UAFlagBar, CardShell, GlowBlob } from './shared';
 
 interface CampaignsChartCardProps {
   items: Array<{ meta: CampaignMeta; rawData: RawDonation[] }>;
@@ -40,34 +40,8 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
     const py = (v: number) => H - (v / maxTotal) * H;
 
     return (
-      <div
-        ref={ref}
-        style={{
-          width: 1080,
-          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
-          background: bgOverride ?? p.background,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: p.primary,
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        <div
-          style={{
-            position: 'absolute',
-            top: -200,
-            right: -200,
-            width: 700,
-            height: 700,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 70%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
+        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
 
         <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 70 : 50} />
 
@@ -126,7 +100,7 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
         </div>
 
         <UAFlagBar show={showUAFlag} />
-      </div>
+      </CardShell>
     );
   },
 );

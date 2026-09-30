@@ -1,8 +1,73 @@
-import type { ReactNode, CSSProperties } from 'react';
+import { forwardRef, type ReactNode, type CSSProperties } from 'react';
 import type { Aggregates } from '../../types';
 import type { Palette } from '../../utils/palettes';
+import { cardPadding } from '../../utils/units';
 
 const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
+
+interface CardShellProps {
+  format: 'post' | 'post-4-5' | 'story';
+  palette: Palette;
+  bgOverride?: string;
+  safeZonePad?: boolean;
+  /** Story-format default padding — post format always gets a flat 80px. */
+  storyPadding?: string;
+  /** Horizontal padding used once safeZonePad kicks in. */
+  safeZoneHorizontal?: string;
+  /** Centers content both ways with centered text (thank-you/emoji-cloud style). */
+  center?: boolean;
+  children: ReactNode;
+}
+
+/**
+ * The 1080-wide card frame every template renders into: size, background,
+ * padding and base typography. Every template card wraps its content in this
+ * instead of repeating the same outer <div> by hand.
+ */
+export const CardShell = forwardRef<HTMLDivElement, CardShellProps>(
+  (
+    { format, palette: p, bgOverride, safeZonePad, storyPadding = '100px 80px', safeZoneHorizontal = '80px', center, children },
+    ref,
+  ) => {
+    const isStory = format === 'story';
+    return (
+      <div
+        ref={ref}
+        style={{
+          width: 1080,
+          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
+          background: bgOverride ?? p.background,
+          display: 'flex',
+          flexDirection: 'column',
+          ...(center ? { alignItems: 'center', justifyContent: 'center', textAlign: 'center' } as CSSProperties : null),
+          padding: cardPadding(isStory, safeZonePad, storyPadding, safeZoneHorizontal),
+          fontFamily: "'Inter', 'Segoe UI', sans-serif",
+          color: p.primary,
+          boxSizing: 'border-box',
+          position: 'relative',
+          overflow: 'hidden',
+        }}
+      >
+        {children}
+      </div>
+    );
+  },
+);
+
+/** A soft radial-gradient blob used to decorate a card's background; position/size via `style`. */
+export function GlowBlob({ palette: p, fade = 70, style }: { palette: Palette; fade?: number; style: CSSProperties }) {
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        borderRadius: '50%',
+        background: `radial-gradient(circle, ${p.glowColor} 0%, transparent ${fade}%)`,
+        pointerEvents: 'none',
+        ...style,
+      }}
+    />
+  );
+}
 
 /**
  * Keeps an amount and its ₴ sign on one line — without this the sign can

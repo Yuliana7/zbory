@@ -30,7 +30,7 @@ function t(key: string, options: Record<string, unknown> = {}): string {
   return raw.replace(/\{\{(\w+)\}\}/g, (_, name) => String(options[name] ?? `<<MISSING VAR ${name}>>`));
 }
 
-const rawData = loadRawDonations('testData/Zbir_1.csv');
+const rawData = loadRawDonations('tests/data/Zbir_short.csv');
 
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
 const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
@@ -43,15 +43,15 @@ const assertEq = (label: string, actual: unknown, expected: unknown) => {
 
 console.log(`Donations: ${donations.length}, total raised: ${aggregates.totalRaised}\n`);
 
-// Expectations verified against the real pipeline over testData/Zbir_1.csv
-assertEq('mode (найчастіший)', aggregates.modeDonation, 333);
-assertEq('median (типовий)', aggregates.medianDonation, 333);
-assertEq('mean (середнє)', Math.round(aggregates.totalRaised / aggregates.donationCount), 511); // 11752/23 = 511
+// Expectations verified against the real pipeline over tests/data/Zbir_short.csv
+assertEq('mode (найчастіший)', aggregates.modeDonation, 100);
+assertEq('median (типовий)', aggregates.medianDonation, 200);
+assertEq('mean (середнє)', Math.round(aggregates.totalRaised / aggregates.donationCount), 320); // 4480/14 = 320
 
 const buckets = Object.fromEntries(getTimeBuckets(aggregates).map((b) => [b.key, b.count]));
-assertEq('morning donations', buckets.morning, 8);
-assertEq('afternoon donations', buckets.afternoon, 13);
-assertEq('evening donations', buckets.evening, 2);
+assertEq('morning donations', buckets.morning, 7);
+assertEq('afternoon donations', buckets.afternoon, 7);
+assertEq('evening donations', buckets.evening, 0);
 console.log(`(night bucket: ${buckets.night})\n`);
 
 console.log('─── Insight cards ───');

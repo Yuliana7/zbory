@@ -4,8 +4,7 @@ import { defaultAskUnit } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
-import { CardHeader, CardFooter, NoWrap, UAFlagBar } from './shared';
-import { cardPadding } from '../../utils/units';
+import { CardHeader, CardFooter, NoWrap, UAFlagBar, CardShell, GlowBlob } from './shared';
 
 interface ConcreteAskCardProps {
   aggregates: Aggregates;
@@ -46,36 +45,8 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
     const goalReached = !!goal && remaining === 0;
 
     return (
-      <div
-        ref={ref}
-        style={{
-          width: 1080,
-          height: format === 'post-4-5' ? 1350 : isStory ? 1920 : 1080,
-          background: bgOverride ?? p.background,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: cardPadding(isStory, safeZonePad, '100px 80px'),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: p.primary,
-          boxSizing: 'border-box',
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-      >
-        {/* Glow */}
-        <div
-          style={{
-            position: 'absolute',
-            top: -200,
-            left: '50%',
-            transform: 'translateX(-50%)',
-            width: 800,
-            height: 800,
-            borderRadius: '50%',
-            background: `radial-gradient(circle, ${p.glowColor} 0%, transparent 65%)`,
-            pointerEvents: 'none',
-          }}
-        />
+      <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
+        <GlowBlob palette={p} fade={65} style={{ top: -200, left: '50%', transform: 'translateX(-50%)', width: 800, height: 800 }} />
 
         {/* Header */}
         {showHeader && (
@@ -184,7 +155,7 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
         )}
 
         <UAFlagBar show={showUAFlag} />
-      </div>
+      </CardShell>
     );
   }
 );
