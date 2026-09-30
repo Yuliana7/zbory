@@ -151,11 +151,19 @@ function parseUkrainianNumber(numStr: string): number {
 }
 
 /**
+ * Marks a donation as the jar owner's own top-up from their card, rather than
+ * an external donor. The single source of truth for this identity — anything
+ * matching it against a hardcoded copy of the string risks silently breaking
+ * if this value ever changes.
+ */
+export const SELF_DONATION = 'Власний внесок';
+
+/**
  * Extracts donor name from additional info field
  * Format examples:
  * - "Від: Назар Гнідь" -> "Назар Гнідь"
- * - "З чорної картки" -> "Власний внесок" (self-donation from owner's card)
- * - "З залізної картки" -> "Власний внесок" (self-donation)
+ * - "З чорної картки" -> SELF_DONATION (self-donation from owner's card)
+ * - "З залізної картки" -> SELF_DONATION (self-donation)
  * - "🐈" -> "🐈" (anonymous emoji donors)
  */
 function extractDonorName(info: string): string | undefined {
@@ -164,7 +172,7 @@ function extractDonorName(info: string): string | undefined {
   // Check if it's a self-donation from owner's card (Monobank card types)
   // Pattern: "З [card type] картки" (From [card type] card)
   if (/З\s+(чорної|залізної|білої|platinum|iron|black|white)\s+картки/i.test(info)) {
-    return 'Власний внесок';
+    return SELF_DONATION;
   }
 
   // Check if it starts with "Від:" (From:)

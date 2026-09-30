@@ -198,5 +198,11 @@ function TemplateRenderer({
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
+    default: {
+      // Exhaustiveness check: a new TemplateType that isn't handled above
+      // fails the build here instead of silently rendering nothing.
+      const _exhaustive: never = templateId;
+      throw new Error(`Unhandled template: ${_exhaustive}`);
+    }
   }
 }

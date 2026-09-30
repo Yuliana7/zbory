@@ -1,5 +1,5 @@
 import type { Donation, RawDonation, CommentInsights, RepeatDonor } from '../types';
-import { normalizeDonations } from './csvParser';
+import { normalizeDonations, SELF_DONATION } from './csvParser';
 import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 
 // Auto-generated Monobank comment — not a personal message. Case varies
@@ -173,7 +173,7 @@ function topIdentities(donations: Donation[]): RepeatDonor[] {
  * - short personal comment (emoji-like, first-name signatures, etc.)
  */
 function resolveIdentity(d: Donation): string | null {
-  if (d.donor && d.donor !== 'Власний внесок' && !isAnonymousDonor(d.donor)) return d.donor;
+  if (d.donor && d.donor !== SELF_DONATION && !isAnonymousDonor(d.donor)) return d.donor;
 
   if (d.comment && isPersonalComment(d.comment)) {
     const c = d.comment.trim();

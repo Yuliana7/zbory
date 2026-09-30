@@ -1,6 +1,6 @@
 import type { RawDonation, CampaignDataset } from '../types';
 import { computeCampaignSummary, type CampaignMeta } from './campaignStore';
-import { normalizeDonations } from './csvParser';
+import { normalizeDonations, SELF_DONATION } from './csvParser';
 import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 
 /** Builds the analyzeCampaigns/buildReport input from in-session datasets (no library round-trip). */
@@ -49,9 +49,9 @@ export interface CrossCampaignStats {
   quarters: QuarterTotal[]; // chronological
 }
 
-// The jar owner's own top-ups: same "identity" in every campaign, so listing
-// them as the top repeat donor would be noise (see extractDonorName()).
-const SELF_DONATION = 'Власний внесок';
+// The jar owner's own top-ups (SELF_DONATION, see csvParser.ts): same
+// "identity" in every campaign, so listing them as the top repeat donor
+// would be noise.
 
 const dayIndex = (t: Date, start: Date) => {
   const d0 = new Date(start.getFullYear(), start.getMonth(), start.getDate()).getTime();
