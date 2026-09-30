@@ -116,7 +116,7 @@ export function aggregateDonations(
       anonymousDonations++;
       continue;
     }
-    const key = donation.donor!.toLowerCase().trim().replace(/\s+/g, ' ');
+    const key = normalizeDonorKey(donation.donor!);
     const existing = donorMap.get(key);
     if (existing) {
       existing.amount += donation.amount;
@@ -174,6 +174,15 @@ export function aggregateDonations(
 export function isAnonymousDonor(name: string | undefined): boolean {
   if (!name || !name.trim()) return true;
   return !/[\p{L}\p{N}]/u.test(name);
+}
+
+/**
+ * Normalizes a donor name into an identity key: case-insensitive, collapsed
+ * whitespace. The single source of truth for "is this the same donor" across
+ * single-campaign and cross-campaign donor grouping.
+ */
+export function normalizeDonorKey(name: string): string {
+  return name.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 /** Linear-interpolated percentile over a pre-sorted ascending array */

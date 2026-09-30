@@ -1,6 +1,6 @@
 import type { Donation, RawDonation, CommentInsights, RepeatDonor } from '../types';
 import { normalizeDonations } from './csvParser';
-import { isAnonymousDonor } from './dataAggregator';
+import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 
 // Auto-generated Monobank comment — not a personal message. Case varies
 // between exports («банки» / «Банки»), so match the normalized prefix.
@@ -186,9 +186,9 @@ function resolveIdentity(d: Donation): string | null {
   return null;
 }
 
-function normalizeIdentity(name: string): string {
-  return name.toLowerCase().trim().replace(/\s+/g, ' ');
-}
+// Identity here may be a donor name OR a comment used as a signature (see
+// resolveIdentity above) — same normalization as donor keys either way.
+const normalizeIdentity = normalizeDonorKey;
 
 // ─── External communities ─────────────────────────────────────────────────────
 

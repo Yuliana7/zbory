@@ -1,7 +1,7 @@
 import type { RawDonation, CampaignDataset } from '../types';
 import { computeCampaignSummary, type CampaignMeta } from './campaignStore';
 import { normalizeDonations } from './csvParser';
-import { isAnonymousDonor } from './dataAggregator';
+import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 
 /** Builds the analyzeCampaigns/buildReport input from in-session datasets (no library round-trip). */
 export function datasetsToItems(datasets: CampaignDataset[]): Array<{ meta: CampaignMeta; rawData: RawDonation[] }> {
@@ -86,7 +86,7 @@ export function analyzeCampaigns(items: Array<{ meta: CampaignMeta; rawData: Raw
 
       // Donor identity across campaigns
       if (!isAnonymousDonor(d.donor) && d.donor !== SELF_DONATION) {
-        const key = d.donor!.toLowerCase().trim().replace(/\s+/g, ' ');
+        const key = normalizeDonorKey(d.donor!);
         const entry = donorMap.get(key) ?? { display: d.donor!.trim(), campaignIds: new Set<string>(), donationCount: 0, totalAmount: 0 };
         entry.campaignIds.add(meta.id);
         entry.donationCount += 1;
@@ -188,7 +188,7 @@ export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonat
       if (isAnonymousDonor(d.donor)) {
         anonymousDonations += 1;
       } else if (d.donor !== SELF_DONATION) {
-        donorKeys.add(d.donor!.toLowerCase().trim().replace(/\s+/g, ' '));
+        donorKeys.add(normalizeDonorKey(d.donor!));
       }
     }
 
