@@ -89,9 +89,10 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
         value={name}
         onChange={(e) => setName(e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && handleConfirm()}
+        onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
         placeholder={t('namePlaceholder')}
         autoFocus
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 text-base text-gray-900
                    focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
       />
       <div className="mt-2 flex gap-2">

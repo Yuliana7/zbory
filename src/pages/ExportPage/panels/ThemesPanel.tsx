@@ -97,9 +97,10 @@ export function ThemesPanel({ open, onToggle, style, onApplyTheme }: ThemesPanel
               value={name}
               onChange={(e) => setName(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSave()}
+              onFocus={(e) => e.currentTarget.scrollIntoView({ block: 'center', behavior: 'smooth' })}
               placeholder={t('themes.namePlaceholder')}
               autoFocus
-              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm text-gray-900
+              className="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-base text-gray-900
                          focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent"
             />
             <button

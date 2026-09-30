@@ -26,9 +26,9 @@ export function TextEditorPanel({ open, onToggle, templateId, textFields, textOv
             <div key={field.key}>
               <label className="block text-xs text-gray-500 mb-1">{t(`fieldLabels.${templateId}.${field.key}`)}</label>
               {field.multiline ? (
-                <textarea value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
+                <textarea value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} rows={3} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none" />
               ) : (
-                <input type="text" value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
+                <input type="text" value={currentValue} onChange={e => setOverride(e.target.value)} placeholder={t('textEditor.defaultPlaceholder')} className="w-full border border-gray-300 rounded-lg px-3 py-2 text-base focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent" />
               )}
             </div>
           );
