@@ -14,13 +14,11 @@ interface MilestoneCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
@@ -50,10 +48,14 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} fade={65} style={{ top: '40%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: '40%', left: '50%', transform: 'translate(-50%, -50%)', width: 900, height: 900 }} />
+          </div>
+        )}
 
         {/* Header — top left with the ₴ icon */}
-        {showHeader && <CardHeader palette={p} fz={fz} title={tx('title')} />}
+        {!hidden.has('header') && <CardHeader palette={p} fz={fz} title={tx('title')} />}
 
         {/* Main — centered */}
         <div
@@ -66,9 +68,9 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
             textAlign: 'center',
           }}
         >
-        {displayPct !== null ? (
+        {!hidden.has('hero') && (displayPct !== null ? (
           <div
-            data-sticker="hero"
+            data-element="hero"
             style={{
               fontSize: fz(200),
               fontWeight: 900,
@@ -94,10 +96,12 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           >
             {tx('ongoingLabel')}
           </div>
-        )}
+        ))}
 
         {/* Achieved label */}
+        {!hidden.has('achievedLabel') && (
         <div
+          data-element="achievedLabel"
           style={{
             fontSize: fz(44),
             fontWeight: 700,
@@ -108,10 +112,11 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         >
           {tx('achievedLabel', defaultAchieved)}
         </div>
+        )}
 
         {/* Progress bar */}
-        {barWidthPct !== null && (
-          <div style={{ width: '100%', marginBottom: 48 }}>
+        {!hidden.has('progressBar') && barWidthPct !== null && (
+          <div data-element="progressBar" style={{ width: '100%', marginBottom: 48 }}>
             <div
               style={{
                 height: 16,
@@ -134,7 +139,8 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
         )}
 
         {/* Collected / goal line */}
-        <div style={{ fontSize: fz(28), color: p.secondary }}>
+        {!hidden.has('collectedGoalLine') && (
+        <div data-element="collectedGoalLine" style={{ fontSize: fz(28), color: p.secondary }}>
           {tx('collectedLabel')}{' '}
           <NoWrap style={{ fontWeight: 800, color: p.primary }}>{formattedTotal} ₴</NoWrap>
           {formattedGoal && (
@@ -145,10 +151,11 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
             </>
           )}
         </div>
+        )}
         </div>
 
         {/* Footer */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -157,7 +164,7 @@ export const MilestoneCard = forwardRef<HTMLDivElement, MilestoneCardProps>(
           />
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

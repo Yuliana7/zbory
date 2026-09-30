@@ -15,13 +15,11 @@ interface FundsFlowCardProps {
   bgOverride?: string;
   safeZonePad?: boolean;
   showRefunds?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
-  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, showRefunds = false, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, showRefunds = false, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -45,11 +43,15 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
-        <GlowBlob palette={p} style={{ bottom: -150, left: -150, width: 500, height: 500 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+            <GlowBlob palette={p} style={{ bottom: -150, left: -150, width: 500, height: 500 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} right={tx('dateRange', defaultDateRange)} />
         )}
 
@@ -57,7 +59,8 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 80 : 60 }}>
 
           {/* Total raised — hero number */}
-          <div>
+          {!hidden.has('hero') && (
+          <div data-element="hero">
             <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 12 }}>{tx('raisedLabel')}</div>
             <div style={{ fontSize: fz(100), fontWeight: 800, letterSpacing: '-3px', lineHeight: 1, background: `${p.accentGradient} text`, WebkitTextFillColor: 'transparent' }}>
               {fmt(displayedTotal)}
@@ -66,9 +69,11 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
               {tx('currencyLabel')}
             </div>
           </div>
+          )}
 
           {/* Proportional flow bar */}
-          <div data-sticker="flowBar">
+          {!hidden.has('flowBar') && (
+          <div data-element="flowBar">
             <div
               style={{
                 height: 24,
@@ -112,9 +117,11 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
               )}
             </div>
           </div>
+          )}
 
           {/* Stat breakdown cards */}
-          <div data-sticker="breakdown" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
+          {!hidden.has('breakdown') && (
+          <div data-element="breakdown" style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
             {/* Balance card */}
             <div style={{ flex: 1, minWidth: 200, background: 'rgba(74,222,128,0.12)', borderRadius: 20, padding: '28px 32px', border: '1px solid rgba(74,222,128,0.25)' }}>
               <div style={{ fontSize: fz(20), color: '#4ade80', marginBottom: 10, fontWeight: 600 }}>{tx('balanceLabel')}</div>
@@ -142,10 +149,11 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
               </div>
             )}
           </div>
+          )}
         </div>
 
         {/* Footer stats */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -154,7 +162,7 @@ export const FundsFlowCard = forwardRef<HTMLDivElement, FundsFlowCardProps>(
           />
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   },

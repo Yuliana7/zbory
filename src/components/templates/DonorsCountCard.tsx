@@ -13,11 +13,11 @@ interface DonorsCountCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -33,10 +33,15 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 80 : 60 }}>
+        {!hidden.has('header') && (
+        <div data-element="header" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 80 : 60 }}>
           <div
             style={{
               width: 56,
@@ -54,35 +59,41 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
           </div>
           <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
         </div>
+        )}
 
         {/* Hero number */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div
-            style={{
-              fontSize: fz(160),
-              fontWeight: 900,
-              lineHeight: 0.9,
-              letterSpacing: '-6px',
-              background: `${p.accentGradient} text`,
-              WebkitTextFillColor: 'transparent',
-              marginBottom: 20,
-            }}
-          >
-            {fmt(aggregates.uniqueDonors)}
+          {!hidden.has('hero') && (
+          <div data-element="hero">
+            <div
+              style={{
+                fontSize: fz(160),
+                fontWeight: 900,
+                lineHeight: 0.9,
+                letterSpacing: '-6px',
+                background: `${p.accentGradient} text`,
+                WebkitTextFillColor: 'transparent',
+                marginBottom: 20,
+              }}
+            >
+              {fmt(aggregates.uniqueDonors)}
+            </div>
+            <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
+              {tx('donorsLabel')}
+            </div>
           </div>
-          <div style={{ fontSize: fz(48), fontWeight: 600, color: p.secondary, letterSpacing: '-1px' }}>
-            {tx('donorsLabel')}
-          </div>
+          )}
           {/* Anonymous donations matter too — not everyone is a Monobank user */}
-          {aggregates.anonymousDonations > 0 && (
-            <div style={{ fontSize: fz(30), fontWeight: 600, color: p.accent, marginTop: 20 }}>
+          {!hidden.has('anonymousLine') && aggregates.anonymousDonations > 0 && (
+            <div data-element="anonymousLine" style={{ fontSize: fz(30), fontWeight: 600, color: p.accent, marginTop: 20 }}>
               + {fmt(aggregates.anonymousDonations)} {tx('anonymousLabel')}
             </div>
           )}
         </div>
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 20, marginBottom: 40 }}>
+        {!hidden.has('statsRow') && (
+        <div data-element="statsRow" style={{ display: 'flex', gap: 20, marginBottom: 40 }}>
           {[
             { label: tx('avgLabel'), value: fmt(aggregates.avgDonation) + ' ₴' },
             { label: tx('maxLabel'), value: fmt(aggregates.maxDonation) + ' ₴' },
@@ -104,10 +115,12 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             </div>
           ))}
         </div>
+        )}
 
         {/* Distribution bars */}
+        {!hidden.has('distribution') && (
         <div
-          data-sticker="distribution"
+          data-element="distribution"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -146,8 +159,9 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
             </div>
           ))}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

@@ -15,10 +15,11 @@ interface BackgroundPanelProps {
   onToggleUnlink: (unlink: boolean) => void;
   bgInputRef: React.RefObject<HTMLInputElement>;
   onBgUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onEditPosition: () => void;
 }
 
 export function BackgroundPanel({
-  open, onToggle, style, onPatchStyle, styleBadge, multiCard, styleUnlinked, onToggleUnlink, bgInputRef, onBgUpload,
+  open, onToggle, style, onPatchStyle, styleBadge, multiCard, styleUnlinked, onToggleUnlink, bgInputRef, onBgUpload, onEditPosition,
 }: BackgroundPanelProps) {
   const { t } = useTranslation('export');
   return (
@@ -91,34 +92,15 @@ export function BackgroundPanel({
             <input ref={bgInputRef} type="file" accept="image/*" className="hidden" onChange={onBgUpload} />
           </div>
           {style.bgImage && (
-            <div className="mt-3 space-y-3">
-              <p className="text-xs text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-lg px-2.5 py-1.5">
-                {t('background.dragHint')}
-              </p>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.brightness')}</span><span>{Math.round(style.bgBrightness * 100)}%</span></div>
-                <input type="range" min={0.1} max={1.5} step={0.05} value={style.bgBrightness} onChange={e => onPatchStyle({ bgBrightness: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.opacity')}</span><span>{Math.round(style.bgOpacity * 100)}%</span></div>
-                <input type="range" min={0.05} max={1} step={0.05} value={style.bgOpacity} onChange={e => onPatchStyle({ bgOpacity: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.zoom')}</span><span>{Math.round(style.bgZoom * 100)}%</span></div>
-                <input type="range" min={1} max={3} step={0.05} value={style.bgZoom} onChange={e => onPatchStyle({ bgZoom: parseFloat(e.target.value) })} className="w-full accent-indigo-600" />
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetX')}</span><span>{style.bgOffsetX}%</span></div>
-                <input type="range" min={-100} max={100} step={1} value={style.bgOffsetX} onChange={e => onPatchStyle({ bgOffsetX: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.offsetY')}</span><span>{style.bgOffsetY}%</span></div>
-                <input type="range" min={-100} max={100} step={1} value={style.bgOffsetY} onChange={e => onPatchStyle({ bgOffsetY: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
-              </div>
-              <div>
-                <div className="flex justify-between text-[11px] text-gray-500 mb-1"><span>{t('background.rotate')}</span><span>{style.bgRotate}°</span></div>
-                <input type="range" min={0} max={360} step={1} value={style.bgRotate} onChange={e => onPatchStyle({ bgRotate: parseInt(e.target.value, 10) })} className="w-full accent-indigo-600" />
-              </div>
+            <div className="mt-3">
+              <button
+                onClick={onEditPosition}
+                className="w-full flex items-center justify-center gap-2 px-3 py-2.5 rounded-lg
+                           bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium transition-colors"
+              >
+                <ImageIcon className="w-4 h-4" />
+                {t('background.editPosition')}
+              </button>
             </div>
           )}
           {(style.bgImage || style.bgColor || style.bgTransparent) && (

@@ -23,6 +23,7 @@ export const DEFAULT_SHARED_STYLE: SharedStyle = {
   bgOffsetY: 0,
   bgRotate: 0,
   fontScale: 1,
+  themeId: null,
 };
 
 export function toDateInput(d: Date): string {
@@ -34,18 +35,12 @@ export function makeCard(templateId: TemplateType, personalComments: Array<{ tex
     templateId,
     format: TEMPLATE_DEFAULT_FORMAT[templateId],
     textOverrides: {},
-    showHeader: true,
-    showFooter: true,
-    showUAFlag: true,
-    showChart: true,
-    showBars: true,
-    showBestDay: true,
+    hiddenElements: [],
     showRefunds: false,
     dateFrom: '',
     dateTo: '',
     selectedCommentKeys:
       templateId === 'comments' ? personalComments.slice(0, 3).map((c) => c.text) : [],
-    captionText: null,
     styleOverride: null,
     touched: false,
   };

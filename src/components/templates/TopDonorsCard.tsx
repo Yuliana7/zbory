@@ -15,13 +15,13 @@ interface TopDonorsCardProps {
   safeZonePad?: boolean;
   /** 'sum' ranks by total amount; 'count' ranks by number of donations */
   mode?: 'sum' | 'count';
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
 export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, mode = 'sum', bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, mode = 'sum', bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -37,10 +37,15 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
         {/* Header */}
-        <div style={{ marginBottom: isStory ? 72 : 56 }}>
+        {!hidden.has('header') && (
+        <div data-element="header" style={{ marginBottom: isStory ? 72 : 56 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
             <div
               style={{
@@ -60,9 +65,11 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
           </div>
         </div>
+        )}
 
         {/* Donors list */}
-        <div data-sticker="list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {!hidden.has('list') && (
+        <div data-element="list" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 20 }}>
           {donors.length === 0 ? (
             <div style={{ textAlign: 'center', color: p.secondary, fontSize: fz(32), marginTop: 80 }}>
               {tx('noDataLabel')}
@@ -135,9 +142,12 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             })
           )}
         </div>
+        )}
 
         {/* Footer */}
+        {!hidden.has('footer') && (
         <div
+          data-element="footer"
           style={{
             paddingTop: 40,
             borderTop: `1px solid ${p.cardBorder}`,
@@ -153,8 +163,9 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
             {aggregates.donationCount}
           </div>
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

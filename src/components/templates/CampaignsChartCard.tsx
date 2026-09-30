@@ -15,7 +15,7 @@ interface CampaignsChartCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 const LINE_COLORS = ['#6366f1', '#f59e0b', '#10b981', '#ef4444', '#8b5cf6', '#06b6d4', '#f97316', '#84cc16'];
@@ -23,7 +23,7 @@ const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n)
 
 /** Multi-campaign template: cumulative curves aligned by campaign day + per-jar totals. */
 export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardProps>(
-  ({ items, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ items, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -41,13 +41,20 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
-        <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 70 : 50} />
+        {!hidden.has('header') && (
+          <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 70 : 50} />
+        )}
 
         {/* Aligned cumulative curves */}
+        {!hidden.has('chart') && (
         <div
-          data-sticker="chart"
+          data-element="chart"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -72,9 +79,11 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
             ))}
           </svg>
         </div>
+        )}
 
         {/* Legend with totals */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 28 : 18 }}>
+        {!hidden.has('legend') && (
+        <div data-element="legend" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 28 : 18 }}>
           {stats.campaigns.map((c, i) => (
             <div
               key={c.meta.id}
@@ -98,8 +107,9 @@ export const CampaignsChartCard = forwardRef<HTMLDivElement, CampaignsChartCardP
             </div>
           ))}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   },

@@ -13,13 +13,11 @@ interface WeeklyRecapCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const UA_DAYS = t('weekly-recap.days', { returnObjects: true }) as string[];
     const isStory = format === 'story';
@@ -52,15 +50,20 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 72 : 56} />
         )}
 
         {/* This week total */}
-        <div style={{ marginBottom: isStory ? 60 : 40 }}>
+        {!hidden.has('weekTotal') && (
+        <div data-element="weekTotal" style={{ marginBottom: isStory ? 60 : 40 }}>
           <div style={{ fontSize: fz(26), color: p.secondary, marginBottom: 8 }}>
             {tx('thisWeekLabel')}
           </div>
@@ -94,10 +97,12 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             </div>
           )}
         </div>
+        )}
 
         {/* Bar chart */}
+        {!hidden.has('chart') && (
         <div
-          data-sticker="chart"
+          data-element="chart"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -149,14 +154,15 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
             </div>
           )}
         </div>
+        )}
 
         {/* Best day */}
-        {thisWeek.length > 0 && isStory && (() => {
+        {!hidden.has('bestDay') && thisWeek.length > 0 && isStory && (() => {
           const best = thisWeek.reduce((a, b) => b[1].amount > a[1].amount ? b : a);
           const d = new Date(best[0]);
           return (
             <div
-              data-sticker="bestDay"
+              data-element="bestDay"
               style={{
                 background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))',
                 border: '1px solid rgba(251,191,36,0.3)',
@@ -180,7 +186,8 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
         })()}
 
         {/* Footer */}
-        {showFooter && (<div
+        {!hidden.has('footer') && (<div
+          data-element="footer"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -200,7 +207,7 @@ export const WeeklyRecapCard = forwardRef<HTMLDivElement, WeeklyRecapCardProps>(
           ))}
         </div>)}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

@@ -14,15 +14,11 @@ interface DailyActivityCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showChart?: boolean;
-  showBars?: boolean;
-  showBestDay?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showChart = true, showBars = true, showBestDay = true, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isPost = format !== 'story';
     const p = palette;
@@ -74,13 +70,18 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="80px">
-        <GlowBlob palette={p} fade={65} style={{ top: -300, right: -300, width: 900, height: 900 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: -300, right: -300, width: 900, height: 900 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={60} />}
+        {!hidden.has('header') && <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={60} />}
 
         {/* Total */}
-        <div style={{ marginBottom: isPost ? 32 : 60 }}>
+        {!hidden.has('total') && (
+        <div data-element="total" style={{ marginBottom: isPost ? 32 : 60 }}>
           <div style={{ fontSize: fz(26), color: p.secondary, marginBottom: 8 }}>
             {tx('totalLabel')}
           </div>
@@ -97,11 +98,12 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             <NoWrap>{new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.totalAmount))} ₴</NoWrap>
           </div>
         </div>
+        )}
 
         {/* Cumulative chart */}
-        {showChart && (
+        {!hidden.has('chart') && (
         <div
-          data-sticker="chart" data-element="chart"
+          data-element="chart"
           style={{
             background: p.cardBg,
             borderRadius: 24,
@@ -154,9 +156,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         )}
 
         {/* Daily bars — story only */}
-        {showBars && !isPost && (
+        {!hidden.has('bars') && !isPost && (
           <div
-            data-sticker="bars" data-element="bars"
+            data-element="bars"
             style={{
               background: p.cardBg,
               borderRadius: 24,
@@ -201,9 +203,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         )}
 
         {/* Best day callout */}
-        {showBestDay && bestDay && (
+        {!hidden.has('bestDay') && bestDay && (
           <div
-            data-sticker="bestDay" data-element="bestDay"
+            data-element="bestDay"
             style={{
               background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(245,158,11,0.08))',
               border: '1px solid rgba(251,191,36,0.3)',
@@ -229,7 +231,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
         )}
 
         {/* Footer stats */}
+        {!hidden.has('footer') && (
         <div
+          data-element="footer"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -251,8 +255,9 @@ export const DailyActivityCard = forwardRef<HTMLDivElement, DailyActivityCardPro
             </div>
           ))}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} height={10} />
+        <UAFlagBar show={!hidden.has('uaflag')} height={10} />
       </CardShell>
     );
   }

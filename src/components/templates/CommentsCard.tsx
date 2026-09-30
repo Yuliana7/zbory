@@ -19,12 +19,12 @@ interface CommentsCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 /** Words of support: quote bubbles with comments the volunteer hand-picked. */
 export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
-  ({ selectedComments = [], format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showUAFlag = true }, ref) => {
+  ({ selectedComments = [], format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -33,10 +33,16 @@ export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad} storyPadding="110px 90px" safeZoneHorizontal="90px">
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
         {/* Title */}
+        {!hidden.has('title') && (
         <div
+          data-element="title"
           style={{
             fontSize: fz(52),
             fontWeight: 800,
@@ -48,10 +54,12 @@ export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
         >
           {tx('title')}
         </div>
+        )}
 
         {/* Quotes */}
+        {!hidden.has('quotes') && (
         <div
-          data-sticker="quotes"
+          data-element="quotes"
           style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 44 : 32 }}
         >
           {selectedComments.length === 0 ? (
@@ -82,8 +90,9 @@ export const CommentsCard = forwardRef<HTMLDivElement, CommentsCardProps>(
             ))
           )}
         </div>
+        )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

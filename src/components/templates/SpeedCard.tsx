@@ -13,13 +13,11 @@ interface SpeedCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
-  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -51,15 +49,20 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 72 : 56} />
         )}
 
         {/* Stats row */}
-        <div style={{ display: 'flex', gap: 24, marginBottom: isStory ? 60 : 40 }}>
+        {!hidden.has('statsRow') && (
+        <div data-element="statsRow" style={{ display: 'flex', gap: 24, marginBottom: isStory ? 60 : 40 }}>
           <div style={{ flex: 1 }}>
             <div style={{ fontSize: fz(24), color: p.secondary, marginBottom: 8 }}>
               {tx('totalLabel')}
@@ -93,10 +96,12 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             </div>
           </div>
         </div>
+        )}
 
         {/* Hourly chart */}
+        {!hidden.has('hourly') && (
         <div
-          data-sticker="hourly"
+          data-element="hourly"
           style={{
             background: p.cardBg,
             border: `1px solid ${p.cardBorder}`,
@@ -147,10 +152,12 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             })}
           </svg>
         </div>
+        )}
 
         {/* Peak hour callout */}
+        {!hidden.has('peak') && (
         <div
-          data-sticker="peak"
+          data-element="peak"
           style={{
             background: 'linear-gradient(135deg, rgba(251,191,36,0.12), rgba(245,158,11,0.06))',
             border: '1px solid rgba(251,191,36,0.3)',
@@ -170,9 +177,11 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
             </div>
           </div>
         </div>
+        )}
 
-        {isStory && showFooter && (
+        {isStory && !hidden.has('footer') && (
           <div
+            data-element="footer"
             style={{
               display: 'flex',
               justifyContent: 'space-between',
@@ -193,7 +202,7 @@ export const SpeedCard = forwardRef<HTMLDivElement, SpeedCardProps>(
           </div>
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

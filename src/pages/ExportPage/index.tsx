@@ -1,4 +1,5 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
+import { revealInput } from '../../utils/revealInput';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
@@ -10,14 +11,11 @@ import { getPersonalComments } from '../../utils/commentAnalyzer';
 import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
 import { useCardStack } from './hooks/useCardStack';
 import { useZipExport } from './hooks/useZipExport';
-import { useCaptionClipboard } from './hooks/useCaptionClipboard';
-import { useBackgroundPan } from './hooks/useBackgroundPan';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
   TEMPLATE_REQUIRES_GOAL,
   TEMPLATE_REMOVABLE_ELEMENTS,
-  TEMPLATE_STICKERS,
   TEMPLATE_GROUPS,
 } from '../../utils/templateConfig';
 import {
@@ -34,6 +32,8 @@ import { CardCanvas } from './CardCanvas';
 import { ElementsOverlay } from './ElementsOverlay';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
+import { ThemesPanel } from './panels/ThemesPanel';
+import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
 import { RefundsPanel } from './panels/RefundsPanel';
@@ -42,8 +42,6 @@ import { GoalPanel } from './panels/GoalPanel';
 import { ReportPeriodPanel } from './panels/ReportPeriodPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
 import { CommentPickerPanel } from './panels/CommentPickerPanel';
-import { CaptionPanel } from './panels/CaptionPanel';
-import { StickersPanel } from './panels/StickersPanel';
 import { AddTemplateModal } from './panels/AddTemplateModal';
 
 export function ExportPage() {
@@ -83,6 +81,7 @@ function ExportPageInner() {
     style,
     styleUnlinked,
     patchStyle,
+    applyTheme,
     goPrev,
     goNext,
     removeCurrentCard,
@@ -101,7 +100,7 @@ function ExportPageInner() {
   // Element edit mode: freezes background drag/zoom + swipe-nav and shows
   // the tap-to-remove overlay over the preview instead.
   const [elementsEditMode, setElementsEditMode] = useState(false);
-  const [availableStickers, setAvailableStickers] = useState<string[]>([]);
+  const [backgroundEditorOpen, setBackgroundEditorOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
@@ -182,6 +181,17 @@ function ExportPageInner() {
     };
   }, []);
 
+  // Any text field focused in the controls must end up below the pinned preview
+  // and above the keyboard (see revealInput).
+  useEffect(() => {
+    const onFocusIn = (e: FocusEvent) => {
+      const el = e.target;
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) revealInput(el);
+    };
+    document.addEventListener('focusin', onFocusIn);
+    return () => document.removeEventListener('focusin', onFocusIn);
+  }, []);
+
   const effectiveScale = scale * (1 - 0.45 * scrollShrink);
 
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
@@ -198,15 +208,6 @@ function ExportPageInner() {
   );
 
   const selectedComments = useMemo(() => commentsFor(card), [commentsFor, card]);
-
-  const { captionFor, captionCopied, allCaptionsCopied, copyCaption, copyAllCaptions } = useCaptionClipboard(
-    donations,
-    fullAggregates,
-    t,
-    goalValue,
-    commentsFor,
-  );
-  const captionValue = captionFor(card);
 
   const milestoneAchievedKey = (() => {
     const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
@@ -231,31 +232,6 @@ function ExportPageInner() {
     },
     [app.activeCampaignName, templateId, milestoneAchievedKey, filteredAggregates, t],
   );
-
-  // Which sticker blocks are actually present in the rendered template
-  useEffect(() => {
-    const frame = requestAnimationFrame(() => {
-      const root = templateRef.current;
-      if (!root) {
-        setAvailableStickers([]);
-        return;
-      }
-      setAvailableStickers(
-        TEMPLATE_STICKERS[templateId].filter((s) => root.querySelector(`[data-sticker="${s}"]`)),
-      );
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [templateId, card, goalValue, filteredAggregates, selectedComments]);
-
-  const handleStickerExport = async (stickerId: string) => {
-    const el = templateRef.current?.querySelector<HTMLElement>(`[data-sticker="${stickerId}"]`);
-    if (!el) return;
-    try {
-      await exportToPNG(el, `zbory-${templateId}-${stickerId}.png`, el.offsetWidth, el.offsetHeight);
-    } catch (err) {
-      console.error('Sticker export failed:', err);
-    }
-  };
 
   const handleExport = async () => {
     const exportEl = exportRef.current ?? templateRef.current;
@@ -297,9 +273,6 @@ function ExportPageInner() {
   // — exports/screenshots render the native, unscaled card and never hit this.
   const previewW = Math.ceil(dims.width * effectiveScale);
   const previewH = Math.ceil(dims.height * effectiveScale);
-
-  const { onPointerDown: onBgPointerDown, onPointerMove: onBgPointerMove, onPointerUp: onBgPointerUp, cursor: bgCursor } =
-    useBackgroundPan(previewClipRef, style, patchStyle, elementsEditMode, previewW, previewH);
 
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
@@ -357,12 +330,12 @@ function ExportPageInner() {
         {/* Preview */}
         <div
           ref={previewContainerRef}
+          data-pinned-preview
           className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
           style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
           onTouchStart={(e) => {
-            // With a background photo, touch on the preview drags the photo instead;
-            // element edit mode freezes the canvas entirely (no drag, no swipe)
-            if (style.bgImage || elementsEditMode) return;
+            // Element edit mode freezes the canvas entirely (no swipe)
+            if (elementsEditMode) return;
             touchStartX.current = e.touches[0].clientX;
           }}
           onTouchEnd={(e) => {
@@ -401,14 +374,7 @@ function ExportPageInner() {
               borderRadius: 8,
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
-              cursor: bgCursor,
-              touchAction: style.bgImage && !elementsEditMode ? 'none' : undefined,
-              userSelect: style.bgImage && !elementsEditMode ? 'none' : undefined,
             }}
-            onPointerDown={onBgPointerDown}
-            onPointerMove={onBgPointerMove}
-            onPointerUp={onBgPointerUp}
-            onPointerCancel={onBgPointerUp}
           >
             <div
               style={{
@@ -445,7 +411,7 @@ function ExportPageInner() {
                   elements={removableElements}
                   card={card}
                   effectiveScale={effectiveScale}
-                  onHide={(field) => updateCard({ [field]: false })}
+                  onHide={(id) => updateCard({ hiddenElements: [...card.hiddenElements, id] })}
                 />
               )}
             </div>
@@ -458,7 +424,7 @@ function ExportPageInner() {
             elements={removableElements}
             format={card.format}
             card={card}
-            onRestore={(field) => updateCard({ [field]: true })}
+            onRestore={(id) => updateCard({ hiddenElements: card.hiddenElements.filter((x) => x !== id) })}
           />
 
           {/* Stack navigation — wraps onto extra lines instead of overflowing
@@ -527,6 +493,13 @@ function ExportPageInner() {
             onShowSafeZonesChange={setShowSafeZones}
           />
 
+          <ThemesPanel
+            open={openSections.has('themes')}
+            onToggle={() => toggleSection('themes')}
+            style={style}
+            onApplyTheme={applyTheme}
+          />
+
           <BackgroundPanel
             open={openSections.has('background')}
             onToggle={() => toggleSection('background')}
@@ -538,6 +511,7 @@ function ExportPageInner() {
             onToggleUnlink={(v) => updateCard({ styleOverride: v ? { ...sharedStyle } : null })}
             bgInputRef={bgInputRef}
             onBgUpload={handleBgUpload}
+            onEditPosition={() => setBackgroundEditorOpen(true)}
           />
 
           <FontScalePanel
@@ -620,30 +594,6 @@ function ExportPageInner() {
             />
           )}
 
-          <CaptionPanel
-            open={openSections.has('caption')}
-            onToggle={() => toggleSection('caption')}
-            captionValue={captionValue}
-            onCaptionChange={(v) => updateCard({ captionText: v })}
-            isEdited={card.captionText !== null}
-            onRegenerate={() => updateCard({ captionText: null })}
-            onCopy={() => copyCaption(captionValue)}
-            copied={captionCopied}
-            multiCard={cards.length > 1}
-            cardCount={cards.length}
-            onCopyAll={() => copyAllCaptions(cards)}
-            allCopied={allCaptionsCopied}
-          />
-
-          {availableStickers.length > 0 && (
-            <StickersPanel
-              open={openSections.has('stickers')}
-              onToggle={() => toggleSection('stickers')}
-              availableStickers={availableStickers}
-              onExport={handleStickerExport}
-            />
-          )}
-
           {/* Download current card */}
           <button
             onClick={handleExport}
@@ -697,6 +647,20 @@ function ExportPageInner() {
           }
           onSelect={handleAddTemplate}
           onClose={() => setAddOpen(false)}
+        />
+      )}
+
+      {/* Full-screen background editor */}
+      {backgroundEditorOpen && style.bgImage && (
+        <BackgroundEditorOverlay
+          card={card}
+          style={style}
+          onPatchStyle={patchStyle}
+          dims={dims}
+          aggregates={filteredAggregates}
+          selectedComments={selectedComments}
+          renderCard={renderCard}
+          onClose={() => setBackgroundEditorOpen(false)}
         />
       )}
 

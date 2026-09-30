@@ -164,7 +164,7 @@ export function PreviewTable({ donations, rawData, totalCount, invalidRowCount =
                 value={goalInput}
                 onChange={(e) => setGoalInput(e.target.value)}
                 placeholder={t('preview.goal.placeholder')}
-                className="w-full pl-3 pr-8 py-2 rounded-lg border border-indigo-200 bg-white text-sm text-gray-900
+                className="w-full pl-3 pr-8 py-2 rounded-lg border border-indigo-200 bg-white text-base text-gray-900
                            focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
                            placeholder:text-gray-400"
               />

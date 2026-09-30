@@ -4,7 +4,6 @@ import '../../src/i18n';
 import i18n from '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations, defaultAskUnit } from '../../src/utils/dataAggregator';
-import { generateCaption } from '../../src/utils/captionGenerator';
 import { detectMoments } from '../../src/utils/momentDetector';
 import { generateActionableInsights } from '../../src/utils/insightGenerator';
 import { analyzeComments, getPersonalComments } from '../../src/utils/commentAnalyzer';
@@ -26,18 +25,8 @@ const check = (label: string, ok: boolean, extra = '') => {
 };
 
 // t bound to real i18next instance (all namespaces loaded)
-const tExport = i18n.getFixedT('uk', 'export');
 const tInsights = i18n.getFixedT('uk', 'insights');
-
-// ── Caption generator ──
 const GOAL = 8000;
-const caption = generateCaption('progress', aggregates, tExport, { goal: GOAL, linkUrl: 'send.monobank.ua/jar/x' });
-console.log('─── Caption (progress, goal 8 000) ───\n' + caption + '\n');
-check('caption: no missing i18n', !caption.includes('caption.') && !caption.includes('{{'));
-check('caption: has stats + link + hashtags', /4\s?480/.test(caption.replace(/[\u00A0\u202F]/g, ' ')) && caption.includes('🔗') && caption.includes('#збір'));
-
-const askCaption = generateCaption('concrete-ask', aggregates, tExport, { goal: GOAL });
-check('caption ask: concrete units', /по\s.*200/.test(askCaption), askCaption);
 
 // ── Concrete ask math: goal 8000, total 4480 → remaining 3520, median 200 → unit 200 → 18 донатів ──
 check('defaultAskUnit(median 200) = 200', defaultAskUnit(aggregates.medianDonation) === 200);
@@ -81,11 +70,6 @@ const withAuto = [
 const filtered = getPersonalComments(withAuto);
 check('auto-comment excluded case-insensitively', filtered.length === 1 && filtered[0].text === 'Тримайтесь 💙');
 
-// Caption for «Слова підтримки» quotes the selection (so ↺ visibly reflects it)
-const commentsCaption = generateCaption('comments', aggregates, tExport, {
-  comments: [{ text: 'Все буде добре!', donor: 'Яна' }],
-});
-check('caption comments: includes quoted comment', commentsCaption.includes('«Все буде добре!» — Яна'));
 html = renderToStaticMarkup(<CommentsCard aggregates={aggregates} selectedComments={personal.slice(0, 3).map(c => ({ text: c.text, donor: c.donor }))} format="story" />);
 check('Comments: renders quotes', html.includes('«') && html.includes('Слова підтримки'));
 html = renderToStaticMarkup(<CommentsCard aggregates={aggregates} selectedComments={[]} format="story" />);

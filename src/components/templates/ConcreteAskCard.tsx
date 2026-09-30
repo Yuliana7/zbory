@@ -15,9 +15,7 @@ interface ConcreteAskCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 /**
@@ -25,7 +23,7 @@ interface ConcreteAskCardProps {
  * "Ще 42 донати по 100 ₴ — і збір закрито".
  */
 export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
-  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, goal, format = 'post', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const isStory = format === 'story';
     const p = palette;
@@ -46,16 +44,21 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} fade={65} style={{ top: -200, left: '50%', transform: 'translateX(-50%)', width: 800, height: 800 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} fade={65} style={{ top: -200, left: '50%', transform: 'translateX(-50%)', width: 800, height: 800 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} marginBottom={isStory ? 80 : 56} />
         )}
 
         {/* Hero */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div data-sticker="hero">
+          {!hidden.has('hero') && (
+          <div data-element="hero">
             {!goal ? (
               <div
                 style={{
@@ -105,10 +108,11 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
               </>
             )}
           </div>
+          )}
 
           {/* Progress bar */}
-          {!!goal && (
-            <div style={{ marginTop: 56 }}>
+          {!hidden.has('progressBar') && !!goal && (
+            <div data-element="progressBar" style={{ marginTop: 56 }}>
               <div style={{ height: 24, background: p.progressTrack, borderRadius: 12, overflow: 'hidden' }}>
                 <div
                   style={{
@@ -126,8 +130,9 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
           )}
 
           {/* Jar link */}
-          {textOverrides.linkUrl?.trim() && (
+          {!hidden.has('linkBox') && textOverrides.linkUrl?.trim() && (
             <div
+              data-element="linkBox"
               style={{
                 marginTop: 40,
                 background: p.cardBg,
@@ -145,7 +150,7 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
         </div>
 
         {/* Footer */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -154,7 +159,7 @@ export const ConcreteAskCard = forwardRef<HTMLDivElement, ConcreteAskCardProps>(
           />
         )}
 
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

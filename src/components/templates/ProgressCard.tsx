@@ -15,13 +15,11 @@ interface ProgressCardProps {
   fontScale?: number;
   bgOverride?: string;
   safeZonePad?: boolean;
-  showHeader?: boolean;
-  showFooter?: boolean;
-  showUAFlag?: boolean;
+  hidden?: Set<string>;
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, showHeader = true, showFooter = true, showUAFlag = true }, ref) => {
+  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
@@ -55,17 +53,22 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
-        <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
-        <GlowBlob palette={p} style={{ bottom: -150, left: -150, width: 500, height: 500 }} />
+        {!hidden.has('glow') && (
+          <div data-element="glow">
+            <GlowBlob palette={p} style={{ top: -200, right: -200, width: 700, height: 700 }} />
+            <GlowBlob palette={p} style={{ bottom: -150, left: -150, width: 500, height: 500 }} />
+          </div>
+        )}
 
         {/* Header */}
-        {showHeader && (
+        {!hidden.has('header') && (
           <CardHeader palette={p} fz={fz} title={tx('title')} right={tx('dateRange', defaultDateRange)} />
         )}
 
         {/* Main content */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-          <div data-sticker="hero">
+          {!hidden.has('hero') && (
+          <div data-element="hero">
             <div style={{ color: p.secondary, fontSize: fz(28), marginBottom: 16 }}>
               {tx('collectedLabel')}
             </div>
@@ -93,9 +96,10 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               {tx('currencyLabel')}
             </div>
           </div>
+          )}
 
-          {progressPct !== null && (
-            <div data-sticker="progressBar" style={{ marginTop: 56 }}>
+          {!hidden.has('progressBar') && progressPct !== null && (
+            <div data-element="progressBar" style={{ marginTop: 56 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 14 }}>
                 <span style={{ fontSize: fz(22), color: p.secondary, whiteSpace: 'nowrap' }}>
                   {tx('goalLabel')}: <NoWrap>{formattedGoal} ₴</NoWrap>
@@ -132,7 +136,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         </div>
 
         {/* Footer stats */}
-        {showFooter && (
+        {!hidden.has('footer') && (
           <CardFooter
             palette={p}
             fz={fz}
@@ -140,7 +144,7 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
             labels={{ collected: tx('statCollected'), median: tx('statMedian'), max: tx('statMax') }}
           />
         )}
-        <UAFlagBar show={showUAFlag} />
+        <UAFlagBar show={!hidden.has('uaflag')} />
       </CardShell>
     );
   }

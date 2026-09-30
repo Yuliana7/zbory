@@ -90,6 +90,8 @@ export interface SharedStyle {
   bgOffsetY: number;
   bgRotate: number;
   fontScale: number;
+  /** id of the saved theme this style was last applied from exactly; cleared by any manual edit */
+  themeId?: string | null;
 }
 
 // Everything content-related that one card in the editing stack owns
@@ -97,18 +99,12 @@ export interface CardState {
   templateId: TemplateType;
   format: 'post' | 'post-4-5' | 'story';
   textOverrides: Record<string, string>;
-  showHeader: boolean;
-  showFooter: boolean;
-  showUAFlag: boolean;
-  showChart: boolean;
-  showBars: boolean;
-  showBestDay: boolean;
+  /** data-element ids the user has turned off via tap-to-remove */
+  hiddenElements: string[];
   showRefunds: boolean;
   dateFrom: string;
   dateTo: string;
   selectedCommentKeys: string[];
-  /** null = live auto-generated caption; string = user-edited */
-  captionText: string | null;
   /** non-null = this card detached from the series style and keeps its own */
   styleOverride: SharedStyle | null;
   touched: boolean;

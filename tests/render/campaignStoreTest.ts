@@ -6,6 +6,7 @@ import {
   deleteCampaign,
   computeCampaignSummary,
 } from '../../src/utils/campaignStore';
+import { DEFAULT_SHARED_STYLE } from '../../src/utils/exportStack';
 import type { RawDonation } from '../../src/types';
 
 const assertEq = (label: string, actual: unknown, expected: unknown) => {
@@ -47,9 +48,21 @@ const raw: RawDonation[] = [
 
   // ── load: full rows round-trip ──
   const data = await loadCampaignData(created.id);
-  assertEq('load: row count', data?.length, 4);
-  assertEq('load: rows intact', data?.[3].additionalInfo, 'Від: Марта-Марія Плечій');
+  assertEq('load: row count', data?.rawData.length, 4);
+  assertEq('load: rows intact', data?.rawData[3].additionalInfo, 'Від: Марта-Марія Плечій');
+  assertEq('load: style null by default', data?.style, null);
   assertEq('load: unknown id → null', await loadCampaignData('nope'), null);
+
+  // ── style: saved alongside the campaign, preserved on an update that doesn't pass one ──
+  const style = { ...DEFAULT_SHARED_STYLE, bgImage: 'data:image/png;base64,abc', bgRotate: 45 };
+  await saveCampaign({ id: created.id, name: 'На дрони', rawData: raw, fileName: 'jar.csv', style });
+  const withStyle = await loadCampaignData(created.id);
+  assertEq('style: round-trips', withStyle?.style?.bgRotate, 45);
+  assertEq('style: bgImage round-trips', withStyle?.style?.bgImage, style.bgImage);
+
+  await saveCampaign({ id: created.id, name: 'На дрони (перейменовано)', rawData: raw, fileName: 'jar.csv' });
+  const afterRename = await loadCampaignData(created.id);
+  assertEq('style: survives an update that omits it', afterRename?.style?.bgRotate, 45);
 
   // ── update in place: keeps identity and createdAt, refreshes the rest ──
   await new Promise((r) => setTimeout(r, 5));
