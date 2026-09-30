@@ -1,4 +1,4 @@
-import type { RawDonation } from '../types';
+import type { RawDonation, SharedStyle } from '../types';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 
@@ -37,6 +37,7 @@ export interface CampaignMeta {
 interface CampaignData {
   id: string;
   rawData: RawDonation[];
+  style?: SharedStyle;
 }
 
 // ─── Storage backend ──────────────────────────────────────────────────────────
@@ -136,24 +137,31 @@ export interface SaveCampaignInput {
   rawData: RawDonation[];
   fileName: string | null;
   goal?: number;
+  /** Omit to keep whatever style was previously saved for this campaign */
+  style?: SharedStyle;
 }
 
 export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMeta> {
   const kv = getBackend();
   const now = Date.now();
-  const existing = input.id ? ((await kv.get(META_STORE, input.id)) as CampaignMeta | undefined) : undefined;
+  const existingMeta = input.id ? ((await kv.get(META_STORE, input.id)) as CampaignMeta | undefined) : undefined;
+  const existingData = input.id ? ((await kv.get(DATA_STORE, input.id)) as CampaignData | undefined) : undefined;
 
   const meta: CampaignMeta = {
-    id: existing?.id ?? input.id ?? generateId(),
+    id: existingMeta?.id ?? input.id ?? generateId(),
     name: input.name.trim(),
     fileName: input.fileName,
     goal: input.goal,
-    createdAt: existing?.createdAt ?? now,
+    createdAt: existingMeta?.createdAt ?? now,
     updatedAt: now,
     summary: computeCampaignSummary(input.rawData),
   };
 
-  await kv.put(DATA_STORE, { id: meta.id, rawData: input.rawData } satisfies CampaignData);
+  await kv.put(DATA_STORE, {
+    id: meta.id,
+    rawData: input.rawData,
+    style: input.style ?? existingData?.style,
+  } satisfies CampaignData);
   await kv.put(META_STORE, meta);
   return meta;
 }
@@ -168,9 +176,10 @@ export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> 
   return ((await getBackend().get(META_STORE, id)) as CampaignMeta | undefined) ?? null;
 }
 
-export async function loadCampaignData(id: string): Promise<RawDonation[] | null> {
+export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null } | null> {
   const data = (await getBackend().get(DATA_STORE, id)) as CampaignData | undefined;
-  return data?.rawData ?? null;
+  if (!data) return null;
+  return { rawData: data.rawData, style: data.style ?? null };
 }
 
 export async function deleteCampaign(id: string): Promise<void> {

@@ -69,7 +69,7 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[] } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle } }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
@@ -118,6 +118,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
           activeCampaignName: action.payload.activeCampaignName ?? null,
           campaignDatasets: action.payload.campaignDatasets ?? null,
           goal: action.payload.goal,
+          stackStyle: action.payload.style ?? null,
         },
       };
 
@@ -239,6 +240,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           goal: state.app.goal,
           activeCampaignId: state.app.activeCampaignId ?? undefined,
           activeCampaignName: state.app.activeCampaignName ?? undefined,
+          style: state.app.stackStyle ?? undefined,
         },
       });
       saveSession(rawData, state.app.originalFileName ?? null);
@@ -248,7 +250,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, t]);
+  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, t]);
 
   // Merges another CSV export into the currently loaded dataset (long
   // campaigns come in chunks); campaign link and goal survive the merge.
@@ -274,6 +276,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           goal: state.app.goal,
           activeCampaignId: state.app.activeCampaignId ?? undefined,
           activeCampaignName: state.app.activeCampaignName ?? undefined,
+          style: state.app.stackStyle ?? undefined,
         },
       });
       saveSession(result.merged, state.app.originalFileName ?? file.name);
@@ -285,7 +288,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, t]);
+  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, t]);
 
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
@@ -350,8 +353,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const handleLoadCampaign = useCallback(async (id: string): Promise<boolean> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const [meta, rawData] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
-      if (!meta || !rawData) throw new Error();
+      const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
+      if (!meta || !data) throw new Error();
+      const { rawData, style } = data;
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0) throw new Error();
       dispatch({
@@ -365,6 +369,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           goal: meta.goal,
           activeCampaignId: id,
           activeCampaignName: meta.name,
+          style: style ?? undefined,
         },
       });
       saveSession(rawData, meta.fileName);
@@ -388,9 +393,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
       let goalSum = 0;
       let hasAnyGoal = false;
       for (const id of ids) {
-        const [meta, rawData] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
-        if (!meta || !rawData) throw new Error();
-        datasets.push({ id, name: meta.name, rawData });
+        const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
+        if (!meta || !data) throw new Error();
+        datasets.push({ id, name: meta.name, rawData: data.rawData });
         if (meta.goal) {
           goalSum += meta.goal;
           hasAnyGoal = true;
@@ -443,6 +448,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         rawData: state.app.rawData,
         fileName: state.app.originalFileName,
         goal: goalOverride !== undefined ? goalOverride : state.app.goal,
+        style: state.app.stackStyle ?? undefined,
       });
       dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id, name: meta.name } });
       return meta;
@@ -450,7 +456,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
       return null;
     }
-  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, t]);
+  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, t]);
 
   const goToStep = useCallback(
     (step: AppState['step']) => {

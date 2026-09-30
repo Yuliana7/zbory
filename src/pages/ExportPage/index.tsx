@@ -1,6 +1,7 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
+import { SaveCampaignControl } from '../../components/insights/SaveCampaignControl';
 import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
 import type { SelectedComment } from '../../components/templates/CommentsCard';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
@@ -10,7 +11,6 @@ import { getPersonalComments } from '../../utils/commentAnalyzer';
 import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
 import { useCardStack } from './hooks/useCardStack';
 import { useZipExport } from './hooks/useZipExport';
-import { useBackgroundPan } from './hooks/useBackgroundPan';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
@@ -32,6 +32,7 @@ import { CardCanvas } from './CardCanvas';
 import { ElementsOverlay } from './ElementsOverlay';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
+import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
 import { RefundsPanel } from './panels/RefundsPanel';
@@ -97,6 +98,7 @@ function ExportPageInner() {
   // Element edit mode: freezes background drag/zoom + swipe-nav and shows
   // the tap-to-remove overlay over the preview instead.
   const [elementsEditMode, setElementsEditMode] = useState(false);
+  const [backgroundEditorOpen, setBackgroundEditorOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
@@ -259,9 +261,6 @@ function ExportPageInner() {
   const previewW = Math.ceil(dims.width * effectiveScale);
   const previewH = Math.ceil(dims.height * effectiveScale);
 
-  const { onPointerDown: onBgPointerDown, onPointerMove: onBgPointerMove, onPointerUp: onBgPointerUp, cursor: bgCursor } =
-    useBackgroundPan(previewClipRef, style, patchStyle, elementsEditMode, previewW, previewH);
-
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
@@ -311,6 +310,7 @@ function ExportPageInner() {
               <span className="ml-2 text-gray-400">{t('stack.cardOf', { current: safeCurrent + 1, total: cards.length })}</span>
             )}
           </div>
+          <SaveCampaignControl />
         </div>
       </div>
 
@@ -321,9 +321,8 @@ function ExportPageInner() {
           className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
           style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
           onTouchStart={(e) => {
-            // With a background photo, touch on the preview drags the photo instead;
-            // element edit mode freezes the canvas entirely (no drag, no swipe)
-            if (style.bgImage || elementsEditMode) return;
+            // Element edit mode freezes the canvas entirely (no swipe)
+            if (elementsEditMode) return;
             touchStartX.current = e.touches[0].clientX;
           }}
           onTouchEnd={(e) => {
@@ -362,14 +361,7 @@ function ExportPageInner() {
               borderRadius: 8,
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
-              cursor: bgCursor,
-              touchAction: style.bgImage && !elementsEditMode ? 'none' : undefined,
-              userSelect: style.bgImage && !elementsEditMode ? 'none' : undefined,
             }}
-            onPointerDown={onBgPointerDown}
-            onPointerMove={onBgPointerMove}
-            onPointerUp={onBgPointerUp}
-            onPointerCancel={onBgPointerUp}
           >
             <div
               style={{
@@ -499,6 +491,7 @@ function ExportPageInner() {
             onToggleUnlink={(v) => updateCard({ styleOverride: v ? { ...sharedStyle } : null })}
             bgInputRef={bgInputRef}
             onBgUpload={handleBgUpload}
+            onEditPosition={() => setBackgroundEditorOpen(true)}
           />
 
           <FontScalePanel
@@ -634,6 +627,20 @@ function ExportPageInner() {
           }
           onSelect={handleAddTemplate}
           onClose={() => setAddOpen(false)}
+        />
+      )}
+
+      {/* Full-screen background editor */}
+      {backgroundEditorOpen && style.bgImage && (
+        <BackgroundEditorOverlay
+          card={card}
+          style={style}
+          onPatchStyle={patchStyle}
+          dims={dims}
+          aggregates={filteredAggregates}
+          selectedComments={selectedComments}
+          renderCard={renderCard}
+          onClose={() => setBackgroundEditorOpen(false)}
         />
       )}
 
