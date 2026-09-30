@@ -90,6 +90,8 @@ export interface SharedStyle {
   bgOffsetY: number;
   bgRotate: number;
   fontScale: number;
+  /** id of the saved theme this style was last applied from exactly; cleared by any manual edit */
+  themeId?: string | null;
 }
 
 // Everything content-related that one card in the editing stack owns

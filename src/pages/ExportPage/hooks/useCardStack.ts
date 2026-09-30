@@ -2,6 +2,7 @@ import { useState, useRef, useMemo, useEffect, useCallback, type Dispatch } from
 import type { AppState, CardState, SharedStyle, TemplateType } from '../../../types';
 import type { AppAction } from '../../../context/AppContext';
 import type { getPersonalComments } from '../../../utils/commentAnalyzer';
+import type { ThemeRecord } from '../../../utils/themeStore';
 import { DEFAULT_SHARED_STYLE, mergeCards } from '../../../utils/exportStack';
 
 type PersonalComment = ReturnType<typeof getPersonalComments>[number];
@@ -48,13 +49,19 @@ export function useCardStack(
   const style = card.styleOverride ?? sharedStyle;
   const styleUnlinked = card.styleOverride !== null;
 
+  // A manual edit (palette click, a slider, a new bg upload — none of which
+  // ever include themeId themselves) always un-marks the style as "exactly
+  // this theme"; only applyTheme below passes themeId explicitly.
   const patchStyle = (patch: Partial<SharedStyle>) => {
+    const next = 'themeId' in patch ? patch : { ...patch, themeId: null };
     if (card.styleOverride) {
-      updateCard({ styleOverride: { ...card.styleOverride, ...patch } });
+      updateCard({ styleOverride: { ...card.styleOverride, ...next } });
     } else {
-      dispatch({ type: 'STACK_UPDATED', payload: { cards, style: { ...sharedStyle, ...patch } } });
+      dispatch({ type: 'STACK_UPDATED', payload: { cards, style: { ...sharedStyle, ...next } } });
     }
   };
+
+  const applyTheme = (theme: ThemeRecord) => patchStyle({ ...theme.style });
 
   const goPrev = useCallback(() => setCurrent((i) => Math.max(0, i - 1)), []);
   const goNext = useCallback(() => setCurrent((i) => Math.min(cards.length - 1, i + 1)), [cards.length]);
@@ -98,6 +105,7 @@ export function useCardStack(
     style,
     styleUnlinked,
     patchStyle,
+    applyTheme,
     goPrev,
     goNext,
     removeCurrentCard,

@@ -23,6 +23,7 @@ export const DEFAULT_SHARED_STYLE: SharedStyle = {
   bgOffsetY: 0,
   bgRotate: 0,
   fontScale: 1,
+  themeId: null,
 };
 
 export function toDateInput(d: Date): string {

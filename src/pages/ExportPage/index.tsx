@@ -1,7 +1,6 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
-import { SaveCampaignControl } from '../../components/insights/SaveCampaignControl';
 import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
 import type { SelectedComment } from '../../components/templates/CommentsCard';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
@@ -32,6 +31,7 @@ import { CardCanvas } from './CardCanvas';
 import { ElementsOverlay } from './ElementsOverlay';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
+import { ThemesPanel } from './panels/ThemesPanel';
 import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
@@ -80,6 +80,7 @@ function ExportPageInner() {
     style,
     styleUnlinked,
     patchStyle,
+    applyTheme,
     goPrev,
     goNext,
     removeCurrentCard,
@@ -310,7 +311,6 @@ function ExportPageInner() {
               <span className="ml-2 text-gray-400">{t('stack.cardOf', { current: safeCurrent + 1, total: cards.length })}</span>
             )}
           </div>
-          <SaveCampaignControl />
         </div>
       </div>
 
@@ -478,6 +478,13 @@ function ExportPageInner() {
             onFormatChange={(f: Format) => updateCard({ format: f })}
             showSafeZones={showSafeZones}
             onShowSafeZonesChange={setShowSafeZones}
+          />
+
+          <ThemesPanel
+            open={openSections.has('themes')}
+            onToggle={() => toggleSection('themes')}
+            style={style}
+            onApplyTheme={applyTheme}
           />
 
           <BackgroundPanel

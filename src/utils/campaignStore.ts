@@ -1,18 +1,13 @@
 import type { RawDonation, SharedStyle } from '../types';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
+import { getBackend } from './db';
 
 // Campaign library: named datasets persisted in IndexedDB so volunteers can
 // keep every jar they've run and (later) merge files and compare campaigns.
 // Meta and row data live in separate object stores — listing the library must
 // not deserialize thousands of rows per campaign.
-//
-// When IndexedDB is unavailable (private browsing, node tests) everything
-// falls back to an in-memory backend: the app keeps working, campaigns just
-// don't survive the tab.
 
-const DB_NAME = 'zbory-campaigns';
-const DB_VERSION = 1;
 const META_STORE = 'meta';
 const DATA_STORE = 'data';
 
@@ -38,70 +33,6 @@ interface CampaignData {
   id: string;
   rawData: RawDonation[];
   style?: SharedStyle;
-}
-
-// ─── Storage backend ──────────────────────────────────────────────────────────
-
-interface KVBackend {
-  get(store: string, key: string): Promise<unknown>;
-  getAll(store: string): Promise<unknown[]>;
-  put<T extends { id: string }>(store: string, value: T): Promise<void>;
-  remove(store: string, key: string): Promise<void>;
-}
-
-function memoryBackend(): KVBackend {
-  const stores = new Map<string, Map<string, { id: string }>>();
-  const table = (name: string) => {
-    if (!stores.has(name)) stores.set(name, new Map());
-    return stores.get(name)!;
-  };
-  return {
-    get: async (store, key) => table(store).get(key),
-    getAll: async (store) => [...table(store).values()],
-    put: async (store, value) => void table(store).set(value.id, value),
-    remove: async (store, key) => void table(store).delete(key),
-  };
-}
-
-function idbBackend(): KVBackend {
-  let dbPromise: Promise<IDBDatabase> | null = null;
-
-  const openDb = () => {
-    dbPromise ??= new Promise<IDBDatabase>((resolve, reject) => {
-      const req = indexedDB.open(DB_NAME, DB_VERSION);
-      req.onupgradeneeded = () => {
-        const db = req.result;
-        if (!db.objectStoreNames.contains(META_STORE)) db.createObjectStore(META_STORE, { keyPath: 'id' });
-        if (!db.objectStoreNames.contains(DATA_STORE)) db.createObjectStore(DATA_STORE, { keyPath: 'id' });
-      };
-      req.onsuccess = () => resolve(req.result);
-      req.onerror = () => reject(req.error);
-    });
-    return dbPromise;
-  };
-
-  const request = async <T>(store: string, mode: IDBTransactionMode, run: (s: IDBObjectStore) => IDBRequest): Promise<T> => {
-    const db = await openDb();
-    return new Promise<T>((resolve, reject) => {
-      const req = run(db.transaction(store, mode).objectStore(store));
-      req.onsuccess = () => resolve(req.result as T);
-      req.onerror = () => reject(req.error);
-    });
-  };
-
-  return {
-    get: (store, key) => request(store, 'readonly', (s) => s.get(key)),
-    getAll: (store) => request(store, 'readonly', (s) => s.getAll()),
-    put: async (store, value) => void (await request(store, 'readwrite', (s) => s.put(value))),
-    remove: async (store, key) => void (await request(store, 'readwrite', (s) => s.delete(key))),
-  };
-}
-
-let backend: KVBackend | null = null;
-
-function getBackend(): KVBackend {
-  backend ??= typeof indexedDB === 'undefined' ? memoryBackend() : idbBackend();
-  return backend;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
