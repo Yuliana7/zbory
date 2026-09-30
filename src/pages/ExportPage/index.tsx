@@ -1,22 +1,17 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
-import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle } from '../../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
 import type { SelectedComment } from '../../components/templates/CommentsCard';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
-import { exportToPNG, renderToPNGDataUrl, dataUrlToBytes } from '../../utils/exportPNG';
+import { exportToPNG } from '../../utils/exportPNG';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
-import { generateCaption } from '../../utils/captionGenerator';
 import { getPersonalComments } from '../../utils/commentAnalyzer';
-import { createZip } from '../../utils/zip';
-import {
-  type Format,
-  FORMAT_DIMS,
-  DEFAULT_SHARED_STYLE,
-  toDateInput,
-  mergeCards,
-  filterAggregates,
-} from '../../utils/exportStack';
+import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
+import { useCardStack } from './hooks/useCardStack';
+import { useZipExport } from './hooks/useZipExport';
+import { useCaptionClipboard } from './hooks/useCaptionClipboard';
+import { useBackgroundPan } from './hooks/useBackgroundPan';
 import {
   TEMPLATE_TEXT_FIELDS,
   TEMPLATE_SUPPORTS_DATE_RANGE,
@@ -78,57 +73,25 @@ function ExportPageInner() {
   );
   const crossQuarters = useMemo(() => (crossItems ? analyzeCampaigns(crossItems).quarters : []), [crossItems]);
 
-  // ── Stack data lives in AppContext (app.stackCards/app.stackStyle) — no
-  // local mirror copy, so there's nothing to fall out of sync on a gallery
-  // ⇄ export round trip. mergeCards reconciles against the current template
-  // selection every render (cheap: it matches existing card objects by
-  // templateId), so edits dispatched into context show up immediately.
-  const cards = useMemo(
-    () => mergeCards(stackIds, app.stackCards ?? [], personalComments),
-    [stackIds, personalComments, app.stackCards],
-  );
-  const [current, setCurrent] = useState(0);
-  const safeCurrent = Math.min(current, cards.length - 1);
-  const card = cards[safeCurrent];
+  const {
+    cards,
+    setCurrent,
+    safeCurrent,
+    card,
+    sharedStyle,
+    updateCard,
+    style,
+    styleUnlinked,
+    patchStyle,
+    goPrev,
+    goNext,
+    removeCurrentCard,
+    addTemplate,
+  } = useCardStack(stackIds, app, dispatch, personalComments);
   const templateId = card.templateId;
-  const sharedStyle = app.stackStyle ?? DEFAULT_SHARED_STYLE;
-
-  // Persist the reconciled card list into context on mount and whenever the
-  // template selection changes while mounted (e.g. "+ додати шаблон"), guarded
-  // by idsKey so per-keystroke edits (which also change app.stackCards) don't
-  // re-trigger this.
-  const idsKey = stackIds.join(',');
-  const prevIdsKey = useRef<string | null>(null);
-  useEffect(() => {
-    if (prevIdsKey.current === idsKey) return;
-    prevIdsKey.current = idsKey;
-    dispatch({ type: 'STACK_UPDATED', payload: { cards, style: sharedStyle } });
-  }, [idsKey, cards, sharedStyle, dispatch]);
-
-  const updateCard = useCallback((patch: Partial<CardState>) => {
-    const nextCards = cards.map((c, i) => (i === safeCurrent ? { ...c, ...patch, touched: true } : c));
-    dispatch({ type: 'STACK_UPDATED', payload: { cards: nextCards, style: sharedStyle } });
-  }, [cards, safeCurrent, sharedStyle, dispatch]);
-
-  const style = card.styleOverride ?? sharedStyle;
-  const styleUnlinked = card.styleOverride !== null;
-
-  const patchStyle = (patch: Partial<SharedStyle>) => {
-    if (card.styleOverride) {
-      updateCard({ styleOverride: { ...card.styleOverride, ...patch } });
-    } else {
-      dispatch({ type: 'STACK_UPDATED', payload: { cards, style: { ...sharedStyle, ...patch } } });
-    }
-  };
 
   const styleBadge =
     cards.length > 1 ? (styleUnlinked ? t('stack.ownStyleBadge') : t('stack.sharedBadge')) : undefined;
-
-  // Latest style/patch accessible from non-React event listeners (wheel)
-  const styleRef = useRef(style);
-  styleRef.current = style;
-  const patchStyleRef = useRef(patchStyle);
-  patchStyleRef.current = patchStyle;
 
   // ── Page-level state ──
   const [scale, setScale] = useState(0.5);
@@ -138,10 +101,6 @@ function ExportPageInner() {
   // Element edit mode: freezes background drag/zoom + swipe-nav and shows
   // the tap-to-remove overlay over the preview instead.
   const [elementsEditMode, setElementsEditMode] = useState(false);
-  const elementsEditModeRef = useRef(elementsEditMode);
-  elementsEditModeRef.current = elementsEditMode;
-  const [captionCopied, setCaptionCopied] = useState(false);
-  const [allCaptionsCopied, setAllCaptionsCopied] = useState(false);
   const [availableStickers, setAvailableStickers] = useState<string[]>([]);
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
@@ -165,14 +124,8 @@ function ExportPageInner() {
   const previewClipRef = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
-  const bgDrag = useRef<{ startX: number; startY: number; baseX: number; baseY: number } | null>(null);
 
-  // ── ZIP export of the whole stack ──
-  const [zipQueue, setZipQueue] = useState<number[]>([]);
-  const zipResults = useRef<{ name: string; data: Uint8Array }[]>([]);
-  const zipRef = useRef<HTMLDivElement>(null);
-  const zipInnerRef = useRef<HTMLDivElement>(null);
-  const zipCurrentIdx = zipQueue.length > 0 ? zipQueue[0] : null;
+  const { zipQueue, zipRef, zipInnerRef, zipCard, startZipExport } = useZipExport(cards);
 
   const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -231,36 +184,6 @@ function ExportPageInner() {
 
   const effectiveScale = scale * (1 - 0.45 * scrollShrink);
 
-  // Wheel over the preview zooms the background photo (non-passive to prevent page scroll)
-  useEffect(() => {
-    const el = previewClipRef.current;
-    if (!el) return;
-    const onWheel = (e: WheelEvent) => {
-      if (!styleRef.current.bgImage || elementsEditModeRef.current) return;
-      e.preventDefault();
-      const next = Math.min(3, Math.max(1, styleRef.current.bgZoom + (e.deltaY < 0 ? 0.08 : -0.08)));
-      patchStyleRef.current({ bgZoom: Math.round(next * 100) / 100 });
-    };
-    el.addEventListener('wheel', onWheel, { passive: false });
-    return () => el.removeEventListener('wheel', onWheel);
-  }, []);
-
-  const goPrev = useCallback(() => setCurrent((i) => Math.max(0, i - 1)), []);
-  const goNext = useCallback(() => setCurrent((i) => Math.min(cards.length - 1, i + 1)), [cards.length]);
-
-  // ←/→ navigate the deck (unless the user is typing)
-  useEffect(() => {
-    if (cards.length < 2) return;
-    const onKey = (e: KeyboardEvent) => {
-      const target = e.target as HTMLElement;
-      if (target.closest('input, textarea, select, [contenteditable]')) return;
-      if (e.key === 'ArrowLeft') goPrev();
-      if (e.key === 'ArrowRight') goNext();
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [cards.length, goPrev, goNext]);
-
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
   const commentsFor = useCallback(
@@ -276,42 +199,14 @@ function ExportPageInner() {
 
   const selectedComments = useMemo(() => commentsFor(card), [commentsFor, card]);
 
-  // Live caption: recomputes with the data until the user edits it;
-  // "regenerate" simply drops the edited copy
-  const captionFor = useCallback(
-    (c: CardState): string =>
-      c.captionText ??
-      generateCaption(c.templateId, filterAggregates(donations, fullAggregates, c.dateFrom, c.dateTo), t, {
-        goal: goalValue,
-        linkUrl: c.textOverrides.linkUrl,
-        comments: commentsFor(c),
-      }),
-    [donations, fullAggregates, t, goalValue, commentsFor],
+  const { captionFor, captionCopied, allCaptionsCopied, copyCaption, copyAllCaptions } = useCaptionClipboard(
+    donations,
+    fullAggregates,
+    t,
+    goalValue,
+    commentsFor,
   );
   const captionValue = captionFor(card);
-
-  const handleCopyCaption = async () => {
-    try {
-      await navigator.clipboard.writeText(captionValue);
-      setCaptionCopied(true);
-      setTimeout(() => setCaptionCopied(false), 2000);
-    } catch (err) {
-      console.error('Clipboard write failed:', err);
-    }
-  };
-
-  const handleCopyAllCaptions = async () => {
-    const bundle = cards
-      .map((c, i) => `${i + 1}/${cards.length}\n${captionFor(c)}`)
-      .join('\n\n———\n\n');
-    try {
-      await navigator.clipboard.writeText(bundle);
-      setAllCaptionsCopied(true);
-      setTimeout(() => setAllCaptionsCopied(false), 2000);
-    } catch (err) {
-      console.error('Clipboard write failed:', err);
-    }
-  };
 
   const milestoneAchievedKey = (() => {
     const pct = goalValue ? (filteredAggregates.totalAmount / goalValue) * 100 : null;
@@ -376,68 +271,8 @@ function ExportPageInner() {
     }
   };
 
-  // ── ZIP export: renders each card offscreen with its own saved state ──
-  useEffect(() => {
-    if (zipCurrentIdx === null) return;
-    let cancelled = false;
-    const zipCard = cards[zipCurrentIdx];
-    const run = async () => {
-      // Give the offscreen card a beat to lay out and paint
-      await new Promise((r) => setTimeout(r, 150));
-      const el = zipRef.current;
-      if (!el || cancelled) return;
-      const d = FORMAT_DIMS[zipCard.format];
-      try {
-        const dataUrl = await renderToPNGDataUrl(el, d.width, d.height);
-        zipResults.current.push({
-          name: `${zipCurrentIdx + 1}-zbory-${zipCard.templateId}-${zipCard.format}.png`,
-          data: dataUrlToBytes(dataUrl),
-        });
-      } catch (err) {
-        console.error(`ZIP export failed for ${zipCard.templateId}:`, err);
-      }
-      if (cancelled) return;
-      setZipQueue((q) => {
-        const rest = q.slice(1);
-        if (rest.length === 0 && zipResults.current.length > 0) {
-          const blob = createZip(zipResults.current);
-          zipResults.current = [];
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.download = `zbory-${Date.now()}.zip`;
-          link.href = url;
-          link.click();
-          URL.revokeObjectURL(url);
-        }
-        return rest;
-      });
-    };
-    run();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- driven by the queue head only
-  }, [zipCurrentIdx]);
-
-  const startZipExport = () => {
-    if (zipQueue.length > 0) return;
-    zipResults.current = [];
-    setZipQueue(cards.map((_, i) => i));
-  };
-
-  const handleRemoveCard = () => {
-    if (cards.length <= 1) return;
-    const newIds = cards.map((c) => c.templateId).filter((_, i) => i !== safeCurrent);
-    dispatch({ type: 'GALLERY_UI', payload: { selection: newIds } });
-    dispatch({ type: 'TEMPLATES_SELECTED', payload: newIds });
-    setCurrent(Math.max(0, safeCurrent - 1));
-  };
-
   const handleAddTemplate = (id: TemplateType) => {
-    const newIds = [...cards.map((c) => c.templateId), id];
-    dispatch({ type: 'GALLERY_UI', payload: { selection: newIds } });
-    dispatch({ type: 'TEMPLATES_SELECTED', payload: newIds });
-    setCurrent(newIds.length - 1);
+    addTemplate(id);
     setAddOpen(false);
   };
 
@@ -463,14 +298,15 @@ function ExportPageInner() {
   const previewW = Math.ceil(dims.width * effectiveScale);
   const previewH = Math.ceil(dims.height * effectiveScale);
 
+  const { onPointerDown: onBgPointerDown, onPointerMove: onBgPointerMove, onPointerUp: onBgPointerUp, cursor: bgCursor } =
+    useBackgroundPan(previewClipRef, style, patchStyle, elementsEditMode, previewW, previewH);
+
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
   const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report';
 
   const removableElements = TEMPLATE_REMOVABLE_ELEMENTS[templateId];
-
-  const zipCard = zipCurrentIdx !== null ? cards[zipCurrentIdx] : null;
 
   // Renders a card's canvas — shared by the live preview and the offscreen ZIP
   // renderer so a new per-card field only needs wiring into CardCanvas once.
@@ -565,32 +401,14 @@ function ExportPageInner() {
               borderRadius: 8,
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
-              cursor: elementsEditMode ? undefined : style.bgImage ? (bgDrag.current ? 'grabbing' : 'grab') : undefined,
+              cursor: bgCursor,
               touchAction: style.bgImage && !elementsEditMode ? 'none' : undefined,
               userSelect: style.bgImage && !elementsEditMode ? 'none' : undefined,
             }}
-            onPointerDown={(e) => {
-              if (!style.bgImage || elementsEditMode) return;
-              e.currentTarget.setPointerCapture(e.pointerId);
-              bgDrag.current = {
-                startX: e.clientX,
-                startY: e.clientY,
-                baseX: style.bgOffsetX,
-                baseY: style.bgOffsetY,
-              };
-            }}
-            onPointerMove={(e) => {
-              if (!bgDrag.current) return;
-              // Screen px → % of the card (the img translate % is relative to card size)
-              const dxPct = ((e.clientX - bgDrag.current.startX) / previewW) * 100;
-              const dyPct = ((e.clientY - bgDrag.current.startY) / previewH) * 100;
-              patchStyle({
-                bgOffsetX: Math.round(Math.min(100, Math.max(-100, bgDrag.current.baseX + dxPct))),
-                bgOffsetY: Math.round(Math.min(100, Math.max(-100, bgDrag.current.baseY + dyPct))),
-              });
-            }}
-            onPointerUp={() => { bgDrag.current = null; }}
-            onPointerCancel={() => { bgDrag.current = null; }}
+            onPointerDown={onBgPointerDown}
+            onPointerMove={onBgPointerMove}
+            onPointerUp={onBgPointerUp}
+            onPointerCancel={onBgPointerUp}
           >
             <div
               style={{
@@ -687,7 +505,7 @@ function ExportPageInner() {
               </button>
               {cards.length > 1 && (
                 <button
-                  onClick={handleRemoveCard}
+                  onClick={removeCurrentCard}
                   title={t('stack.removeCard')}
                   className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
                 >
@@ -809,11 +627,11 @@ function ExportPageInner() {
             onCaptionChange={(v) => updateCard({ captionText: v })}
             isEdited={card.captionText !== null}
             onRegenerate={() => updateCard({ captionText: null })}
-            onCopy={handleCopyCaption}
+            onCopy={() => copyCaption(captionValue)}
             copied={captionCopied}
             multiCard={cards.length > 1}
             cardCount={cards.length}
-            onCopyAll={handleCopyAllCaptions}
+            onCopyAll={() => copyAllCaptions(cards)}
             allCopied={allCaptionsCopied}
           />
 
