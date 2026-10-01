@@ -71,7 +71,13 @@
     "reportStats": "Статистика зборів",
     "reportTop": "Топ 3 збори",
     "thanksLine": "Подяка",
-    "legend": "Легенда графіка"
+    "legend": "Легенда графіка",
+    "friendsLine": "Рядок «через друзів»",
+    "friendsList": "Список друзів",
+    "friendsTotal": "Сума друзів",
+    "friendsAmounts": "Суми (друзі з усього)",
+    "friendsShareBar": "Смуга внеску друзів",
+    "friendsCount": "Кількість друзів"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -139,7 +145,9 @@
     "emoji-cloud": "Емоції збору",
     "comments": "Слова підтримки",
     "report": "Загальний звіт",
-    "campaigns-chart": "Динаміка зборів"
+    "campaigns-chart": "Динаміка зборів",
+    "friends-leaderboard": "Друзі збору",
+    "friends-share": "Внесок друзів"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -149,6 +157,7 @@
   },
   "fieldLabels": {
     "progress": {
+      "friendsLabel": "Підпис «через друзів»",
       "title": "Назва",
       "dateRange": "Діапазон дат на картці",
       "collectedLabel": "Мітка «Зібрано»",
@@ -283,7 +292,28 @@
     },
     "campaigns-chart": {
       "title": "Заголовок"
+    },
+    "friends-leaderboard": {
+      "title": "Заголовок",
+      "totalLabel": "Підпис суми друзів"
+    },
+    "friends-share": {
+      "title": "Заголовок",
+      "heroLabel": "Підпис під відсотком",
+      "ofLabel": "Слово між сумами («з»)",
+      "countLabel": "Підпис кількості друзів"
     }
+  },
+  "friends": {
+    "label": "Друзі збору",
+    "hint": "Гроші друзів уже входять у загальну суму збору — тут лише видно, хто скільки допоміг. З'являться шаблони «Друзі збору».",
+    "namePlaceholder": "Ім'я або назва",
+    "amountPlaceholder": "Сума, ₴",
+    "add": "Додати друга",
+    "remove": "Прибрати",
+    "summary": "Через друзів: {{amount}} ₴ ({{pct}}% збору)",
+    "exceeds": "Сума друзів більша за весь збір — перевірте суми.",
+    "badge": "{{count}}"
   },
   "themes": {
     "label": "Теми",

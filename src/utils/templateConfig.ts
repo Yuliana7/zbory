@@ -20,6 +20,7 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'collectedLabel' },
     { key: 'currencyLabel' },
     { key: 'goalLabel' },
+    { key: 'friendsLabel' },
     ...FOOTER_FIELDS,
   ],
   'daily-activity': [
@@ -139,6 +140,16 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   'campaigns-chart': [
     { key: 'title' },
   ],
+  'friends-leaderboard': [
+    { key: 'title' },
+    { key: 'totalLabel' },
+  ],
+  'friends-share': [
+    { key: 'title' },
+    { key: 'heroLabel' },
+    { key: 'ofLabel' },
+    { key: 'countLabel' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -159,6 +170,8 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   comments: false,
   report: false,
   'campaigns-chart': false,
+  'friends-leaderboard': false, // helper totals cover the whole campaign
+  'friends-share': false,
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -179,6 +192,8 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   comments: false,
   report: false,
   'campaigns-chart': false,
+  'friends-leaderboard': false,
+  'friends-share': false,
 };
 
 // Stories are the primary sharing format for volunteers — every template
@@ -201,6 +216,8 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   comments: 'story',
   report: 'story',
   'campaigns-chart': 'story',
+  'friends-leaderboard': 'story',
+  'friends-share': 'story',
 };
 
 // Elements the tap-to-remove editor can hide, per template. `id` matches the
@@ -224,6 +241,7 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
   progress: [
     HEADER,
     el('hero', 'layout.hero'),
+    el('friendsLine', 'layout.friendsLine'),
     el('progressBar', 'layout.progressBar'),
     FOOTER,
     UA_FLAG,
@@ -350,6 +368,22 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
     UA_FLAG,
     GLOW,
   ],
+  'friends-leaderboard': [
+    HEADER,
+    el('list', 'layout.friendsList'),
+    el('totalLine', 'layout.friendsTotal'),
+    UA_FLAG,
+    GLOW,
+  ],
+  'friends-share': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('amounts', 'layout.friendsAmounts'),
+    el('shareBar', 'layout.friendsShareBar'),
+    el('count', 'layout.friendsCount'),
+    UA_FLAG,
+    GLOW,
+  ],
 };
 
 // Gallery categories — also used by the editor's "add template" picker
@@ -364,5 +398,6 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
+  { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-share'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
 ];

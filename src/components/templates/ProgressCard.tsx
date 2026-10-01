@@ -1,5 +1,6 @@
 import { forwardRef } from 'react';
-import type { Aggregates } from '../../types';
+import type { Aggregates, FriendJar } from '../../types';
+import { computeFriendStats, formatSharePct } from '../../utils/friendJars';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
@@ -9,6 +10,7 @@ import { CardHeader, CardFooter, NoWrap, UAFlagBar, CardShell, GlowBlob } from '
 interface ProgressCardProps {
   aggregates: Aggregates;
   goal?: number;
+  friends?: FriendJar[];
   format?: 'post' | 'post-4-5' | 'story';
   palette?: Palette;
   textOverrides?: Record<string, string>;
@@ -19,7 +21,7 @@ interface ProgressCardProps {
 }
 
 export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
-  ({ aggregates, goal, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
+  ({ aggregates, goal, friends, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');
     const p = palette;
     const fz = (n: number) => rem(n * fontScale);
@@ -50,6 +52,9 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
         : progressPct > 100
           ? `${progressPct}% ${t('progress.targetSurplus')}`
           : `${progressPct}%`;
+
+    const friendStats = computeFriendStats(friends, total);
+    const friendPct = formatSharePct(friendStats.share);
 
     return (
       <CardShell ref={ref} format={format} palette={p} bgOverride={bgOverride} safeZonePad={safeZonePad}>
@@ -96,6 +101,12 @@ export const ProgressCard = forwardRef<HTMLDivElement, ProgressCardProps>(
               {tx('currencyLabel')}
             </div>
           </div>
+          )}
+
+          {!hidden.has('friendsLine') && friendStats.total > 0 && (
+            <div data-element="friendsLine" style={{ marginTop: 28, fontSize: fz(28), color: p.secondary }}>
+              {tx('friendsLabel')}: <NoWrap><b style={{ color: p.primary }}>{new Intl.NumberFormat('uk-UA').format(Math.round(friendStats.total))} ₴</b> ({friendPct}%)</NoWrap>
+            </div>
           )}
 
           {!hidden.has('progressBar') && progressPct !== null && (

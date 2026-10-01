@@ -20,13 +20,14 @@ import type {
   CardState,
   SharedStyle,
   CampaignDataset,
+  FriendJar,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
-import { saveSession, updateSessionGoal, clearSession, loadSession } from '../utils/session';
+import { saveSession, updateSessionGoal, updateSessionFriends, clearSession, loadSession } from '../utils/session';
 import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 import { TEMPLATE_GROUPS } from '../utils/templateConfig';
@@ -69,7 +70,8 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[] } }
+  | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
@@ -119,8 +121,12 @@ function appReducer(state: FullState, action: AppAction): FullState {
           campaignDatasets: action.payload.campaignDatasets ?? null,
           goal: action.payload.goal,
           stackStyle: action.payload.style ?? null,
+          friends: action.payload.friends,
         },
       };
+
+    case 'FRIENDS_UPDATED':
+      return { ...state, app: { ...state.app, friends: action.payload } };
 
     case 'CAMPAIGN_SAVED':
       return {
@@ -183,6 +189,7 @@ interface AppContextValue {
   handleLoadCampaigns: (ids: string[]) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
+  handleFriendsChange: (friends: FriendJar[]) => void;
   goToStep: (step: AppState['step']) => void;
 }
 
@@ -241,6 +248,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignId: state.app.activeCampaignId ?? undefined,
           activeCampaignName: state.app.activeCampaignName ?? undefined,
           style: state.app.stackStyle ?? undefined,
+          friends: state.app.friends,
         },
       });
       saveSession(rawData, state.app.originalFileName ?? null);
@@ -250,7 +258,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, t]);
+  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, t]);
 
   // Merges another CSV export into the currently loaded dataset (long
   // campaigns come in chunks); campaign link and goal survive the merge.
@@ -277,6 +285,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignId: state.app.activeCampaignId ?? undefined,
           activeCampaignName: state.app.activeCampaignName ?? undefined,
           style: state.app.stackStyle ?? undefined,
+          friends: state.app.friends,
         },
       });
       saveSession(result.merged, state.app.originalFileName ?? file.name);
@@ -288,7 +297,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, t]);
+  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, t]);
 
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
@@ -341,6 +350,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           currentBalance,
           originalFileName: session.fileName ?? undefined,
           goal: session.goal,
+          friends: session.friends,
         },
       });
       return true;
@@ -355,7 +365,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
       if (!meta || !data) throw new Error();
-      const { rawData, style } = data;
+      const { rawData, style, friends } = data;
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0) throw new Error();
       dispatch({
@@ -370,6 +380,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignId: id,
           activeCampaignName: meta.name,
           style: style ?? undefined,
+          friends,
         },
       });
       saveSession(rawData, meta.fileName);
@@ -449,6 +460,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fileName: state.app.originalFileName,
         goal: goalOverride !== undefined ? goalOverride : state.app.goal,
         style: state.app.stackStyle ?? undefined,
+        friends: state.app.friends,
       });
       dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id, name: meta.name } });
       return meta;
@@ -456,7 +468,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
       return null;
     }
-  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, t]);
+  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, state.app.friends, t]);
+
+  const handleFriendsChange = useCallback((friends: FriendJar[]) => {
+    dispatch({ type: 'FRIENDS_UPDATED', payload: friends });
+    updateSessionFriends(friends);
+  }, []);
 
   const goToStep = useCallback(
     (step: AppState['step']) => {
@@ -470,7 +487,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleFriendsChange, goToStep }}
     >
       {children}
     </AppContext.Provider>

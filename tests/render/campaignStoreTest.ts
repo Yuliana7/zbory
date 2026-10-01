@@ -64,6 +64,19 @@ const raw: RawDonation[] = [
   const afterRename = await loadCampaignData(created.id);
   assertEq('style: survives an update that omits it', afterRename?.style?.bgRotate, 45);
 
+  // ── friends: helper jars saved with the campaign; omitted = keep, [] = clear ──
+  assertEq('friends: empty by default', (await loadCampaignData(created.id))?.friends.length, 0);
+  const friends = [{ id: 'f1', name: 'Оля', raised: 1500 }, { id: 'f2', name: 'Тарас', raised: 300 }];
+  await saveCampaign({ id: created.id, name: 'На дрони', rawData: raw, fileName: 'jar.csv', friends });
+  const withFriends = await loadCampaignData(created.id);
+  assertEq('friends: round-trip count', withFriends?.friends.length, 2);
+  assertEq('friends: round-trip amount', withFriends?.friends[0].raised, 1500);
+  assertEq('friends: style untouched by a friends save', withFriends?.style?.bgRotate, 45);
+  await saveCampaign({ id: created.id, name: 'Нова назва', rawData: raw, fileName: 'jar.csv' });
+  assertEq('friends: survive an update that omits them', (await loadCampaignData(created.id))?.friends.length, 2);
+  await saveCampaign({ id: created.id, name: 'Нова назва', rawData: raw, fileName: 'jar.csv', friends: [] });
+  assertEq('friends: empty array clears them', (await loadCampaignData(created.id))?.friends.length, 0);
+
   // ── update in place: keeps identity and createdAt, refreshes the rest ──
   await new Promise((r) => setTimeout(r, 5));
   const updated = await saveCampaign({ id: created.id, name: 'На дрони (оновлено)', rawData: raw.slice(0, 2), fileName: 'jar-v2.csv', goal: 20000 });

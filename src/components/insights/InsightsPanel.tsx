@@ -1,9 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import type { Insight, Aggregates, CommentInsights, RepeatDonor, CampaignDataset } from '../../types';
+import type { Insight, Aggregates, CommentInsights, RepeatDonor, CampaignDataset, FriendJar } from '../../types';
 import { generateActionableInsights } from '../../utils/insightGenerator';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
 import { CumulativeChart } from './CumulativeChart';
+import { FriendsChart } from './FriendsChart';
 
 interface InsightsPanelProps {
   insights: Insight[];
@@ -13,9 +14,11 @@ interface InsightsPanelProps {
   // Multi-jar "Разом" view only — powers the always-visible chart (top of page)
   // and lets the donor lists below show "у N зборах" per identity.
   campaignDatasets?: CampaignDataset[] | null;
+  // Helper jars of the main campaign — shown under the hero total; omit for a per-jar view
+  friends?: FriendJar[];
 }
 
-export function InsightsPanel({ insights, aggregates, goal, commentInsights, campaignDatasets }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, goal, commentInsights, campaignDatasets, friends }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -48,6 +51,8 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights, cam
             {t('duration', { count: duration })} 💙💛
           </p>
         </div>
+
+        {friends && <FriendsChart friends={friends} totalAmount={aggregates.totalAmount} />}
 
         {/* Cumulative chart: one line per jar, aligned by campaign day in multi mode.
             Hidden for a campaign that ran within a single day — a one-point line

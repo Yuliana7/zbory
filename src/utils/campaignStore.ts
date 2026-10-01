@@ -1,4 +1,4 @@
-import type { RawDonation, SharedStyle } from '../types';
+import type { FriendJar, RawDonation, SharedStyle } from '../types';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 import { getBackend } from './db';
@@ -33,6 +33,7 @@ interface CampaignData {
   id: string;
   rawData: RawDonation[];
   style?: SharedStyle;
+  friends?: FriendJar[];
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -70,6 +71,8 @@ export interface SaveCampaignInput {
   goal?: number;
   /** Omit to keep whatever style was previously saved for this campaign */
   style?: SharedStyle;
+  /** Omit to keep the saved helpers; an empty array clears them */
+  friends?: FriendJar[];
 }
 
 export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMeta> {
@@ -92,6 +95,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     id: meta.id,
     rawData: input.rawData,
     style: input.style ?? existingData?.style,
+    friends: input.friends ?? existingData?.friends,
   } satisfies CampaignData);
   await kv.put(META_STORE, meta);
   return meta;
@@ -107,10 +111,10 @@ export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> 
   return ((await getBackend().get(META_STORE, id)) as CampaignMeta | undefined) ?? null;
 }
 
-export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null } | null> {
+export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null; friends: FriendJar[] } | null> {
   const data = (await getBackend().get(DATA_STORE, id)) as CampaignData | undefined;
   if (!data) return null;
-  return { rawData: data.rawData, style: data.style ?? null };
+  return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [] };
 }
 
 export async function deleteCampaign(id: string): Promise<void> {

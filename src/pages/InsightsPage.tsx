@@ -126,6 +126,7 @@ export function InsightsPage() {
         goal={isMerged ? app.goal : undefined}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
+        friends={isMerged ? (app.friends ?? []) : undefined}
       />
 
     </div>

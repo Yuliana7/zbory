@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle } from '../../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar } from '../../types';
 import { ProgressCard } from '../../components/templates/ProgressCard';
 import { DailyActivityCard } from '../../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../../components/templates/ThankYouCard';
@@ -15,6 +15,8 @@ import { FinalReportCard } from '../../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../../components/templates/CommentsCard';
+import { FriendsLeaderboardCard } from '../../components/templates/FriendsLeaderboardCard';
+import { FriendsShareCard } from '../../components/templates/FriendsShareCard';
 import { ReportCard } from '../../components/templates/ReportCard';
 import { CampaignsChartCard } from '../../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems, type ReportPeriod } from '../../utils/campaignAnalytics';
@@ -27,6 +29,7 @@ interface CardCanvasProps {
   style: SharedStyle;
   aggregates: Aggregates;
   goal?: number;
+  friends?: FriendJar[];
   commentInsights: CommentInsights | null;
   crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
@@ -37,7 +40,7 @@ interface CardCanvasProps {
   activeCampaignName?: string | null;
 }
 
-export function CardCanvas({ card, style, aggregates, goal, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
+export function CardCanvas({ card, style, aggregates, goal, friends, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -77,6 +80,8 @@ export function CardCanvas({ card, style, aggregates, goal, commentInsights, cro
         templateRef={templateRef}
         aggregates={aggregates}
         goal={goal}
+        // helper totals cover the whole campaign — meaningless next to a date-filtered total
+        friends={card.dateFrom || card.dateTo ? undefined : friends}
         format={card.format}
         palette={style.palette}
         textOverrides={card.textOverrides}
@@ -101,6 +106,7 @@ interface RendererProps {
   templateRef: React.RefObject<HTMLDivElement>;
   aggregates: Aggregates;
   goal?: number;
+  friends?: FriendJar[];
   format: Format;
   palette: SharedStyle['palette'];
   textOverrides: Record<string, string>;
@@ -124,6 +130,7 @@ function TemplateRenderer({
   templateRef,
   aggregates,
   goal,
+  friends,
   format,
   palette,
   textOverrides,
@@ -167,7 +174,7 @@ function TemplateRenderer({
 
   const shared = { ref: templateRef, aggregates, format, palette, textOverrides: effectiveTextOverrides, fontScale, bgOverride, safeZonePad, hidden };
   switch (templateId) {
-    case 'progress': return <ProgressCard {...shared} goal={goal} />;
+    case 'progress': return <ProgressCard {...shared} goal={goal} friends={friends} />;
     case 'daily-activity': return <DailyActivityCard {...shared} />;
     case 'thank-you': return <ThankYouCard {...shared} />;
     case 'milestone': return <MilestoneCard {...shared} goal={goal} />;
@@ -182,6 +189,8 @@ function TemplateRenderer({
     case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} />;
     case 'emoji-cloud': return <EmojiCloudCard {...shared} commentInsights={commentInsights} />;
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
+    case 'friends-leaderboard': return <FriendsLeaderboardCard {...shared} friends={friends} />;
+    case 'friends-share': return <FriendsShareCard {...shared} friends={friends} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
     default: {
