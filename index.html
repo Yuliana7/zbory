@@ -9,9 +9,10 @@
 
     <!-- iOS Web App Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <!-- "default" keeps the page below the iOS status bar / notch. black-translucent
-         draws the app underneath it, which hid the header and made it untappable. -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- iOS ignores theme-color/manifest in an installed app: the status bar is white,
+         black or transparent. Transparent lets us paint it indigo ourselves (see
+         SafeAreaTopBar), matching Android, which paints it from theme_color. -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Zbory" />
     <link rel="apple-touch-icon" href="/pwa-192x192.png" />
 

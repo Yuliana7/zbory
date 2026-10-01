@@ -134,6 +134,14 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* Height of the area the OS draws over the page (status bar / notch / Dynamic
+   Island) in an installed app; 0 in a normal browser tab and on desktop. The
+   extra min(...) adds up to 6px of breathing room because the OS's blur on newer
+   iPhones reaches slightly past the raw inset — and stays 0 when there is no inset. */
+:root {
+  --safe-top: calc(env(safe-area-inset-top) + min(env(safe-area-inset-top), 6px));
+}
+
 body {
   margin: 0;
   min-width: 320px;

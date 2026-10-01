@@ -9,9 +9,9 @@ export function UpdateNotificationBanner() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 bg-indigo-600 text-white px-4 pb-3 shadow-lg z-50"
-      // 0.75rem = the old py-3 top padding, plus whatever a notch/status bar covers
-      style={{ paddingTop: 'calc(0.75rem + env(safe-area-inset-top))' }}
+      className="fixed left-0 right-0 bg-indigo-600 text-white px-4 py-3 shadow-lg z-50"
+      // sits just below the painted status-bar area (SafeAreaTopBar)
+      style={{ top: 'var(--safe-top)' }}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 text-sm sm:text-base">
         <p className="flex-1">{t('appUpdate.updateAvailable')}</p>
