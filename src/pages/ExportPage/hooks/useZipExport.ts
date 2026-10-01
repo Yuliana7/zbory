@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react';
 import type { CardState } from '../../../types';
 import { FORMAT_DIMS } from '../../../utils/exportStack';
 import { renderToPNGDataUrl, dataUrlToBytes } from '../../../utils/exportPNG';
+import { saveBlob } from '../../../utils/download';
 import { createZip } from '../../../utils/zip';
 
 /**
@@ -20,6 +21,7 @@ export function useZipExport(cards: CardState[]) {
     if (zipCurrentIdx === null) return;
     let cancelled = false;
     const zipCard = cards[zipCurrentIdx];
+    const isLast = zipQueue.length === 1;
     const run = async () => {
       // Give the offscreen card a beat to lay out and paint
       await new Promise((r) => setTimeout(r, 150));
@@ -36,20 +38,15 @@ export function useZipExport(cards: CardState[]) {
         console.error(`ZIP export failed for ${zipCard.templateId}:`, err);
       }
       if (cancelled) return;
-      setZipQueue((q) => {
-        const rest = q.slice(1);
-        if (rest.length === 0 && zipResults.current.length > 0) {
-          const blob = createZip(zipResults.current);
-          zipResults.current = [];
-          const url = URL.createObjectURL(blob);
-          const link = document.createElement('a');
-          link.download = `zbory-${Date.now()}.zip`;
-          link.href = url;
-          link.click();
-          URL.revokeObjectURL(url);
-        }
-        return rest;
-      });
+      // Save outside the state updater: updaters must stay pure (they run twice
+      // in StrictMode, which would download twice).
+      if (isLast && zipResults.current.length > 0) {
+        const blob = createZip(zipResults.current);
+        zipResults.current = [];
+        await saveBlob(blob, `zbory-${Date.now()}.zip`);
+      }
+      if (cancelled) return;
+      setZipQueue((q) => q.slice(1));
     };
     run();
     return () => {

@@ -1,5 +1,6 @@
 import type { ManualRow, RawDonation } from '../types';
 import { generateId } from './id';
+import { saveBlob } from './download';
 
 const CSV_HEADERS =
   'Дата та час операції,Категорія операції,Сума,Валюта,Додаткова інформація,Коментар до платежу,Залишок,Валюта залишку';
@@ -132,14 +133,6 @@ export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
  * Triggers a browser download of a CSV file.
  * Prepends a UTF-8 BOM so Excel opens it correctly.
  */
-export function downloadCSV(content: string, filename: string): void {
-  const blob = new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+export function downloadCSV(content: string, filename: string): Promise<void> {
+  return saveBlob(new Blob(['﻿' + content], { type: 'text/csv;charset=utf-8;' }), filename);
 }

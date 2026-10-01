@@ -1,4 +1,5 @@
 import { toPng } from 'html-to-image';
+import { saveBlob } from './download';
 
 // Self-hosted Inter subsets (see src/index.css). At export time they're
 // inlined as data: URLs so the offscreen SVG rasterizer renders the same
@@ -86,17 +87,10 @@ export async function exportToPNG(
   height: number
 ): Promise<void> {
   const dataUrl = await renderToPNGDataUrl(element, width, height);
-  downloadDataUrl(dataUrl, filename);
+  await saveBlob(new Blob([dataUrlToBytes(dataUrl)], { type: 'image/png' }), filename);
 }
 
-export function downloadDataUrl(dataUrl: string, filename: string): void {
-  const link = document.createElement('a');
-  link.download = filename;
-  link.href = dataUrl;
-  link.click();
-}
-
-export function dataUrlToBytes(dataUrl: string): Uint8Array {
+export function dataUrlToBytes(dataUrl: string): Uint8Array<ArrayBuffer> {
   const base64 = dataUrl.slice(dataUrl.indexOf(',') + 1);
   const binary = atob(base64);
   const bytes = new Uint8Array(binary.length);
