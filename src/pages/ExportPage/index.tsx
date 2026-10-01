@@ -336,7 +336,7 @@ function ExportPageInner() {
           ref={previewContainerRef}
           data-pinned-preview
           className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
-          style={{ minHeight: previewH + 48, position: 'sticky', top: '0px', zIndex: 100 }}
+          style={{ minHeight: previewH + 48, position: 'sticky', top: 'var(--safe-top)', zIndex: 100 }}
           onTouchStart={(e) => {
             // Element edit mode freezes the canvas entirely (no swipe)
             if (elementsEditMode) return;

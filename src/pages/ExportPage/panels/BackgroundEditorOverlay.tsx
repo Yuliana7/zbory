@@ -35,6 +35,7 @@ export function BackgroundEditorOverlay({
   const templateRef = useRef<HTMLDivElement>(null);
   const clipRef = useRef<HTMLDivElement>(null);
   const sheetRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -52,7 +53,9 @@ export function BackgroundEditorOverlay({
       // and a fixed estimate there previously clipped the card's top/bottom.
       const controlsH = sheetRef.current?.offsetHeight ?? 0;
       const availW = window.innerWidth * 0.92;
-      const availH = (window.innerHeight - controlsH) * 0.92;
+      // the overlay's own top padding is the OS status-bar area (see --safe-top)
+      const topInset = rootRef.current ? parseFloat(getComputedStyle(rootRef.current).paddingTop) || 0 : 0;
+      const availH = (window.innerHeight - topInset - controlsH) * 0.92;
       setScale(Math.min(availW / dims.width, availH / dims.height, 1));
     };
     calc();
@@ -75,7 +78,7 @@ export function BackgroundEditorOverlay({
   };
 
   return (
-    <div className="fixed inset-0 z-[300] bg-black/90 flex flex-col">
+    <div ref={rootRef} className="fixed inset-0 z-[300] bg-black/90 flex flex-col" style={{ paddingTop: 'var(--safe-top)' }}>
       <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
         <div
           ref={clipRef}
