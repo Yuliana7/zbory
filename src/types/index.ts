@@ -27,6 +27,15 @@ export interface Withdrawal {
   balanceAfter: number; // Залишок after this withdrawal
 }
 
+// A helper ("friendly") jar linked to the main jar. Its money already arrives
+// in the main jar's statement, unattributed — so this is attribution only and
+// must never be added to any total.
+export interface FriendJar {
+  id: string;
+  name: string;
+  raised: number; // UAH
+}
+
 // Aggregated statistics
 export interface Aggregates {
   totalAmount: number; // gross donations (alias for totalRaised)
@@ -138,6 +147,8 @@ export type TemplateType =
   | 'concrete-ask'
   | 'emoji-cloud'
   | 'comments'
+  | 'friends-leaderboard'
+  | 'friends-share'
   | 'report'
   | 'campaigns-chart';
 
@@ -168,6 +179,8 @@ export interface AppState {
   stackCards: CardState[] | null;
   stackStyle: SharedStyle | null;
   goal?: number;
+  /** helper jars of the open campaign — attribution only, already inside the totals */
+  friends?: FriendJar[];
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;

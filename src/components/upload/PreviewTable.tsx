@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Donation, RawDonation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
+import { FriendsEditor } from '../FriendsEditor';
 import { SaveCampaignControl } from '../insights/SaveCampaignControl';
 import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, EditIcon, WarningIcon } from '../../icons';
 import { rawDonationsToManualRows, manualRowsToCSVString, downloadCSV } from '../../utils/csvExporter';
@@ -19,6 +20,7 @@ interface PreviewTableProps {
 
 export function PreviewTable({ donations, rawData, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit, initialGoal }: PreviewTableProps) {
   const { t } = useTranslation('upload');
+  const { t: tExport } = useTranslation('export');
   const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showErrors, setShowErrors] = useState(false);
 
@@ -176,6 +178,15 @@ export function PreviewTable({ donations, rawData, totalCount, invalidRowCount =
           {goalInput && parsedGoal === null && (
             <p className="mt-1 text-xs text-red-500">{t('preview.goal.invalidNumber')}</p>
           )}
+        </div>
+
+        {/* Helper ("friendly") jars — optional attribution, unlocks the "Друзі збору" templates */}
+        <div className="mt-4 p-4 bg-gray-50 rounded-xl border border-gray-200">
+          <label className="block text-sm font-semibold text-gray-900 mb-1">
+            {tExport('friends.label')}{' '}
+            <span className="font-normal text-gray-500">{t('preview.goal.optional')}</span>
+          </label>
+          <FriendsEditor />
         </div>
 
         {/* Utility actions: fix data, or save a snapshot — step navigation lives in the header above.

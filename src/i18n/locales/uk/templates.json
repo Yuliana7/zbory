@@ -4,6 +4,7 @@
         "collectedLabel": "Зібрано",
         "currencyLabel": "гривень",
         "goalLabel": "Ціль",
+        "friendsLabel": "з них через друзів",
         "statCollected": "Зібрано",
         "statMedian": "Медіана",
         "statMax": "Найбільший",
@@ -163,5 +164,16 @@
     },
     "campaigns-chart": {
         "title": "Динаміка зборів"
+    },
+    "friends-leaderboard": {
+        "title": "Друзі збору",
+        "totalLabel": "Разом через друзів",
+        "more": "+ ще {{n}}"
+    },
+    "friends-share": {
+        "title": "Друзі збору",
+        "heroLabel": "збору принесли друзі",
+        "ofLabel": "з",
+        "countLabel": "Друзів долучилось"
     }
 }

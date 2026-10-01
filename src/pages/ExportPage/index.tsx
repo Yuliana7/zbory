@@ -33,6 +33,7 @@ import { ElementsOverlay } from './ElementsOverlay';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
 import { ThemesPanel } from './panels/ThemesPanel';
+import { FriendsPanel } from './panels/FriendsPanel';
 import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
@@ -253,17 +254,19 @@ function ExportPageInner() {
   };
 
   // Same categories as the template gallery, with data-gated templates hidden
+  const hasFriends = (app.friends ?? []).some((f) => f.raised > 0);
   const addableGroups = useMemo(() => {
     const available = (id: TemplateType) => {
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
+      if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
       return true;
     };
     return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments, crossItems]);
+  }, [commentInsights, personalComments, crossItems, hasFriends]);
 
   // Ceil, not round: previewClipRef clips the scaled-down card at exactly
   // these pixel dimensions. Rounding down even by a fraction of a pixel made
@@ -295,6 +298,7 @@ function ExportPageInner() {
       style={c.styleOverride ?? sharedStyle}
       aggregates={overrides?.aggregates ?? filterAggregates(donations, fullAggregates, c.dateFrom, c.dateTo)}
       goal={goalValue}
+      friends={app.friends}
       commentInsights={commentInsights}
       crossItems={crossItems}
       selectedComments={overrides?.selectedComments ?? commentsFor(c)}
@@ -554,6 +558,14 @@ function ExportPageInner() {
               goal={goal}
               onGoalChange={setGoal}
               requiresGoal={requiresGoal}
+            />
+          )}
+
+          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-share') && (
+            <FriendsPanel
+              open={openSections.has('friends')}
+              onToggle={() => toggleSection('friends')}
+              count={(app.friends ?? []).filter((f) => f.raised > 0).length}
             />
           )}
 

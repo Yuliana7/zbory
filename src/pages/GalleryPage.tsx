@@ -1,11 +1,13 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { Aggregates, CommentInsights, TemplateType, CampaignDataset } from '../types';
+import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
 import { MilestoneCard } from '../components/templates/MilestoneCard';
+import { FriendsLeaderboardCard } from '../components/templates/FriendsLeaderboardCard';
+import { FriendsShareCard } from '../components/templates/FriendsShareCard';
 import { DonorsCountCard } from '../components/templates/DonorsCountCard';
 import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
@@ -62,12 +64,14 @@ export function GalleryPage() {
   if (!app.aggregates) return null;
 
   const hasEmojis = (app.commentInsights?.topEmojis.length ?? 0) > 0;
+  const hasFriends = (app.friends ?? []).some((f) => f.raised > 0);
   const isMulti = (app.campaignDatasets?.length ?? 0) >= 2;
   const visibleIds = (ids: TemplateType[]) =>
     ids.filter((id) => {
       if (id === 'emoji-cloud') return hasEmojis;
       if (id === 'comments') return previewComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return isMulti;
+      if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
       return true;
     });
 
@@ -155,6 +159,7 @@ export function GalleryPage() {
                             id={id}
                             aggregates={app.aggregates!}
                             goal={app.goal}
+                            friends={app.friends}
                             commentInsights={app.commentInsights}
                             previewComments={previewComments}
                             campaignDatasets={app.campaignDatasets}
@@ -214,12 +219,13 @@ interface TemplatePreviewProps {
   id: TemplateType;
   aggregates: Aggregates;
   goal?: number;
+  friends?: FriendJar[];
   commentInsights: CommentInsights | null;
   previewComments: SelectedComment[];
   campaignDatasets: CampaignDataset[] | null;
 }
 
-function TemplatePreview({ id, aggregates, goal, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
+function TemplatePreview({ id, aggregates, goal, friends, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
   const { t: tCamp } = useTranslation('campaigns');
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -261,7 +267,9 @@ function TemplatePreview({ id, aggregates, goal, commentInsights, previewComment
             userSelect: 'none',
           }}
         >
-          {id === 'progress' && <ProgressCard aggregates={aggregates} goal={goal} format="post" />}
+          {id === 'progress' && <ProgressCard aggregates={aggregates} goal={goal} friends={friends} format="post" />}
+          {id === 'friends-leaderboard' && <FriendsLeaderboardCard aggregates={aggregates} friends={friends} format="post" />}
+          {id === 'friends-share' && <FriendsShareCard aggregates={aggregates} friends={friends} format="post" />}
           {id === 'daily-activity' && <DailyActivityCard aggregates={aggregates} format="post" />}
           {id === 'thank-you' && <ThankYouCard aggregates={aggregates} format="post" />}
           {id === 'milestone' && <MilestoneCard aggregates={aggregates} goal={goal} format="post" />}
