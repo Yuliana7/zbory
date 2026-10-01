@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { FriendsChart } from '../components/insights/FriendsChart';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
@@ -118,6 +119,11 @@ export function InsightsPage() {
         <div className="mt-6 mb-6">
           <CrossCampaignSection datasets={datasets} />
         </div>
+      )}
+
+      {/* Helper jars — attribution of the merged/main total, so only on the merged view */}
+      {isMerged && app.aggregates && (
+        <FriendsChart friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} />
       )}
 
       <InsightsPanel
