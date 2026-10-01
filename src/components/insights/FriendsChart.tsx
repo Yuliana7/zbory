@@ -26,7 +26,7 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const top = rows[0]?.raised ?? 1;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 mb-6">
+    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-start justify-between gap-3 mb-4">
         <div>
           <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('friends.title')}</p>

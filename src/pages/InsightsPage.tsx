@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { FriendsChart } from '../components/insights/FriendsChart';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
@@ -121,17 +120,13 @@ export function InsightsPage() {
         </div>
       )}
 
-      {/* Helper jars — attribution of the merged/main total, so only on the merged view */}
-      {isMerged && app.aggregates && (
-        <FriendsChart friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} />
-      )}
-
       <InsightsPanel
         insights={perJar?.insights ?? app.insights}
         aggregates={perJar?.aggregates ?? app.aggregates}
         goal={isMerged ? app.goal : undefined}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
+        friends={isMerged ? (app.friends ?? []) : undefined}
       />
 
     </div>
