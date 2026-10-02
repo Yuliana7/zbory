@@ -188,7 +188,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
 
           {stage === 'loadingJars' && jarsWait > 0 && (
             <p className="text-xs text-indigo-600" aria-live="polite">
-              {t('monobank.waiting', { seconds: jarsWait })} · {t('monobank.rateLimit')}
+              {t('monobank.waitingPause', { seconds: jarsWait })} · {t('monobank.rateLimitPause')}
             </p>
           )}
 
@@ -301,7 +301,8 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
               <div className="flex items-center gap-2 font-medium">
                 <SpinnerIcon className="w-4 h-4" />
                 {progress && progress.waitSeconds > 0
-                  ? t('monobank.waiting', { seconds: progress.waitSeconds })
+                  ? // part 2+ of a long period vs. a plain pause (a repeated request, or Monobank asking us to slow down)
+                    t(progress.done > 0 ? 'monobank.waiting' : 'monobank.waitingPause', { seconds: progress.waitSeconds })
                   : t('monobank.requesting')}
               </div>
               {progress && progress.total > 1 && (
@@ -309,7 +310,11 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
                   {t('monobank.progress', { done: progress.done, total: progress.total })}
                 </p>
               )}
-              {progress && progress.waitSeconds > 0 && <p className="mt-1 text-xs text-indigo-600">{t('monobank.rateLimit')}</p>}
+              {progress && progress.waitSeconds > 0 && (
+                <p className="mt-1 text-xs text-indigo-600">
+                  {t(progress.total > 1 ? 'monobank.rateLimit' : 'monobank.rateLimitPause')}
+                </p>
+              )}
             </div>
           )}
 

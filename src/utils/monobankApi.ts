@@ -13,8 +13,10 @@ const UAH = 980;
 const MAX_WINDOW_SEC = 31 * 24 * 60 * 60;
 // A response holds at most 500 items; a full page means there may be more.
 const PAGE_LIMIT = 500;
-// Monobank allows one request per 60 seconds per token across its personal
-// endpoints; one second of margin on top.
+// Monobank's docs give the limit per function ("this function — no more than
+// once per 60 seconds", for client-info and for statement separately), so each
+// endpoint is paced on its own; one second of margin on top. If Monobank ever
+// counts them together, the 429 it answers with is waited out and retried.
 const REQUEST_GAP_MS = 61_000;
 const RATE_LIMIT_RETRIES = 3;
 
@@ -53,12 +55,13 @@ export class MonobankError extends Error {
   }
 }
 
-/** Remembers when the last request went out, so every call can wait out the rate limit. */
+type Endpoint = 'client-info' | 'statement';
+
+/** Remembers when each endpoint was last called, so a call can wait out its rate limit. */
 export interface Pacer {
-  lastRequestAt: number | null;
+  lastRequestAt: Partial<Record<Endpoint, number>>;
 }
-export const createPacer = (): Pacer => ({ lastRequestAt: null });
-// One for the whole page: the jar list and the statement count against the same limit.
+export const createPacer = (): Pacer => ({ lastRequestAt: {} });
 const sharedPacer = createPacer();
 
 export interface MonobankDeps {
@@ -98,12 +101,14 @@ const defaultSleep = (ms: number, signal?: AbortSignal) =>
 const isAbort = (err: unknown) => err instanceof DOMException && err.name === 'AbortError';
 
 /**
- * Runs one API request no sooner than REQUEST_GAP_MS after the previous one,
- * whatever endpoint it was for — time the user spent between steps counts. A
- * rejected token doesn't use up the window (Monobank can't attribute it), so a
- * typo doesn't cost a minute. `onWait` gets the seconds left, once per second.
+ * Runs one API request no sooner than REQUEST_GAP_MS after the previous request
+ * to the same endpoint — time the user spent between steps counts. A request
+ * that Monobank didn't count (rejected token, or it never reached the server)
+ * doesn't use up the window, so a typo or a dropped connection doesn't cost a
+ * minute. `onWait` gets the seconds left, once per second.
  */
 async function paced<T>(
+  endpoint: Endpoint,
   deps: MonobankDeps,
   signal: AbortSignal | undefined,
   onWait: ((secondsLeft: number) => void) | undefined,
@@ -113,18 +118,24 @@ async function paced<T>(
   const now = deps.now ?? Date.now;
   const sleep = deps.sleep ?? defaultSleep;
 
-  const remaining = () => (pacer.lastRequestAt === null ? 0 : pacer.lastRequestAt + REQUEST_GAP_MS - now());
+  const remaining = () => {
+    const last = pacer.lastRequestAt[endpoint];
+    return last === undefined ? 0 : last + REQUEST_GAP_MS - now();
+  };
   for (let left = remaining(); left > 0; left = remaining()) {
     onWait?.(Math.ceil(left / 1000));
     await sleep(Math.min(1000, left), signal);
   }
 
-  const previous = pacer.lastRequestAt;
-  pacer.lastRequestAt = now();
+  const previous = pacer.lastRequestAt[endpoint];
+  pacer.lastRequestAt[endpoint] = now();
   try {
     return await send();
   } catch (err) {
-    if (err instanceof MonobankError && err.kind === 'invalid-token') pacer.lastRequestAt = previous;
+    if (err instanceof MonobankError && (err.kind === 'invalid-token' || err.kind === 'network')) {
+      if (previous === undefined) delete pacer.lastRequestAt[endpoint];
+      else pacer.lastRequestAt[endpoint] = previous;
+    }
     throw err;
   }
 }
@@ -158,7 +169,7 @@ interface FetchJarsOptions {
 }
 
 export async function fetchJars(token: string, { deps = {}, signal, onWait }: FetchJarsOptions = {}): Promise<MonoJar[]> {
-  const info = await paced(deps, signal, onWait, () =>
+  const info = await paced('client-info', deps, signal, onWait, () =>
     request<{ jars?: MonoJar[] }>('/personal/client-info', token.trim(), deps, signal),
   );
   return info.jars ?? [];
@@ -215,7 +226,7 @@ export async function fetchJarStatement({
     let items: MonoStatementItem[];
     try {
       // Waits out the rate limit first (reporting the countdown), then sends
-      items = await paced(deps, signal, report, () => {
+      items = await paced('statement', deps, signal, report, () => {
         report(0);
         return request<MonoStatementItem[]>(
           `/personal/statement/${encodeURIComponent(jarId)}/${windowFrom}/${cursorTo}`,

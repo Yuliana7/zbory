@@ -123,28 +123,46 @@ const kindOf = async (run: () => Promise<unknown>) => {
   })());
   check('fetch: countdown is reported', progress.some((p) => p.waitSeconds === 61) && progress.some((p) => p.waitSeconds === 1) && progress.at(-1)!.done === 3);
 
-  // the limit is shared by every endpoint: statement right after the jar list waits out the rest
+  // the docs give the limit per function: a statement right after the jar list needs no wait
   m = makeDeps((url) => (url.endsWith('/client-info') ? json({ jars: [] }) : json([item({ id: 's', time: 5 })])));
   await fetchJars('t', { deps: m.deps });
   check('limit: the jar list itself goes out immediately', m.slept === 0);
-  m.idle(20_000); // the user is picking a jar
-  const waits: number[] = [];
-  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, onProgress: (p) => p.waitSeconds > 0 && waits.push(p.waitSeconds), deps: m.deps });
-  check('limit: statement waits only the remaining 41 s after the jar list', m.slept === 41_000 && m.calls[1].at - m.calls[0].at === 61_000, `slept ${m.slept}`);
-  check('limit: the countdown is reported for that wait', waits[0] === 41 && waits.at(-1) === 1);
+  m.idle(5_000); // the user is picking a jar
+  const quickWaits: number[] = [];
+  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, onProgress: (p) => p.waitSeconds > 0 && quickWaits.push(p.waitSeconds), deps: m.deps });
+  check('limit: a statement right after the jar list does not wait', m.slept === 0 && quickWaits.length === 0 && m.calls.length === 2, `slept ${m.slept}`);
 
-  m = makeDeps((url) => (url.endsWith('/client-info') ? json({ jars: [] }) : json([])));
+  // …but if Monobank does count them together, its 429 is waited out and retried
+  m = makeDeps((url, n) => (n === 2 ? json({}, 429) : url.endsWith('/client-info') ? json({ jars: [] }) : json([item({ id: 's2', time: 5 })])));
   await fetchJars('t', { deps: m.deps });
-  m.idle(61_000);
-  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps });
-  check('limit: no wait once a full window has passed', m.slept === 0);
+  got = await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps });
+  check('limit: a 429 after the jar list is waited out, then the statement succeeds', m.calls.length === 3 && got.length === 1 && m.slept === 61_000);
 
-  // two jar-list requests in a row also wait
+  // the same endpoint twice in a row does wait
   m = makeDeps(() => json({ jars: [] }));
   await fetchJars('t', { deps: m.deps });
   const jarWaits: number[] = [];
   await fetchJars('t', { deps: m.deps, onWait: (sec) => jarWaits.push(sec) });
   check('limit: a second jar-list request waits a full window', m.slept === 61_000 && jarWaits[0] === 61);
+
+  m = makeDeps(() => json([item({ id: 'z', time: 9 })]));
+  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps });
+  m.idle(20_000);
+  const repeatWaits: number[] = [];
+  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, onProgress: (p) => p.waitSeconds > 0 && repeatWaits.push(p.waitSeconds), deps: m.deps });
+  check('limit: a repeated statement waits only the remaining 41 s', m.slept === 41_000 && repeatWaits[0] === 41 && repeatWaits.at(-1) === 1, `slept ${m.slept}`);
+
+  m = makeDeps(() => json({ jars: [] }));
+  await fetchJars('t', { deps: m.deps });
+  m.idle(61_000);
+  await fetchJars('t', { deps: m.deps });
+  check('limit: no wait once a full window has passed', m.slept === 0);
+
+  // a dropped connection never reached Monobank, so the retry is immediate
+  m = makeDeps((_u, n) => { if (n === 1) throw new TypeError('Failed to fetch'); return json({ jars: [] }); });
+  check('limit: dropped connection → network', (await kindOf(() => fetchJars('t', { deps: m.deps }))) === 'network');
+  await fetchJars('t', { deps: m.deps });
+  check('limit: a dropped connection does not make the retry wait', m.slept === 0 && m.calls.length === 2);
 
   // a rejected token doesn't use up the window, so fixing a typo is instant
   m = makeDeps((_u, n) => (n === 1 ? json({ errorDescription: "Unknown 'X-Token'" }, 403) : json({ jars: [] })));
