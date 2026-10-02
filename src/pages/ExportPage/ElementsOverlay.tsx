@@ -2,19 +2,14 @@ import { useLayoutEffect, useState } from 'react';
 import type { CardState } from '../../types';
 import type { RemovableElement } from '../../utils/templateConfig';
 import { XIcon } from '../../icons';
-
-interface ElementBox {
-  id: string;
-  left: number;
-  top: number;
-  width: number;
-  height: number;
-}
+import { placeButtons, type ElementBox, type MeasuredBox } from '../../utils/overlayLayout';
 
 // Constant on-screen sizes (CSS px) for the remove button — see the
 // effectiveScale division below for why these can't just be plain numbers.
 // 44px matches the standard minimum recommended touch-target size.
 const BUTTON_SIZE = 44;
+// Breathing room between two neighbouring buttons (CSS px), so a finger can tell them apart.
+const BUTTON_GAP = 6;
 const ICON_SIZE = 20;
 const BORDER_WIDTH = 2;
 
@@ -51,13 +46,13 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
       return;
     }
     const rootRect = root.getBoundingClientRect();
-    const next: ElementBox[] = [];
+    const measured: MeasuredBox[] = [];
     for (const el of elements) {
       if (card.hiddenElements.includes(el.id)) continue; // already hidden — nothing to outline
       const node = root.querySelector<HTMLElement>(`[data-element="${el.id}"]`);
       if (!node) continue;
       const r = node.getBoundingClientRect();
-      next.push({
+      measured.push({
         id: el.id,
         left: (r.left - rootRect.left) / effectiveScale,
         top: (r.top - rootRect.top) / effectiveScale,
@@ -65,12 +60,16 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
         height: r.height / effectiveScale,
       });
     }
+    const next = placeButtons(measured, BUTTON_SIZE / effectiveScale, BUTTON_GAP / effectiveScale);
     setBoxes((prev) => {
       const unchanged =
         prev.length === next.length &&
         prev.every((p, i) => {
           const n = next[i];
-          return n.id === p.id && n.left === p.left && n.top === p.top && n.width === p.width && n.height === p.height;
+          return (
+            n.id === p.id && n.left === p.left && n.top === p.top && n.width === p.width && n.height === p.height &&
+            n.btnX === p.btnX && n.btnY === p.btnY
+          );
         });
       return unchanged ? prev : next;
     });
@@ -106,8 +105,8 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
             onClick={() => onHide(b.id)}
             style={{
               position: 'absolute',
-              top: '50%',
-              left: '50%',
+              top: b.btnY,
+              left: b.btnX,
               transform: 'translate(-50%, -50%)',
               width: btnSize,
               height: btnSize,
