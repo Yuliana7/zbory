@@ -12,10 +12,12 @@ interface SaveCampaignControlProps {
   /** Goal value owned by the caller (e.g. the upload preview's not-yet-committed
    * goal input) — takes precedence over app.goal so saving here can't drop it. */
   goalOverride?: number;
+  /** make the button the primary action (e.g. a saved project has unsaved changes) */
+  highlight?: boolean;
 }
 
 /** "Зберегти збір": names the current dataset and puts it in the library. */
-export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignControlProps) {
+export function SaveCampaignControl({ fullWidth, goalOverride, highlight }: SaveCampaignControlProps) {
   const { t } = useTranslation('campaigns');
   const { state, handleSaveCampaign } = useAppContext();
   const { app } = state;
@@ -69,12 +71,12 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
       onClick={() => setOpen((v) => !v)}
       className={
         fullWidth
-          ? 'btn-secondary flex-1 flex items-center justify-center gap-2'
+          ? `${highlight ? 'btn-primary' : 'btn-secondary'} flex-1 flex items-center justify-center gap-2`
           : 'flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800 bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm hover:border-gray-300 transition-all'
       }
     >
       {justSaved ? <CheckIcon className="w-4 h-4" /> : <SaveIcon className="w-4 h-4" />}
-      {justSaved ? t('saved') : app.activeCampaignId ? t('updateButton') : t('saveButton')}
+      {justSaved ? t('saved') : app.unsavedChanges ? t('updateButton') : t('saveButton')}
     </button>
   );
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Donation, RawDonation } from '../../types';
 import { formatCurrency, formatShortDate } from '../../utils/dataAggregator';
+import { useAppContext } from '../../context/AppContext';
 import { FriendsEditor } from '../FriendsEditor';
 import { SaveCampaignControl } from '../insights/SaveCampaignControl';
 import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, EditIcon, WarningIcon } from '../../icons';
@@ -21,6 +22,8 @@ interface PreviewTableProps {
 export function PreviewTable({ donations, rawData, totalCount, invalidRowCount = 0, onProceed, onCancel, onEdit, initialGoal }: PreviewTableProps) {
   const { t } = useTranslation('upload');
   const { t: tExport } = useTranslation('export');
+  const { t: tCamp } = useTranslation('campaigns');
+  const unsaved = !!useAppContext().state.app.unsavedChanges;
   const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showErrors, setShowErrors] = useState(false);
 
@@ -45,6 +48,11 @@ export function PreviewTable({ donations, rawData, totalCount, invalidRowCount =
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in">
+      {unsaved && (
+        <div role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          {tCamp('unsavedChanges')}
+        </div>
+      )}
       <div className="card">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
@@ -198,7 +206,7 @@ export function PreviewTable({ donations, rawData, totalCount, invalidRowCount =
               {t('preview.editButton')}
             </button>
           )}
-          <SaveCampaignControl fullWidth goalOverride={parsedGoal ?? undefined} />
+          <SaveCampaignControl fullWidth goalOverride={parsedGoal ?? undefined} highlight={unsaved} />
         </div>
       </div>
     </div>

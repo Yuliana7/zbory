@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { HryvniaIcon, EditIcon, DownloadIcon } from '../../icons';
-import { FileUpload } from './FileUpload';
+import { HryvniaIcon } from '../../icons';
+import { NewProjectOptions } from './NewProjectOptions';
 
 interface EmptyStateProps {
   onFileSelect: (file: File) => void;
@@ -34,17 +34,12 @@ export function EmptyState({ onFileSelect, onManualClick, onMonobankClick, isLoa
         ))}
       </ol>
 
-      <div className="flex flex-col sm:flex-row items-center sm:items-start justify-center gap-3">
-        <FileUpload onFileSelect={onFileSelect} isLoading={isLoading} />
-        <button onClick={onManualClick} className="btn-secondary flex items-center justify-center gap-2">
-          <EditIcon className="w-5 h-5" />
-          {t('tabs.manual')}
-        </button>
-        <button onClick={onMonobankClick} className="btn-secondary flex items-center justify-center gap-2">
-          <DownloadIcon className="w-5 h-5" />
-          {t('monobank.button')}
-        </button>
-      </div>
+      <NewProjectOptions
+        onFileSelect={onFileSelect}
+        onMonobankClick={onMonobankClick}
+        onManualClick={onManualClick}
+        isLoading={isLoading}
+      />
     </div>
   );
 }
