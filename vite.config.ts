@@ -17,7 +17,13 @@ export default defineConfig({
       registerType: 'prompt',
       devOptions: {
         enabled: true,
-        navigateFallback: 'index.html'
+        navigateFallback: 'index.html',
+        // In dev the plugin generates a stub service worker into dev-dist/ and then
+        // globs that same folder for files to precache; it only holds the generated
+        // worker files (which are excluded), so workbox warned that the pattern
+        // "doesn't match any files". This adds an empty placeholder so it does.
+        // Dev-only — the production build is unaffected.
+        suppressWarnings: true
       },
       includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
       manifest: {
