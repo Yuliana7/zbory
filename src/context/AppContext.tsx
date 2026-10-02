@@ -21,13 +21,14 @@ import type {
   SharedStyle,
   CampaignDataset,
   FriendJar,
+  MonobankJarRef,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
-import { saveSession, updateSessionGoal, updateSessionFriends, clearSession, loadSession } from '../utils/session';
+import { saveSession, updateSessionGoal, updateSessionFriends, updateSessionMonobankJar, clearSession, loadSession } from '../utils/session';
 import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 import { TEMPLATE_GROUPS } from '../utils/templateConfig';
@@ -70,8 +71,10 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[] } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
+  // Before the fetched rows are reviewed: remember which jar they came from (and its goal)
+  | { type: 'MONOBANK_SOURCE_SET'; payload: { jar?: MonobankJarRef; goal?: number } }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
@@ -122,8 +125,12 @@ function appReducer(state: FullState, action: AppAction): FullState {
           goal: action.payload.goal,
           stackStyle: action.payload.style ?? null,
           friends: action.payload.friends,
+          monobankJar: action.payload.monobankJar,
         },
       };
+
+    case 'MONOBANK_SOURCE_SET':
+      return { ...state, app: { ...state.app, monobankJar: action.payload.jar, goal: action.payload.goal } };
 
     case 'FRIENDS_UPDATED':
       return { ...state, app: { ...state.app, friends: action.payload } };
@@ -189,6 +196,8 @@ interface AppContextValue {
   handleLoadCampaigns: (ids: string[]) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
+  handleMergeRows: (incoming: RawDonation[]) => MergeResult | null;
+  handleMonobankSource: (jar?: MonobankJarRef, goal?: number) => void;
   handleFriendsChange: (friends: FriendJar[]) => void;
   goToStep: (step: AppState['step']) => void;
 }
@@ -215,6 +224,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
       dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance, originalFileName: file.name } });
       saveSession(rawData, file.name);
+      updateSessionMonobankJar(undefined);
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
@@ -249,30 +259,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignName: state.app.activeCampaignName ?? undefined,
           style: state.app.stackStyle ?? undefined,
           friends: state.app.friends,
+          monobankJar: state.app.monobankJar,
         },
       });
       saveSession(rawData, state.app.originalFileName ?? null);
+      updateSessionMonobankJar(state.app.monobankJar);
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
         payload: err instanceof Error ? err.message : t('errors.manualDataError'),
       });
     }
-  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, t]);
+  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
 
-  // Merges another CSV export into the currently loaded dataset (long
-  // campaigns come in chunks); campaign link and goal survive the merge.
-  const handleMergeFile = useCallback(async (file: File): Promise<MergeResult | null> => {
+  const handleMergeRows = useCallback((incoming: RawDonation[], fallbackFileName?: string): MergeResult | null => {
     if (!state.app.rawData) return null;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      const incoming = await parseCSV(file);
       if (incoming.length === 0) throw new Error(t('errors.csvEmpty'));
 
       const result = mergeRawDonations(state.app.rawData, incoming);
       const { donations, withdrawals, currentBalance } = normalizeDonations(result.merged);
       if (donations.length === 0) throw new Error(t('errors.csvParseError'));
 
+      const fileName = state.app.originalFileName ?? fallbackFileName;
       dispatch({
         type: 'FILE_PARSED',
         payload: {
@@ -280,15 +290,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
           donations,
           withdrawals,
           currentBalance,
-          originalFileName: state.app.originalFileName ?? file.name,
+          originalFileName: fileName,
           goal: state.app.goal,
           activeCampaignId: state.app.activeCampaignId ?? undefined,
           activeCampaignName: state.app.activeCampaignName ?? undefined,
           style: state.app.stackStyle ?? undefined,
           friends: state.app.friends,
+          monobankJar: state.app.monobankJar,
         },
       });
-      saveSession(result.merged, state.app.originalFileName ?? file.name);
+      saveSession(result.merged, fileName ?? null);
+      updateSessionMonobankJar(state.app.monobankJar);
       return result;
     } catch (err) {
       dispatch({
@@ -297,7 +309,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
       });
       return null;
     }
-  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, t]);
+  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
+
+  // Merges another CSV export into the currently loaded dataset (long
+  // campaigns come in chunks); campaign link and goal survive the merge.
+  const handleMergeFile = useCallback(async (file: File): Promise<MergeResult | null> => {
+    if (!state.app.rawData) return null;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      return handleMergeRows(await parseCSV(file), file.name);
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
+      });
+      return null;
+    }
+  }, [state.app.rawData, handleMergeRows, t]);
+
+  // Remembers which Monobank jar the rows being reviewed came from (and its goal);
+  // the review table's "proceed" then carries both into the normal flow. Called
+  // with no jar to forget it again (cancel).
+  const handleMonobankSource = useCallback((jar?: MonobankJarRef, goal?: number) => {
+    dispatch({ type: 'MONOBANK_SOURCE_SET', payload: { jar, goal } });
+  }, []);
 
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
@@ -351,6 +386,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           originalFileName: session.fileName ?? undefined,
           goal: session.goal,
           friends: session.friends,
+          monobankJar: session.monobankJar,
         },
       });
       return true;
@@ -365,7 +401,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
       if (!meta || !data) throw new Error();
-      const { rawData, style, friends } = data;
+      const { rawData, style, friends, monobankJar } = data;
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0) throw new Error();
       dispatch({
@@ -381,6 +417,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignName: meta.name,
           style: style ?? undefined,
           friends,
+          monobankJar: monobankJar ?? undefined,
         },
       });
       saveSession(rawData, meta.fileName);
@@ -461,6 +498,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         goal: goalOverride !== undefined ? goalOverride : state.app.goal,
         style: state.app.stackStyle ?? undefined,
         friends: state.app.friends,
+        monobankJar: state.app.monobankJar,
       });
       dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id, name: meta.name } });
       return meta;
@@ -468,7 +506,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
       return null;
     }
-  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, state.app.friends, t]);
+  }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
 
   const handleFriendsChange = useCallback((friends: FriendJar[]) => {
     dispatch({ type: 'FRIENDS_UPDATED', payload: friends });
@@ -487,7 +525,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleFriendsChange, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankSource, handleFriendsChange, goToStep }}
     >
       {children}
     </AppContext.Provider>

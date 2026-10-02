@@ -1,4 +1,4 @@
-import type { FriendJar, RawDonation, SharedStyle } from '../types';
+import type { FriendJar, MonobankJarRef, RawDonation, SharedStyle } from '../types';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 import { getBackend } from './db';
@@ -34,6 +34,7 @@ interface CampaignData {
   rawData: RawDonation[];
   style?: SharedStyle;
   friends?: FriendJar[];
+  monobankJar?: MonobankJarRef;
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -73,6 +74,8 @@ export interface SaveCampaignInput {
   style?: SharedStyle;
   /** Omit to keep the saved helpers; an empty array clears them */
   friends?: FriendJar[];
+  /** Omit to keep the saved Monobank jar link */
+  monobankJar?: MonobankJarRef;
 }
 
 export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMeta> {
@@ -96,6 +99,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     rawData: input.rawData,
     style: input.style ?? existingData?.style,
     friends: input.friends ?? existingData?.friends,
+    monobankJar: input.monobankJar ?? existingData?.monobankJar,
   } satisfies CampaignData);
   await kv.put(META_STORE, meta);
   return meta;
@@ -111,10 +115,10 @@ export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> 
   return ((await getBackend().get(META_STORE, id)) as CampaignMeta | undefined) ?? null;
 }
 
-export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null; friends: FriendJar[] } | null> {
+export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null; friends: FriendJar[]; monobankJar: MonobankJarRef | null } | null> {
   const data = (await getBackend().get(DATA_STORE, id)) as CampaignData | undefined;
   if (!data) return null;
-  return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [] };
+  return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [], monobankJar: data.monobankJar ?? null };
 }
 
 export async function deleteCampaign(id: string): Promise<void> {

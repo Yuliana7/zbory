@@ -77,6 +77,16 @@ const raw: RawDonation[] = [
   await saveCampaign({ id: created.id, name: 'Нова назва', rawData: raw, fileName: 'jar.csv', friends: [] });
   assertEq('friends: empty array clears them', (await loadCampaignData(created.id))?.friends.length, 0);
 
+  // ── monobank jar link: saved with the campaign (id + title only), kept when omitted ──
+  assertEq('monobankJar: null by default', (await loadCampaignData(created.id))?.monobankJar, null);
+  await saveCampaign({ id: created.id, name: 'Нова назва', rawData: raw, fileName: 'jar.csv', monobankJar: { id: 'jar-1', title: 'Тестова банка' } });
+  const withJar = await loadCampaignData(created.id);
+  assertEq('monobankJar: round-trips id', withJar?.monobankJar?.id, 'jar-1');
+  assertEq('monobankJar: round-trips title', withJar?.monobankJar?.title, 'Тестова банка');
+  assertEq('monobankJar: nothing else (no token) is stored', Object.keys(withJar?.monobankJar ?? {}).sort().join(), 'id,title');
+  await saveCampaign({ id: created.id, name: 'Нова назва', rawData: raw, fileName: 'jar.csv' });
+  assertEq('monobankJar: survives an update that omits it', (await loadCampaignData(created.id))?.monobankJar?.id, 'jar-1');
+
   // ── update in place: keeps identity and createdAt, refreshes the rest ──
   await new Promise((r) => setTimeout(r, 5));
   const updated = await saveCampaign({ id: created.id, name: 'На дрони (оновлено)', rawData: raw.slice(0, 2), fileName: 'jar-v2.csv', goal: 20000 });

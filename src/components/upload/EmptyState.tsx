@@ -1,16 +1,17 @@
 import { useTranslation } from 'react-i18next';
-import { HryvniaIcon, EditIcon } from '../../icons';
+import { HryvniaIcon, EditIcon, DownloadIcon } from '../../icons';
 import { FileUpload } from './FileUpload';
 
 interface EmptyStateProps {
   onFileSelect: (file: File) => void;
   onManualClick: () => void;
+  onMonobankClick: () => void;
   isLoading: boolean;
 }
 
 /** First-run screen: no saved campaigns yet, so orient the volunteer with a
  * quick 3-step explainer before the two ways to start. */
-export function EmptyState({ onFileSelect, onManualClick, isLoading }: EmptyStateProps) {
+export function EmptyState({ onFileSelect, onManualClick, onMonobankClick, isLoading }: EmptyStateProps) {
   const { t } = useTranslation('upload');
   const steps = t('emptyState.steps', { returnObjects: true }) as string[];
 
@@ -38,6 +39,10 @@ export function EmptyState({ onFileSelect, onManualClick, isLoading }: EmptyStat
         <button onClick={onManualClick} className="btn-secondary flex items-center justify-center gap-2">
           <EditIcon className="w-5 h-5" />
           {t('tabs.manual')}
+        </button>
+        <button onClick={onMonobankClick} className="btn-secondary flex items-center justify-center gap-2">
+          <DownloadIcon className="w-5 h-5" />
+          {t('monobank.button')}
         </button>
       </div>
     </div>

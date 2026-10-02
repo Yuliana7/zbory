@@ -6,17 +6,19 @@ import { PreviewTable } from '../components/upload/PreviewTable';
 import { CampaignList } from '../components/upload/CampaignList';
 import { EmptyState } from '../components/upload/EmptyState';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
+import { MonobankImport, type MonobankFetchResult } from '../components/upload/MonobankImport';
 import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadSession, clearSession } from '../utils/session';
+import { updateRangeStart } from '../utils/monobankApi';
 import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, EditIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, DownloadIcon, EditIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
 
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
-  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile } =
+  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile, handleMergeRows, handleMonobankSource } =
     useAppContext();
   const { app, isLoading } = state;
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
@@ -24,6 +26,11 @@ export function UploadPage() {
   const [showMerge, setShowMerge] = useState(false);
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
   const [showManual, setShowManual] = useState(false);
+  // Monobank API: the import screen, the review table of what it returned, and the
+  // 'update this campaign' screen shown over an already-loaded preview
+  const [showMonobank, setShowMonobank] = useState(false);
+  const [monobankRows, setMonobankRows] = useState<ManualRow[] | null>(null);
+  const [showMonobankUpdate, setShowMonobankUpdate] = useState(false);
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
 
@@ -64,6 +71,30 @@ export function UploadPage() {
     setShowManual(false);
   };
 
+  const handleMonobankFetched = ({ rows, jar, goal }: MonobankFetchResult) => {
+    handleMonobankSource(jar, goal);
+    setMonobankRows(rawDonationsToManualRows(rows));
+    setShowMonobank(false);
+  };
+
+  const handleMonobankReviewProceed = (rows: ManualRow[]) => {
+    handleManualDataProceed(rows);
+    setMonobankRows(null);
+  };
+
+  const handleMonobankReviewCancel = () => {
+    handleMonobankSource(undefined);
+    setMonobankRows(null);
+  };
+
+  const handleMonobankUpdated = ({ rows }: MonobankFetchResult) => {
+    const result = handleMergeRows(rows);
+    if (result) {
+      setMergeResult(result);
+      setShowMonobankUpdate(false);
+    }
+  };
+
   // Edit mode: overlay the editor over whatever else would show
   if (editRows) {
     return (
@@ -76,6 +107,21 @@ export function UploadPage() {
           onProceed={handleEditProceed}
           onCancel={handleCancelEdit}
           isLoading={isLoading}
+        />
+      </div>
+    );
+  }
+
+  // Refresh a loaded campaign from the jar it was imported from
+  if (app.donations && showMonobankUpdate && app.monobankJar) {
+    return (
+      <div className="py-8">
+        <MonobankImport
+          mode="update"
+          jar={app.monobankJar}
+          fromDate={app.rawData ? (updateRangeStart(app.rawData) ?? undefined) : undefined}
+          onFetched={handleMonobankUpdated}
+          onCancel={() => setShowMonobankUpdate(false)}
         />
       </div>
     );
@@ -103,6 +149,19 @@ export function UploadPage() {
         />
         {/* Merge another export of the same jar into the loaded dataset */}
         <div className="max-w-5xl mx-auto mt-6 text-center">
+          {app.monobankJar && !showMerge && (
+            <button
+              onClick={() => {
+                setShowMonobankUpdate(true);
+                setMergeResult(null);
+              }}
+              className="flex items-center gap-1.5 mx-auto mb-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
+                         hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
+            >
+              <DownloadIcon className="w-4 h-4" />
+              {t('monobank.updateButton')} · {app.monobankJar.title}
+            </button>
+          )}
           {showMerge ? (
             <div className="animate-fade-in">
               <p className="text-sm text-gray-600 mb-4">{t('merge.title')}</p>
@@ -137,6 +196,31 @@ export function UploadPage() {
             </button>
           )}
         </div>
+      </div>
+    );
+  }
+
+  // Review what the Monobank API returned: the same table as manual entry, so rows
+  // can be corrected before they go into the normal flow
+  if (monobankRows) {
+    return (
+      <div className="py-8">
+        <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">{t('monobank.reviewTitle')}</h2>
+        <p className="text-sm text-gray-500 mb-6 text-center">{t('monobank.reviewHint')}</p>
+        <ManualEntryEditor
+          initialRows={monobankRows}
+          onProceed={handleMonobankReviewProceed}
+          onCancel={handleMonobankReviewCancel}
+          isLoading={isLoading}
+        />
+      </div>
+    );
+  }
+
+  if (showMonobank) {
+    return (
+      <div className="py-8">
+        <MonobankImport mode="import" onFetched={handleMonobankFetched} onCancel={() => setShowMonobank(false)} />
       </div>
     );
   }
@@ -219,11 +303,20 @@ export function UploadPage() {
                 <EditIcon className="w-4 h-4" />
                 {t('tabs.manual')}
               </button>
+              <button onClick={() => setShowMonobank(true)} className="btn-secondary flex items-center justify-center gap-2">
+                <DownloadIcon className="w-4 h-4" />
+                {t('monobank.button')}
+              </button>
             </div>
           </div>
         </>
       ) : (
-        <EmptyState onFileSelect={handleFileSelect} onManualClick={() => setShowManual(true)} isLoading={isLoading} />
+        <EmptyState
+          onFileSelect={handleFileSelect}
+          onManualClick={() => setShowManual(true)}
+          onMonobankClick={() => setShowMonobank(true)}
+          isLoading={isLoading}
+        />
       )}
     </div>
   );
