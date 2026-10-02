@@ -84,7 +84,10 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
         // fullWidth: this trigger is one of several buttons in a row, so center
         // on the whole row (its nearest positioned ancestor) instead of on just
         // this narrow button — otherwise the 288px popup overhangs its siblings.
-        fullWidth ? 'left-1/2 -translate-x-1/2 mt-3' : 'right-0 mt-2'
+        // Centered with auto margins, NOT translate-x: the fade-in animation animates
+        // `transform`, which overrode the translate for 0.3 s and threw the popup half
+        // its width off to the right — widening the page and scrolling it sideways.
+        fullWidth ? 'left-0 right-0 mx-auto mt-3' : 'right-0 mt-2'
       }`}
     >
       <label className="block text-xs font-semibold text-gray-700 mb-1">{t('nameLabel')}</label>
