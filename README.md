@@ -37,7 +37,7 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 ## Features
 
 ### Analytics
-- Parses the CSV statement exported from a Monobank jar (and manual entry, if you don't have a file).
+- Parses the CSV statement exported from a Monobank jar, **or fetches it straight from the Monobank API**, or lets you type donations in by hand.
 - Total raised, donation count, typical (median) vs. average donation, most frequent amount, best day, time-of-day activity, campaign duration.
 - Cumulative growth chart and a rolling 30-day chart of donations and withdrawals.
 - Repeat donors and most generous donors; anonymous donations are counted but kept out of the lists.
@@ -60,6 +60,16 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
+### Monobank API import
+Instead of exporting a CSV, paste your personal API token (generated at [api.monobank.ua](https://api.monobank.ua/)) on the first step:
+
+1. The app lists your jars (hryvnia jars only, with balance and goal).
+2. Pick a jar and a date range (default: the last 30 days).
+3. The donations land in the same editable table as manual entry — review or fix rows, then continue as usual. The jar's goal prefills the campaign goal.
+4. Save the campaign: the jar's id and name are remembered, so reopening it offers **Оновити з Monobank**, which fetches from the newest saved day and merges, skipping duplicates.
+
+The token is **never stored** — it lives in memory on that screen and is sent only to `api.monobank.ua`. Monobank allows one statement request per minute and 31 days per request, so longer ranges are fetched in windows automatically, with a visible countdown (a long campaign takes a few minutes); you can stop at any time.
+
 ### Friendly jars (дружні збори)
 Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals.
 
@@ -70,8 +80,8 @@ Monobank lets helpers open their own jars that pay into yours. Those donations a
 
 ## How to use it
 
-1. **Get your statement.** In the monobank app, open the jar and export its statement as **CSV**. (Monobank support can also send a statement file; the app understands both layouts.)
-2. **Upload** it on the first step — or choose *Створити вручну* to type donations in. Check the preview, optionally set a goal and add friendly jars, then continue.
+1. **Get your data.** Either export the jar's statement as **CSV** in the monobank app (Monobank support can also send a statement file; the app understands both layouts), or use *З Monobank API* with a personal token — no file needed.
+2. **Upload** the CSV on the first step, import via the API, or choose *Створити вручну* to type donations in. Check the preview, optionally set a goal and add friendly jars, then continue.
 3. **Read the analytics.** Tap a highlighted moment to jump to a matching template, or go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
 5. **Edit and export.** Change the format, add your photo (*Фон та стиль → Редагувати позицію*), hide elements, edit text, save a theme, then **Завантажити PNG** (or the ZIP for a series).
@@ -88,6 +98,7 @@ Monobank lets helpers open their own jars that pay into yours. Those donations a
 | Charts | Chart.js via react-chartjs-2, plus hand-rolled CSS/SVG charts |
 | CSV | PapaParse |
 | Image export | `html-to-image` (cards render at native 1080 px and are rasterised offscreen) |
+| Monobank | plain `fetch` against the personal API (`src/utils/monobankApi.ts`) — the API answers browser preflights, so no backend or proxy is needed |
 | Storage | IndexedDB (fundraisers, themes) behind a small key-value wrapper with in-memory fallback; localStorage for the last session |
 | ZIP | a tiny store-only writer (`src/utils/zip.ts`) — PNGs are already compressed, so no dependency |
 
@@ -144,7 +155,7 @@ Pushes to `main` build and deploy to GitHub Pages via `.github/workflows/deploy.
 ## Roadmap
 
 - **Custom template builder** — compose your own card from the available elements.
-- **Monobank API** — fetch statements automatically instead of uploading a CSV. The personal API gives your own jars' balances and statements (max 31 days per request, one request per minute); it exposes nothing about friendly jars, so helper amounts would stay manual.
+- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual unless Monobank adds it.
 
 ## Contributing
 
