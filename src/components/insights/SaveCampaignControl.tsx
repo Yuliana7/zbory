@@ -36,6 +36,10 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
       setName(app.originalFileName.replace(/\.csv$/i, ''));
       return;
     }
+    if (app.monobankJar) {
+      setName(app.monobankJar.title);
+      return;
+    }
     if (app.aggregates) {
       setName(t('defaultName', {
         from: shortDate(app.aggregates.firstDate),
@@ -44,7 +48,7 @@ export function SaveCampaignControl({ fullWidth, goalOverride }: SaveCampaignCon
       return;
     }
     setName('');
-  }, [open, app.activeCampaignName, app.originalFileName, app.aggregates, t]);
+  }, [open, app.activeCampaignName, app.originalFileName, app.monobankJar, app.aggregates, t]);
 
   useEffect(() => () => {
     if (savedTimer.current) clearTimeout(savedTimer.current);

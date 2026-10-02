@@ -27,6 +27,13 @@ export interface Withdrawal {
   balanceAfter: number; // Залишок after this withdrawal
 }
 
+// The Monobank jar a campaign was imported from through the API. Only the id and
+// title are kept — enough to offer "update from Monobank" later; never the token.
+export interface MonobankJarRef {
+  id: string;
+  title: string;
+}
+
 // A helper ("friendly") jar linked to the main jar. Its money already arrives
 // in the main jar's statement, unattributed — so this is attribution only and
 // must never be added to any total.
@@ -181,6 +188,8 @@ export interface AppState {
   goal?: number;
   /** helper jars of the open campaign — attribution only, already inside the totals */
   friends?: FriendJar[];
+  /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
+  monobankJar?: MonobankJarRef;
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;

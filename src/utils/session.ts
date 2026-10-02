@@ -1,4 +1,4 @@
-import type { FriendJar, RawDonation } from '../types';
+import type { FriendJar, MonobankJarRef, RawDonation } from '../types';
 
 const KEY = 'zbory-session-v1';
 
@@ -6,6 +6,7 @@ export interface SavedSession {
   rawData: RawDonation[];
   goal?: number;
   friends?: FriendJar[];
+  monobankJar?: MonobankJarRef;
   fileName: string | null;
   savedAt: number;
 }
@@ -14,7 +15,7 @@ export interface SavedSession {
 export function saveSession(rawData: RawDonation[], fileName: string | null): void {
   try {
     const prev = loadSession();
-    const session: SavedSession = { rawData, fileName, goal: prev?.goal, friends: prev?.friends, savedAt: Date.now() };
+    const session: SavedSession = { rawData, fileName, goal: prev?.goal, friends: prev?.friends, monobankJar: prev?.monobankJar, savedAt: Date.now() };
     localStorage.setItem(KEY, JSON.stringify(session));
   } catch {
     // Quota exceeded (huge CSV) or storage unavailable — autosave is best-effort
@@ -36,6 +37,16 @@ export function updateSessionFriends(friends: FriendJar[]): void {
     const session = loadSession();
     if (!session) return;
     localStorage.setItem(KEY, JSON.stringify({ ...session, friends }));
+  } catch {
+    // best-effort
+  }
+}
+
+export function updateSessionMonobankJar(monobankJar?: MonobankJarRef): void {
+  try {
+    const session = loadSession();
+    if (!session) return;
+    localStorage.setItem(KEY, JSON.stringify({ ...session, monobankJar }));
   } catch {
     // best-effort
   }
