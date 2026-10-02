@@ -1,5 +1,6 @@
 import { useRef, useState, useLayoutEffect, useMemo, useEffect, useCallback } from 'react';
 import { revealInput } from '../../utils/revealInput';
+import { readBackgroundImage } from '../../utils/imageResize';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { TemplateType, Aggregates, CommentInsights, CardState } from '../../types';
@@ -127,14 +128,11 @@ function ExportPageInner() {
 
   const { zipQueue, zipRef, zipInnerRef, zipCard, startZipExport } = useZipExport(cards);
 
-  const handleBgUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleBgUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) =>
-      patchStyle({ bgImage: ev.target?.result as string, bgTransparent: false, bgColor: null });
-    reader.readAsDataURL(file);
     e.target.value = '';
+    if (!file) return;
+    patchStyle({ bgImage: await readBackgroundImage(file), bgTransparent: false, bgColor: null });
   };
 
   const dims = FORMAT_DIMS[card.format];
