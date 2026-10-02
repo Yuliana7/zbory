@@ -1,5 +1,6 @@
 import {
   MonobankError,
+  createPacer,
   defaultRange,
   estimateRequests,
   fetchJarStatement,
@@ -62,41 +63,59 @@ check(
 );
 check('updateRangeStart: nothing to go on', updateRangeStart([]) === null);
 
-// ── fetching (fetch + sleep injected: no network, no waiting) ──
+// ── fetching: fetch, sleep and the clock are injected, so waits run on virtual time ──
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
 const makeDeps = (responder: (url: string, n: number) => Response | Promise<Response>) => {
-  const calls: Array<{ url: string; token: string | null }> = [];
+  const calls: Array<{ url: string; token: string | null; at: number }> = [];
+  let clock = 1_000_000; // virtual ms
   let slept = 0;
+  const deps = {
+    fetch: (async (url: string, init?: RequestInit) => {
+      calls.push({ url, token: new Headers(init?.headers).get('X-Token'), at: clock });
+      return responder(url, calls.length);
+    }) as unknown as typeof fetch,
+    sleep: async (ms: number) => {
+      slept += ms;
+      clock += ms;
+    },
+    now: () => clock,
+    pacer: createPacer(), // fresh rate-limit memory per scenario
+  };
   return {
     calls,
+    deps,
     get slept() {
       return slept;
     },
-    deps: {
-      fetch: (async (url: string, init?: RequestInit) => {
-        calls.push({ url, token: new Headers(init?.headers).get('X-Token') });
-        return responder(url, calls.length);
-      }) as unknown as typeof fetch,
-      sleep: async (ms: number) => {
-        slept += ms;
-      },
+    /** time passes with no requests (e.g. the user is choosing a jar) */
+    idle: (ms: number) => {
+      clock += ms;
     },
   };
+};
+const kindOf = async (run: () => Promise<unknown>) => {
+  try {
+    await run();
+    return 'none';
+  } catch (e) {
+    return e instanceof MonobankError ? e.kind : 'other';
+  }
 };
 
 (async () => {
   // one window: no waiting, token sent as a header, jar id used as the account
   let m = makeDeps(() => json([item({ id: 'x1', time: 1000 })]));
   let got = await fetchJarStatement({ token: ' tok ', jarId: 'JAR/1', fromSec: 1000 - DAY, toSec: 1000 + DAY, deps: m.deps });
-  check('fetch: single request for a short range', m.calls.length === 1 && m.slept === 0);
+  check('fetch: single request for a short range, no waiting', m.calls.length === 1 && m.slept === 0);
   check('fetch: token header trimmed, jar id in the path', m.calls[0].token === 'tok' && m.calls[0].url.includes('/personal/statement/JAR%2F1/'));
   check('fetch: returns the items', got.length === 1 && got[0].id === 'x1');
 
-  // 70 days = 3 windows, 2 gaps of 61 s, each reported second by second
+  // 70 days = 3 windows, each request ≥61 s after the previous one, countdown reported
   const progress: Array<{ done: number; total: number; waitSeconds: number }> = [];
   m = makeDeps((_u, n) => json([item({ id: `w${n}`, time: n })]));
   got = await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: 70 * DAY, onProgress: (p) => progress.push(p), deps: m.deps });
   check('fetch: 70 days → 3 windows', m.calls.length === 3 && got.length === 3);
+  check('fetch: requests are at least 61 s apart', m.calls.slice(1).every((c, i) => c.at - m.calls[i].at >= 61_000));
   check('fetch: waits 61 s between requests, not before the first', m.slept === 2 * 61_000);
   check('fetch: windows are ≤31 days and contiguous', (() => {
     const spans = m.calls.map((c) => c.url.split('/').slice(-2).map(Number));
@@ -104,42 +123,61 @@ const makeDeps = (responder: (url: string, n: number) => Response | Promise<Resp
   })());
   check('fetch: countdown is reported', progress.some((p) => p.waitSeconds === 61) && progress.some((p) => p.waitSeconds === 1) && progress.at(-1)!.done === 3);
 
+  // the limit is shared by every endpoint: statement right after the jar list waits out the rest
+  m = makeDeps((url) => (url.endsWith('/client-info') ? json({ jars: [] }) : json([item({ id: 's', time: 5 })])));
+  await fetchJars('t', { deps: m.deps });
+  check('limit: the jar list itself goes out immediately', m.slept === 0);
+  m.idle(20_000); // the user is picking a jar
+  const waits: number[] = [];
+  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, onProgress: (p) => p.waitSeconds > 0 && waits.push(p.waitSeconds), deps: m.deps });
+  check('limit: statement waits only the remaining 41 s after the jar list', m.slept === 41_000 && m.calls[1].at - m.calls[0].at === 61_000, `slept ${m.slept}`);
+  check('limit: the countdown is reported for that wait', waits[0] === 41 && waits.at(-1) === 1);
+
+  m = makeDeps((url) => (url.endsWith('/client-info') ? json({ jars: [] }) : json([])));
+  await fetchJars('t', { deps: m.deps });
+  m.idle(61_000);
+  await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps });
+  check('limit: no wait once a full window has passed', m.slept === 0);
+
+  // two jar-list requests in a row also wait
+  m = makeDeps(() => json({ jars: [] }));
+  await fetchJars('t', { deps: m.deps });
+  const jarWaits: number[] = [];
+  await fetchJars('t', { deps: m.deps, onWait: (sec) => jarWaits.push(sec) });
+  check('limit: a second jar-list request waits a full window', m.slept === 61_000 && jarWaits[0] === 61);
+
+  // a rejected token doesn't use up the window, so fixing a typo is instant
+  m = makeDeps((_u, n) => (n === 1 ? json({ errorDescription: "Unknown 'X-Token'" }, 403) : json({ jars: [] })));
+  check('limit: 403 → invalid-token', (await kindOf(() => fetchJars('typo', { deps: m.deps }))) === 'invalid-token');
+  await fetchJars('right', { deps: m.deps });
+  check('limit: a rejected token does not make the next try wait', m.slept === 0 && m.calls.length === 2);
+
   // a full page (500) is continued from its oldest item; the boundary item is de-duplicated
   const page = Array.from({ length: 500 }, (_, i) => item({ id: `p${i}`, time: 5000 - i })); // 5000 … 4501
   m = makeDeps((_u, n) => (n === 1 ? json(page) : json([item({ id: 'p499', time: 4501 }), item({ id: 'old', time: 4000 })])));
   got = await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 3000, toSec: 5000, deps: m.deps });
   check('fetch: full page triggers a follow-up request from the oldest item', m.calls.length === 2 && m.calls[1].url.endsWith('/3000/4501'), m.calls[1]?.url);
+  check('fetch: the follow-up is also paced', m.slept === 61_000);
   check('fetch: boundary item de-duplicated, newest first', got.length === 501 && got[0].id === 'p0' && got.at(-1)!.id === 'old');
 
   // errors
-  m = makeDeps(() => json({ errorDescription: "Unknown 'X-Token'" }, 403));
-  let kind = '';
-  try { await fetchJars('bad', m.deps); } catch (e) { kind = e instanceof MonobankError ? e.kind : 'other'; }
-  check('error: 403 → invalid-token', kind === 'invalid-token');
-
   m = makeDeps(() => { throw new TypeError('Failed to fetch'); });
-  kind = '';
-  try { await fetchJars('t', m.deps); } catch (e) { kind = e instanceof MonobankError ? e.kind : 'other'; }
-  check('error: fetch failure → network', kind === 'network');
+  check('error: fetch failure → network', (await kindOf(() => fetchJars('t', { deps: m.deps }))) === 'network');
 
   m = makeDeps(() => json({}, 500));
-  kind = '';
-  try { await fetchJars('t', m.deps); } catch (e) { kind = e instanceof MonobankError ? e.kind : 'other'; }
-  check('error: 500 → unexpected', kind === 'unexpected');
+  check('error: 500 → unexpected', (await kindOf(() => fetchJars('t', { deps: m.deps }))) === 'unexpected');
 
-  // 429: waited out and retried
+  // 429: the retry waits a full window (the rejected request still counted)
   m = makeDeps((_u, n) => (n === 1 ? json({}, 429) : json([item({ id: 'r', time: 10 })])));
   got = await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps });
   check('429: waits a minute, retries, succeeds', m.calls.length === 2 && got.length === 1 && m.slept === 61_000);
 
   m = makeDeps(() => json({}, 429));
-  kind = '';
-  try { await fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps }); } catch (e) { kind = e instanceof MonobankError ? e.kind : 'other'; }
-  check('429: gives up after a few retries', kind === 'rate-limit' && m.calls.length === 4);
+  check('429: gives up after a few retries', (await kindOf(() => fetchJarStatement({ token: 't', jarId: 'j', fromSec: 0, toSec: DAY, deps: m.deps }))) === 'rate-limit' && m.calls.length === 4 && m.slept === 3 * 61_000);
 
   // jars: no jars key is fine
   m = makeDeps(() => json({ clientId: 'c', accounts: [] }));
-  check('jars: missing array → empty list', (await fetchJars('t', m.deps)).length === 0);
+  check('jars: missing array → empty list', (await fetchJars('t', { deps: m.deps })).length === 0);
 
   // cancel while waiting
   m = makeDeps(() => json([item({ id: 'c', time: 1 })]));

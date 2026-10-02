@@ -13,7 +13,8 @@ const UAH = 980;
 const MAX_WINDOW_SEC = 31 * 24 * 60 * 60;
 // A response holds at most 500 items; a full page means there may be more.
 const PAGE_LIMIT = 500;
-// Both endpoints allow one request per 60 seconds.
+// Monobank allows one request per 60 seconds per token across its personal
+// endpoints; one second of margin on top.
 const REQUEST_GAP_MS = 61_000;
 const RATE_LIMIT_RETRIES = 3;
 
@@ -52,10 +53,21 @@ export class MonobankError extends Error {
   }
 }
 
+/** Remembers when the last request went out, so every call can wait out the rate limit. */
+export interface Pacer {
+  lastRequestAt: number | null;
+}
+export const createPacer = (): Pacer => ({ lastRequestAt: null });
+// One for the whole page: the jar list and the statement count against the same limit.
+const sharedPacer = createPacer();
+
 export interface MonobankDeps {
   fetch?: typeof fetch;
   /** Resolves after `ms`; rejects if `signal` aborts. Injectable so tests don't wait a minute. */
   sleep?: (ms: number, signal?: AbortSignal) => Promise<void>;
+  /** Clock in ms; injectable together with `sleep` so tests can run on virtual time. */
+  now?: () => number;
+  pacer?: Pacer;
 }
 
 export interface FetchProgress {
@@ -85,6 +97,38 @@ const defaultSleep = (ms: number, signal?: AbortSignal) =>
 
 const isAbort = (err: unknown) => err instanceof DOMException && err.name === 'AbortError';
 
+/**
+ * Runs one API request no sooner than REQUEST_GAP_MS after the previous one,
+ * whatever endpoint it was for — time the user spent between steps counts. A
+ * rejected token doesn't use up the window (Monobank can't attribute it), so a
+ * typo doesn't cost a minute. `onWait` gets the seconds left, once per second.
+ */
+async function paced<T>(
+  deps: MonobankDeps,
+  signal: AbortSignal | undefined,
+  onWait: ((secondsLeft: number) => void) | undefined,
+  send: () => Promise<T>,
+): Promise<T> {
+  const pacer = deps.pacer ?? sharedPacer;
+  const now = deps.now ?? Date.now;
+  const sleep = deps.sleep ?? defaultSleep;
+
+  const remaining = () => (pacer.lastRequestAt === null ? 0 : pacer.lastRequestAt + REQUEST_GAP_MS - now());
+  for (let left = remaining(); left > 0; left = remaining()) {
+    onWait?.(Math.ceil(left / 1000));
+    await sleep(Math.min(1000, left), signal);
+  }
+
+  const previous = pacer.lastRequestAt;
+  pacer.lastRequestAt = now();
+  try {
+    return await send();
+  } catch (err) {
+    if (err instanceof MonobankError && err.kind === 'invalid-token') pacer.lastRequestAt = previous;
+    throw err;
+  }
+}
+
 async function request<T>(path: string, token: string, deps: MonobankDeps, signal?: AbortSignal): Promise<T> {
   const doFetch = deps.fetch ?? fetch;
   let res: Response;
@@ -106,8 +150,17 @@ async function request<T>(path: string, token: string, deps: MonobankDeps, signa
 
 // ─── client-info ──────────────────────────────────────────────────────────────
 
-export async function fetchJars(token: string, deps: MonobankDeps = {}, signal?: AbortSignal): Promise<MonoJar[]> {
-  const info = await request<{ jars?: MonoJar[] }>('/personal/client-info', token.trim(), deps, signal);
+interface FetchJarsOptions {
+  deps?: MonobankDeps;
+  signal?: AbortSignal;
+  /** seconds left when the rate limit makes this request wait */
+  onWait?: (secondsLeft: number) => void;
+}
+
+export async function fetchJars(token: string, { deps = {}, signal, onWait }: FetchJarsOptions = {}): Promise<MonoJar[]> {
+  const info = await paced(deps, signal, onWait, () =>
+    request<{ jars?: MonoJar[] }>('/personal/client-info', token.trim(), deps, signal),
+  );
   return info.jars ?? [];
 }
 
@@ -149,42 +202,35 @@ export async function fetchJarStatement({
   signal,
   deps = {},
 }: FetchStatementOptions): Promise<MonoStatementItem[]> {
-  const sleep = deps.sleep ?? defaultSleep;
   const byId = new Map<string, MonoStatementItem>();
   let done = 0;
   let total = estimateRequests(fromSec, toSec);
   const report = (waitSeconds: number) => onProgress?.({ done, total, waitSeconds });
 
-  // Counts down second by second so the UI can show "next request in 42 s"
-  const wait = async (ms: number) => {
-    for (let left = Math.ceil(ms / 1000); left > 0; left--) {
-      report(left);
-      await sleep(1000, signal);
-    }
-  };
-
   let cursorTo = toSec;
+  let rateLimited = 0;
   while (cursorTo > fromSec) {
     const windowFrom = Math.max(fromSec, cursorTo - MAX_WINDOW_SEC);
-    if (done > 0) await wait(REQUEST_GAP_MS);
-    report(0);
 
-    let items: MonoStatementItem[] | null = null;
-    for (let attempt = 0; items === null; attempt++) {
-      try {
-        items = await request<MonoStatementItem[]>(
+    let items: MonoStatementItem[];
+    try {
+      // Waits out the rate limit first (reporting the countdown), then sends
+      items = await paced(deps, signal, report, () => {
+        report(0);
+        return request<MonoStatementItem[]>(
           `/personal/statement/${encodeURIComponent(jarId)}/${windowFrom}/${cursorTo}`,
           token.trim(),
           deps,
           signal,
         );
-      } catch (err) {
-        if (err instanceof MonobankError && err.kind === 'rate-limit' && attempt < RATE_LIMIT_RETRIES) {
-          await wait(REQUEST_GAP_MS);
-          continue;
-        }
-        throw err;
+      });
+    } catch (err) {
+      // Asked to slow down: the pacer already counts that request, so trying again waits a full window
+      if (err instanceof MonobankError && err.kind === 'rate-limit' && rateLimited < RATE_LIMIT_RETRIES) {
+        rateLimited += 1;
+        continue;
       }
+      throw err;
     }
     done += 1;
     for (const item of items) byId.set(item.id, item);

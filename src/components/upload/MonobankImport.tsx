@@ -57,6 +57,8 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
   const [range, setRange] = useState(() => ({ ...defaultRange(), ...(fromDate ? { from: fromDate } : null) }));
   const [progress, setProgress] = useState<FetchProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // seconds the jar-list request is waiting out Monobank's rate limit (0 = not waiting)
+  const [jarsWait, setJarsWait] = useState(0);
   const abortRef = useRef<AbortController | null>(null);
 
   // Leaving the screen cancels any request or countdown still running
@@ -81,10 +83,11 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
       return;
     }
     setStage('loadingJars');
+    setJarsWait(0);
     const abort = new AbortController();
     abortRef.current = abort;
     try {
-      const all = await fetchJars(token, {}, abort.signal);
+      const all = await fetchJars(token, { signal: abort.signal, onWait: setJarsWait });
       setJars(all);
       setJarId(all.find(isUahJar)?.id ?? null);
       setStage('jars');
@@ -92,6 +95,8 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
       if (abort.signal.aborted) return;
       setError(describe(err));
       setStage('token');
+    } finally {
+      setJarsWait(0);
     }
   };
 
@@ -180,6 +185,12 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
               className={INPUT}
             />
           </label>
+
+          {stage === 'loadingJars' && jarsWait > 0 && (
+            <p className="text-xs text-indigo-600" aria-live="polite">
+              {t('monobank.waiting', { seconds: jarsWait })} · {t('monobank.rateLimit')}
+            </p>
+          )}
 
           <div className="flex flex-col sm:flex-row gap-3">
             <button
