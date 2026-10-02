@@ -330,7 +330,13 @@ function ExportPageInner() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start" style={{ position: 'relative' }}>
+      {/* overflowAnchor none: the preview shrinks as you scroll, which moves everything below it;
+          Chrome's scroll anchoring "corrects" for that by changing scrollY, which changes the shrink
+          again — the page drifted on its own and felt jumpy anywhere between the two ends. */}
+      <div
+        className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start"
+        style={{ position: 'relative', overflowAnchor: 'none' }}
+      >
         {/* Preview */}
         <div
           ref={previewContainerRef}
