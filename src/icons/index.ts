@@ -7,6 +7,7 @@ export * from './ChevronDownIcon';
 export * from './DownloadIcon';
 export * from './EditIcon';
 export * from './FolderIcon';
+export * from './GlobeIcon';
 export * from './HryvniaIcon';
 export * from './ImageIcon';
 export * from './PlusIcon';

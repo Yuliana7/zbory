@@ -142,6 +142,22 @@
   --safe-top: calc(env(safe-area-inset-top) + min(env(safe-area-inset-top), 6px));
 }
 
+/* Home-indicator area at the bottom of the screen; 0 where there is none. */
+:root {
+  --safe-bottom: env(safe-area-inset-bottom);
+}
+
+/* Bottom sheets: never taller than the visible screen (below the status-bar area).
+   dvh follows Safari's collapsing toolbars; vh is the fallback for older browsers. */
+.sheet-panel {
+  max-height: calc(100vh - var(--safe-top) - 1rem);
+}
+@supports (height: 100dvh) {
+  .sheet-panel {
+    max-height: calc(100dvh - var(--safe-top) - 1rem);
+  }
+}
+
 body {
   margin: 0;
   min-width: 320px;

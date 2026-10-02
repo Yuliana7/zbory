@@ -2,6 +2,8 @@ import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { FileUpload } from '../components/upload/FileUpload';
+import { NewProjectOptions } from '../components/upload/NewProjectOptions';
+import type { CampaignAction } from '../components/upload/CampaignActionsSheet';
 import { PreviewTable } from '../components/upload/PreviewTable';
 import { CampaignList } from '../components/upload/CampaignList';
 import { EmptyState } from '../components/upload/EmptyState';
@@ -13,12 +15,12 @@ import { updateRangeStart } from '../utils/monobankApi';
 import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, DownloadIcon, EditIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, GlobeIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
 
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
-  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile, handleMergeRows, handleMonobankSource } =
+  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile, handleMergeRows, handleMonobankSource, handleLoadCampaign } =
     useAppContext();
   const { app, isLoading } = state;
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
@@ -26,11 +28,14 @@ export function UploadPage() {
   const [showMerge, setShowMerge] = useState(false);
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
   const [showManual, setShowManual] = useState(false);
+  // Step 1 has two views: the saved projects and the ways to start a new one
+  const [tab, setTab] = useState<'saved' | 'new'>('saved');
   // Monobank API: the import screen, the review table of what it returned, and the
-  // 'update this campaign' screen shown over an already-loaded preview
+  // screen shown over an already-loaded preview — 'update' refreshes the jar the
+  // project came from, 'link' picks a jar for a project that has none yet
   const [showMonobank, setShowMonobank] = useState(false);
   const [monobankRows, setMonobankRows] = useState<ManualRow[] | null>(null);
-  const [showMonobankUpdate, setShowMonobankUpdate] = useState(false);
+  const [monobankMerge, setMonobankMerge] = useState<'update' | 'link' | null>(null);
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
 
@@ -87,12 +92,23 @@ export function UploadPage() {
     setMonobankRows(null);
   };
 
-  const handleMonobankUpdated = ({ rows }: MonobankFetchResult) => {
-    const result = handleMergeRows(rows);
+  const handleMonobankMerged = ({ rows, jar }: MonobankFetchResult) => {
+    const result = handleMergeRows(rows, { monobankJar: jar });
     if (result) {
       setMergeResult(result);
-      setShowMonobankUpdate(false);
+      setMonobankMerge(null);
     }
+  };
+
+  // "Змінити" on a saved project: open it, then go straight to the chosen screen.
+  // Whatever the action, the user ends up on the preview with "Зберегти зміни".
+  const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
+    const loaded = await handleLoadCampaign(campaign.id);
+    if (!loaded) return;
+    setMergeResult(null);
+    if (action === 'edit') setEditRows(rawDonationsToManualRows(loaded.rawData));
+    else if (action === 'csv') setShowMerge(true);
+    else if (action === 'monobank') setMonobankMerge(loaded.monobankJar ? 'update' : 'link');
   };
 
   // Edit mode: overlay the editor over whatever else would show
@@ -112,17 +128,21 @@ export function UploadPage() {
     );
   }
 
-  // Refresh a loaded campaign from the jar it was imported from
-  if (app.donations && showMonobankUpdate && app.monobankJar) {
+  // Bring newer donations into a loaded project from Monobank
+  if (app.donations && monobankMerge) {
     return (
       <div className="py-8">
-        <MonobankImport
-          mode="update"
-          jar={app.monobankJar}
-          fromDate={app.rawData ? (updateRangeStart(app.rawData) ?? undefined) : undefined}
-          onFetched={handleMonobankUpdated}
-          onCancel={() => setShowMonobankUpdate(false)}
-        />
+        {monobankMerge === 'update' && app.monobankJar ? (
+          <MonobankImport
+            mode="update"
+            jar={app.monobankJar}
+            fromDate={app.rawData ? (updateRangeStart(app.rawData) ?? undefined) : undefined}
+            onFetched={handleMonobankMerged}
+            onCancel={() => setMonobankMerge(null)}
+          />
+        ) : (
+          <MonobankImport mode="import" onFetched={handleMonobankMerged} onCancel={() => setMonobankMerge(null)} />
+        )}
       </div>
     );
   }
@@ -149,17 +169,17 @@ export function UploadPage() {
         />
         {/* Merge another export of the same jar into the loaded dataset */}
         <div className="max-w-5xl mx-auto mt-6 text-center">
-          {app.monobankJar && !showMerge && (
+          {!showMerge && (
             <button
               onClick={() => {
-                setShowMonobankUpdate(true);
+                setMonobankMerge(app.monobankJar ? 'update' : 'link');
                 setMergeResult(null);
               }}
               className="flex items-center gap-1.5 mx-auto mb-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
                          hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
             >
-              <DownloadIcon className="w-4 h-4" />
-              {t('monobank.updateButton')} · {app.monobankJar.title}
+              <GlobeIcon className="w-4 h-4" />
+              {app.monobankJar ? `${t('monobank.updateButton')} · ${app.monobankJar.title}` : t('monobank.linkButton')}
             </button>
           )}
           {showMerge ? (
@@ -292,23 +312,32 @@ export function UploadPage() {
 
       {campaigns === null ? null : campaigns.length > 0 ? (
         <>
-          <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} />
-          <div className="max-w-3xl mx-auto">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 px-1">
-              {t('addNew.title')}
-            </p>
-            <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3">
-              <FileUpload onFileSelect={handleFileSelect} isLoading={isLoading} />
-              <button onClick={() => setShowManual(true)} className="btn-secondary flex items-center justify-center gap-2">
-                <EditIcon className="w-4 h-4" />
-                {t('tabs.manual')}
+          <div role="tablist" className="max-w-md mx-auto mb-8 flex p-1 bg-gray-100 rounded-xl">
+            {(['saved', 'new'] as const).map((key) => (
+              <button
+                key={key}
+                role="tab"
+                aria-selected={tab === key}
+                onClick={() => setTab(key)}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  tab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                }`}
+              >
+                {t(`view.${key}`)}
+                {key === 'saved' && <span className="ml-1.5 text-xs text-gray-400">{campaigns.length}</span>}
               </button>
-              <button onClick={() => setShowMonobank(true)} className="btn-secondary flex items-center justify-center gap-2">
-                <DownloadIcon className="w-4 h-4" />
-                {t('monobank.button')}
-              </button>
-            </div>
+            ))}
           </div>
+          {tab === 'saved' ? (
+            <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={handleCampaignAction} />
+          ) : (
+            <NewProjectOptions
+              onFileSelect={handleFileSelect}
+              onMonobankClick={() => setShowMonobank(true)}
+              onManualClick={() => setShowManual(true)}
+              isLoading={isLoading}
+            />
+          )}
         </>
       ) : (
         <EmptyState

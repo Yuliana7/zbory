@@ -6,11 +6,13 @@ import { SpinnerIcon, UploadIcon } from '../../icons';
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
   isLoading?: boolean;
+  /** stretch the button to the container (used when stacked with other options) */
+  fullWidth?: boolean;
 }
 
 /** A single upload button — most users are on mobile, where drag-and-drop
  * doesn't apply, so this just opens the native file picker. */
-export function FileUpload({ onFileSelect, isLoading = false }: FileUploadProps) {
+export function FileUpload({ onFileSelect, isLoading = false, fullWidth = false }: FileUploadProps) {
   const { t } = useTranslation('upload');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -38,7 +40,7 @@ export function FileUpload({ onFileSelect, isLoading = false }: FileUploadProps)
   const handleClick = () => fileInputRef.current?.click();
 
   return (
-    <div className="flex flex-col items-center sm:items-stretch">
+    <div className={`flex flex-col ${fullWidth ? 'items-stretch' : 'items-center sm:items-stretch'}`}>
       <input
         ref={fileInputRef}
         type="file"

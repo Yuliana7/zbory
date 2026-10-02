@@ -24,6 +24,8 @@ export interface CampaignMeta {
   name: string;
   fileName: string | null; // null = manual entry
   goal?: number;
+  /** where the data came from, if it was imported from Monobank — shown in the list, never the token */
+  monobankJar?: MonobankJarRef;
   createdAt: number;
   updatedAt: number;
   summary: CampaignSummary;
@@ -89,6 +91,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     name: input.name.trim(),
     fileName: input.fileName,
     goal: input.goal,
+    monobankJar: input.monobankJar ?? existingData?.monobankJar,
     createdAt: existingMeta?.createdAt ?? now,
     updatedAt: now,
     summary: computeCampaignSummary(input.rawData),
