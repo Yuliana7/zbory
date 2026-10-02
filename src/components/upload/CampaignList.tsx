@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import { deleteCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { formatCurrency } from '../../utils/dataAggregator';
-import { ArrowRightIcon, CheckIcon, DownloadIcon } from '../../icons';
+import { ArrowRightIcon, CheckIcon, GlobeIcon } from '../../icons';
 import { CampaignActionsSheet, type CampaignAction } from './CampaignActionsSheet';
 
 const formatIsoDate = (iso: string) => {
@@ -83,7 +83,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
                 </p>
                 {campaign.monobankJar && (
                   <p className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-600">
-                    <DownloadIcon className="w-3 h-3" />
+                    <GlobeIcon className="w-3 h-3" />
                     <span className="truncate">{t('fromMonobank', { title: campaign.monobankJar.title })}</span>
                   </p>
                 )}

@@ -1,7 +1,7 @@
 import { useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CampaignMeta } from '../../utils/campaignStore';
-import { CheckCircleIcon, DownloadIcon, EditIcon, PlusIcon, TrashIcon } from '../../icons';
+import { CheckCircleIcon, EditIcon, GlobeIcon, PlusIcon, TrashIcon } from '../../icons';
 import type { IconProps } from '../../icons/types';
 
 /** What "Змінити" can do to a saved project; each one opens a full-screen flow. */
@@ -30,7 +30,7 @@ export function CampaignActionsSheet({ campaign, onAction, onDelete, onClose }: 
     {
       action: 'monobank',
       label: campaign.monobankJar ? t('actions.monobankUpdate') : t('actions.monobankLink'),
-      Icon: DownloadIcon,
+      Icon: GlobeIcon,
     },
     { action: 'csv', label: t('actions.csv'), Icon: PlusIcon },
     { action: 'edit', label: t('actions.edit'), Icon: EditIcon },
@@ -40,14 +40,18 @@ export function CampaignActionsSheet({ campaign, onAction, onDelete, onClose }: 
   return (
     <div
       className="fixed inset-0 z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+      // below the OS status-bar area SafeAreaTopBar paints (0 on desktop)
+      style={{ paddingTop: 'var(--safe-top)' }}
       onClick={onClose}
     >
       <div
         role="dialog"
         aria-label={campaign.name}
-        className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-2"
-        // keep the last item clear of the iPhone home indicator
-        style={{ paddingBottom: 'max(0.5rem, env(safe-area-inset-bottom))' }}
+        // sheet-panel: never taller than what's visible (short phones, landscape) — it scrolls
+        // instead of clipping its last row. The extra bottom padding keeps "Закрити" clear of
+        // the home indicator and Safari's bottom bar.
+        className="sheet-panel w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-2 overflow-y-auto overscroll-contain"
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + 1rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <p className="px-3 pt-3 pb-2 text-sm font-semibold text-gray-900 truncate">{campaign.name}</p>

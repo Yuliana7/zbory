@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { DownloadIcon, EditIcon } from '../../icons';
+import { EditIcon, GlobeIcon } from '../../icons';
 import { FileUpload } from './FileUpload';
 
 interface NewProjectOptionsProps {
@@ -20,7 +20,7 @@ export function NewProjectOptions({ onFileSelect, onMonobankClick, onManualClick
       </div>
       <div>
         <button onClick={onMonobankClick} className="btn-secondary w-full flex items-center justify-center gap-2">
-          <DownloadIcon className="w-5 h-5" />
+          <GlobeIcon className="w-5 h-5" />
           {t('monobank.button')}
         </button>
         <p className="mt-1.5 text-xs text-gray-500 text-center">{t('newOptions.apiHint')}</p>

@@ -15,7 +15,7 @@ import { updateRangeStart } from '../utils/monobankApi';
 import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, DownloadIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, GlobeIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
 
 export function UploadPage() {
   const { t } = useTranslation('upload');
@@ -178,7 +178,7 @@ export function UploadPage() {
               className="flex items-center gap-1.5 mx-auto mb-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
                          hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
             >
-              <DownloadIcon className="w-4 h-4" />
+              <GlobeIcon className="w-4 h-4" />
               {app.monobankJar ? `${t('monobank.updateButton')} · ${app.monobankJar.title}` : t('monobank.linkButton')}
             </button>
           )}
