@@ -22,6 +22,7 @@ import type {
   CampaignDataset,
   FriendJar,
   MonobankJarRef,
+  LoadedCampaign,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
@@ -71,7 +72,7 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; unsaved?: boolean } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
   // Before the fetched rows are reviewed: remember which jar they came from (and its goal)
   | { type: 'MONOBANK_SOURCE_SET'; payload: { jar?: MonobankJarRef; goal?: number } }
@@ -126,6 +127,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
           stackStyle: action.payload.style ?? null,
           friends: action.payload.friends,
           monobankJar: action.payload.monobankJar,
+          unsavedChanges: action.payload.unsaved ?? false,
         },
       };
 
@@ -133,12 +135,12 @@ function appReducer(state: FullState, action: AppAction): FullState {
       return { ...state, app: { ...state.app, monobankJar: action.payload.jar, goal: action.payload.goal } };
 
     case 'FRIENDS_UPDATED':
-      return { ...state, app: { ...state.app, friends: action.payload } };
+      return { ...state, app: { ...state.app, friends: action.payload, unsavedChanges: state.app.activeCampaignId ? true : state.app.unsavedChanges } };
 
     case 'CAMPAIGN_SAVED':
       return {
         ...state,
-        app: { ...state.app, activeCampaignId: action.payload.id, activeCampaignName: action.payload.name },
+        app: { ...state.app, activeCampaignId: action.payload.id, activeCampaignName: action.payload.name, unsavedChanges: false },
       };
 
     case 'PROCEED_TO_INSIGHTS':
@@ -192,11 +194,11 @@ interface AppContextValue {
   handleTemplatesSelect: (templateIds: TemplateType[]) => void;
   handleReset: () => void;
   handleRestoreSession: () => boolean;
-  handleLoadCampaign: (id: string) => Promise<boolean>;
-  handleLoadCampaigns: (ids: string[]) => Promise<boolean>;
+  handleLoadCampaign: (id: string, opts?: { proceed?: boolean }) => Promise<LoadedCampaign | null>;
+  handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
-  handleMergeRows: (incoming: RawDonation[]) => MergeResult | null;
+  handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }) => MergeResult | null;
   handleMonobankSource: (jar?: MonobankJarRef, goal?: number) => void;
   handleFriendsChange: (friends: FriendJar[]) => void;
   goToStep: (step: AppState['step']) => void;
@@ -260,6 +262,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           style: state.app.stackStyle ?? undefined,
           friends: state.app.friends,
           monobankJar: state.app.monobankJar,
+          unsaved: !!state.app.activeCampaignId,
         },
       });
       saveSession(rawData, state.app.originalFileName ?? null);
@@ -272,7 +275,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
 
-  const handleMergeRows = useCallback((incoming: RawDonation[], fallbackFileName?: string): MergeResult | null => {
+  // `monobankJar` links the project to a jar at the same time (the state's own value would still be the old one here)
+  const handleMergeRows = useCallback((incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }): MergeResult | null => {
     if (!state.app.rawData) return null;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
@@ -282,7 +286,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
       const { donations, withdrawals, currentBalance } = normalizeDonations(result.merged);
       if (donations.length === 0) throw new Error(t('errors.csvParseError'));
 
-      const fileName = state.app.originalFileName ?? fallbackFileName;
+      const fileName = state.app.originalFileName ?? opts?.fileName;
+      const monobankJar = opts?.monobankJar ?? state.app.monobankJar;
       dispatch({
         type: 'FILE_PARSED',
         payload: {
@@ -296,11 +301,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignName: state.app.activeCampaignName ?? undefined,
           style: state.app.stackStyle ?? undefined,
           friends: state.app.friends,
-          monobankJar: state.app.monobankJar,
+          monobankJar,
+          unsaved: !!state.app.activeCampaignId,
         },
       });
       saveSession(result.merged, fileName ?? null);
-      updateSessionMonobankJar(state.app.monobankJar);
+      updateSessionMonobankJar(monobankJar);
       return result;
     } catch (err) {
       dispatch({
@@ -317,7 +323,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     if (!state.app.rawData) return null;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
-      return handleMergeRows(await parseCSV(file), file.name);
+      return handleMergeRows(await parseCSV(file), { fileName: file.name });
     } catch (err) {
       dispatch({
         type: 'SET_ERROR',
@@ -334,25 +340,32 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'MONOBANK_SOURCE_SET', payload: { jar, goal } });
   }, []);
 
+  // Everything step 2 needs, derived from the loaded rows
+  const buildAnalytics = useCallback(
+    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number) => {
+      const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
+      return {
+        aggregates,
+        insights: generateInsights(aggregates, tInsights),
+        commentInsights: analyzeComments(donations),
+      };
+    },
+    [tInsights],
+  );
+
   const handleProceedToInsights = useCallback(
     (goal?: number) => {
       if (!state.app.donations) return;
       try {
-        const aggregates = aggregateDonations(
-          state.app.donations,
-          state.app.withdrawals ?? [],
-          state.app.currentBalance,
-        );
-        const insights = generateInsights(aggregates, tInsights);
-        const commentInsights = analyzeComments(state.app.donations);
-        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { aggregates, insights, commentInsights, goal } });
+        const analytics = buildAnalytics(state.app.donations, state.app.withdrawals ?? [], state.app.currentBalance);
+        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...analytics, goal } });
         updateSessionGoal(goal);
       } catch (err) {
         console.error(err);
         dispatch({ type: 'SET_ERROR', payload: t('errors.insightsError') });
       }
     },
-    [state.app.donations, state.app.withdrawals, state.app.currentBalance, t, tInsights],
+    [state.app.donations, state.app.withdrawals, state.app.currentBalance, buildAnalytics, t],
   );
 
   const handleTemplateSelect = useCallback((templateId: TemplateType) => {
@@ -396,7 +409,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   // Opens a saved campaign from the library (IndexedDB)
-  const handleLoadCampaign = useCallback(async (id: string): Promise<boolean> => {
+  // `proceed` skips the data check and goes straight to analytics (step 2).
+  const handleLoadCampaign = useCallback(async (id: string, opts?: { proceed?: boolean }): Promise<LoadedCampaign | null> => {
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
@@ -421,17 +435,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
         },
       });
       saveSession(rawData, meta.fileName);
+      updateSessionMonobankJar(monobankJar ?? undefined);
       updateSessionGoal(meta.goal);
-      return true;
+      if (opts?.proceed) {
+        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: meta.goal } });
+      }
+      return { rawData, monobankJar: monobankJar ?? undefined };
     } catch {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignLoadError') });
-      return false;
+      return null;
     }
-  }, [t]);
+  }, [buildAnalytics, t]);
 
   // Opens several campaigns at once: merged rows drive the normal pipeline,
   // campaignDatasets keeps each jar separate for per-jar/cross analytics.
-  const handleLoadCampaigns = useCallback(async (ids: string[]): Promise<boolean> => {
+  const handleLoadCampaigns = useCallback(async (ids: string[], opts?: { proceed?: boolean }): Promise<boolean> => {
     if (ids.length === 0) return false;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
@@ -475,12 +493,18 @@ export function AppProvider({ children }: { children: ReactNode }) {
           campaignDatasets: datasets.length > 1 ? datasets : undefined,
         },
       });
+      if (opts?.proceed) {
+        dispatch({
+          type: 'PROCEED_TO_INSIGHTS',
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined },
+        });
+      }
       return true;
     } catch {
       dispatch({ type: 'SET_ERROR', payload: t('errors.campaignLoadError') });
       return false;
     }
-  }, [t]);
+  }, [buildAnalytics, t]);
 
   // Saves (or updates, when a campaign is already open) the current dataset.
   // goalOverride lets a caller that owns a not-yet-committed goal value (the

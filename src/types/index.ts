@@ -34,6 +34,12 @@ export interface MonobankJarRef {
   title: string;
 }
 
+/** What opening a saved campaign loaded — lets the caller continue straight into an action on it. */
+export interface LoadedCampaign {
+  rawData: RawDonation[];
+  monobankJar?: MonobankJarRef;
+}
+
 // A helper ("friendly") jar linked to the main jar. Its money already arrives
 // in the main jar's statement, unattributed — so this is attribution only and
 // must never be added to any total.
@@ -190,6 +196,8 @@ export interface AppState {
   friends?: FriendJar[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
+  /** a saved campaign was changed (rows, helpers) since it was last saved */
+  unsavedChanges?: boolean;
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;

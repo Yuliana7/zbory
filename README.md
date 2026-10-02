@@ -56,7 +56,7 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device — reopen one with its goal, background and style intact.
+- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu to update its data (from Monobank, add a CSV, edit rows, goal and helpers, delete) and lands on the preview with **Зберегти зміни**.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
@@ -85,7 +85,7 @@ Monobank lets helpers open their own jars that pay into yours. Those donations a
 3. **Read the analytics.** Tap a highlighted moment to jump to a matching template, or go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
 5. **Edit and export.** Change the format, add your photo (*Фон та стиль → Редагувати позицію*), hide elements, edit text, save a theme, then **Завантажити PNG** (or the ZIP for a series).
-6. **Save the fundraiser** from the preview or analytics step if you'll be back — next time reopen it from *Мої збори*.
+6. **Save the fundraiser** from the preview or analytics step if you'll be back — next time pick it in *Мої збори* and tap **Аналітика →** (or **Змінити** to refresh its data first).
 
 ## Tech stack
 
