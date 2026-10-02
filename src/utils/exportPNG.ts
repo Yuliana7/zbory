@@ -65,19 +65,29 @@ export async function renderToPNGDataUrl(
     console.error('Font embedding failed, exporting with fallback font:', err);
   }
 
-  return toPng(element, {
-    cacheBust: true,
-    pixelRatio: 1,
-    width,
-    height,
-    // Providing fontEmbedCSS makes html-to-image skip its own (crash-prone)
-    // font scraping; an empty string keeps that behavior as a safe fallback.
-    fontEmbedCSS,
-    style: {
-      transform: 'none',
-      transformOrigin: 'top left',
-    },
-  });
+  const render = () =>
+    toPng(element, {
+      cacheBust: true,
+      pixelRatio: 1,
+      width,
+      height,
+      // Providing fontEmbedCSS makes html-to-image skip its own (crash-prone)
+      // font scraping; an empty string keeps that behavior as a safe fallback.
+      fontEmbedCSS,
+      style: {
+        transform: 'none',
+        transformOrigin: 'top left',
+      },
+    });
+
+  // Safari/WebKit (every browser on iOS) rasterizes the exported SVG before an
+  // <img> inside it has finished loading, so the FIRST render of a card with a
+  // photo comes out without it — just the palette color behind it. A second
+  // render finds the image ready. Reproduced in WebKit: first export missing,
+  // second present, regardless of image size or the CSS effects on it. Cards
+  // without an image don't need the extra pass.
+  if (element.querySelector('img')) await render();
+  return render();
 }
 
 export async function exportToPNG(
