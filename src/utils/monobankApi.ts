@@ -18,6 +18,8 @@ const PAGE_LIMIT = 500;
 // endpoint is paced on its own; one second of margin on top. If Monobank ever
 // counts them together, the 429 it answers with is waited out and retried.
 const REQUEST_GAP_MS = 61_000;
+/** The same gap in seconds — what a countdown for it counts down from. */
+export const REQUEST_GAP_SECONDS = REQUEST_GAP_MS / 1000;
 const RATE_LIMIT_RETRIES = 3;
 
 const WITHDRAWAL_CATEGORY = 'Часткове зняття';

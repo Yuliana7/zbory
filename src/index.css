@@ -158,6 +158,24 @@
   }
 }
 
+/* Date inputs (see DateField): iOS renders them with their own intrinsic size and centred text;
+   flatten that so they sit in a grid like any other field. While the floating label is acting as
+   the placeholder, hide the native "dd.mm.yyyy" hint. */
+.date-field {
+  -webkit-appearance: none;
+  appearance: none;
+  text-align: left;
+}
+.date-field::-webkit-datetime-edit {
+  padding-inline: 0; /* the value lines up with the label above it */
+}
+.date-field.date-empty {
+  color: transparent;
+}
+.date-field.date-empty::-webkit-datetime-edit {
+  opacity: 0;
+}
+
 /* A section of the preview page reached through its URL hash: a quick halo so you can see where you landed. */
 @keyframes sectionFlash {
   0% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.55); }
