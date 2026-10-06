@@ -1,13 +1,18 @@
 import type { ManualRow, RawDonation } from '../types';
 import { generateId } from './id';
 import { saveBlob } from './download';
+import { rowTimestamp, unixToKyivWallClock } from './timestamps';
 
 const CSV_HEADERS =
   'Дата та час операції,Категорія операції,Сума,Валюта,Додаткова інформація,Коментар до платежу,Залишок,Валюта залишку';
 
-function toDdMmYyyy(isoDate: string): string {
-  const [y, m, d] = isoDate.split('-');
-  return `${d}.${m}.${y}`;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+
+/** A date and time as typed in the editor (the user's own clock) → Unix seconds. */
+function localToUnix(isoDate: string, time: string): number {
+  const [y, m, d] = isoDate.split('-').map(Number);
+  const [h, mi] = (time || '12:00').split(':').map(Number);
+  return Math.floor(new Date(y, m - 1, d, h || 0, mi || 0).getTime() / 1000);
 }
 
 function quoteField(value: string): string {
@@ -63,7 +68,8 @@ export function manualRowsToCSVString(rows: ManualRow[]): string {
   const withBalance = [...sortedWithBalance(rows)].reverse(); // newest-first
 
   const csvRows = withBalance.map((row) => {
-    const dateTime = `${toDdMmYyyy(row.date)} ${row.time || '12:00'}`;
+    // CSV clock text is Kyiv time, whatever the user's own zone is
+    const dateTime = unixToKyivWallClock(localToUnix(row.date, row.time));
     const amount = parseFloat(row.amount).toFixed(2);
     const donorInfo = row.name ? `Від: ${row.name}` : '';
     return [
@@ -88,16 +94,20 @@ export function manualRowsToCSVString(rows: ManualRow[]): string {
 export function manualRowsToRawDonations(rows: ManualRow[]): RawDonation[] {
   const withBalance = [...sortedWithBalance(rows)].reverse(); // newest-first
 
-  return withBalance.map((row) => ({
-    date: `${toDdMmYyyy(row.date)} ${row.time || '12:00'}`,
-    category: row.category || 'За посиланням',
-    amount: parseFloat(row.amount).toFixed(2),
-    currency: 'UAH',
-    additionalInfo: row.name ? `Від: ${row.name}` : '',
-    comment: row.comment || '',
-    balance: row.balance,
-    balanceCurrency: 'UAH',
-  }));
+  return withBalance.map((row) => {
+    const ts = localToUnix(row.date, row.time);
+    return {
+      ts,
+      date: unixToKyivWallClock(ts),
+      category: row.category || 'За посиланням',
+      amount: parseFloat(row.amount).toFixed(2),
+      currency: 'UAH',
+      additionalInfo: row.name ? `Від: ${row.name}` : '',
+      comment: row.comment || '',
+      balance: row.balance,
+      balanceCurrency: 'UAH',
+    };
+  });
 }
 
 /**
@@ -108,8 +118,9 @@ export function manualRowsToRawDonations(rows: ManualRow[]): RawDonation[] {
  */
 export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
   return [...rawData].reverse().map((raw): ManualRow => {
-    const [datePart = '', timePart = ''] = raw.date.split(' ');
-    const [dd = '', mm = '', yyyy = ''] = datePart.split('.');
+    // Date and time are shown on the user's own clock, derived from the row's instant
+    const ts = rowTimestamp(raw);
+    const local = ts === null ? null : new Date(ts * 1000);
 
     let name = '';
     if (raw.additionalInfo.startsWith('Від:')) {
@@ -118,8 +129,8 @@ export function rawDonationsToManualRows(rawData: RawDonation[]): ManualRow[] {
 
     return {
       id: generateId(),
-      date: yyyy && mm && dd ? `${yyyy}-${mm}-${dd}` : '',
-      time: timePart,
+      date: local ? `${local.getFullYear()}-${pad2(local.getMonth() + 1)}-${pad2(local.getDate())}` : '',
+      time: local ? `${pad2(local.getHours())}:${pad2(local.getMinutes())}` : '',
       name,
       amount: normalizeDecimal(raw.amount),
       category: raw.category || undefined,

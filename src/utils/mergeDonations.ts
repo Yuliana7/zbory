@@ -1,16 +1,18 @@
 import type { RawDonation } from '../types';
-import { parseUkrainianDate } from './csvParser';
+import { rowTimestamp } from './timestamps';
 
 // Merging statements: long campaigns come in chunks (several CSV exports, or a CSV
 // plus a fetch from the Monobank API), often with overlapping periods. Two rows
-// are the same operation when their time (to the minute), amount and resulting
-// balance (Залишок) all match — two real donations in the same minute for the
-// same amount still differ in Залишок.
+// are the same operation when their instant (Unix time, to the minute), amount and
+// resulting balance (Залишок) all match — two real donations in the same minute
+// for the same amount still differ in Залишок.
 //
 // Matching is on parsed values, not on the raw strings, because the same
-// operation is written differently by different sources ("333.00" / "333,00",
-// "12:26" / "12:26:41"). And it copes with a consistent time offset between two
-// sources (e.g. one exports UTC, the other local time): see matchWithTimeShift.
+// operation is written differently by different sources ("333.00" / "333,00").
+// Every row carries its Unix time (`ts`), so sources are compared by the same
+// instant regardless of any clock text or device zone. As a last resort it still
+// copes with a consistent offset between two sources whose clocks genuinely
+// differ (e.g. a statement exported in another zone): see matchWithTimeShift.
 
 export interface MergeResult {
   merged: RawDonation[]; // newest-first, like a Monobank CSV
@@ -23,7 +25,7 @@ export interface MergeResult {
 }
 
 interface Parsed {
-  minute: number | null; // minutes since epoch (seconds ignored)
+  minute: number | null; // Unix time in whole minutes (seconds ignored)
   cents: number | null;
   balance: number | null; // cents
 }
@@ -34,9 +36,9 @@ const toCents = (raw: string): number | null => {
 };
 
 const parse = (r: RawDonation): Parsed => {
-  const t = parseUkrainianDate(r.date.trim())?.getTime();
+  const ts = rowTimestamp(r);
   return {
-    minute: t === undefined || Number.isNaN(t) ? null : Math.floor(t / 60000),
+    minute: ts === null ? null : Math.floor(ts / 60),
     cents: toCents(r.amount),
     balance: toCents(r.balance),
   };
@@ -147,7 +149,7 @@ export function mergeRawDonations(existing: RawDonation[], incoming: RawDonation
   const fresh = incoming.filter((_, j) => !duplicateIncoming.has(j));
   const merged = [...existing, ...fresh];
   merged.sort(
-    (a, b) => (parseUkrainianDate(b.date)?.getTime() ?? 0) - (parseUkrainianDate(a.date)?.getTime() ?? 0),
+    (a, b) => (rowTimestamp(b) ?? 0) - (rowTimestamp(a) ?? 0),
   );
 
   // Warn when new rows fall inside the period we already cover but nothing matched at all

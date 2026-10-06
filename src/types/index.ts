@@ -1,6 +1,8 @@
 // Core data types based on the CSV structure from Monobank Jar
 export interface RawDonation {
-  date: string; // "Дата та час операції"
+  date: string; // "Дата та час операції" — clock text as in a Monobank CSV, always Kyiv time
+  /** Unix time (seconds) of the operation — the source of truth for matching rows and for display */
+  ts?: number;
   category: string; // "Категорія операції"
   amount: string; // "Сума"
   currency: string; // "Валюта"

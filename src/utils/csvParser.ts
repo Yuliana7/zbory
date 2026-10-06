@@ -1,5 +1,6 @@
 import Papa from 'papaparse';
 import type { RawDonation, Donation, Withdrawal } from '../types';
+import { kyivWallClockToUnix, rowTimestamp } from './timestamps';
 
 export interface NormalizeResult {
   donations: Donation[];
@@ -28,16 +29,22 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
       encoding: 'UTF-8',
       complete: (results) => {
         try {
-          const rawDonations: RawDonation[] = (results.data as Record<string, string>[]).map((row) => ({
-            date: row['Дата та час операції'] || row['Дата та час'] || '',
-            category: row['Категорія операції'] || row['Категорія'] || '',
-            amount: row['Сума'] || '0',
-            currency: row['Валюта'] || 'UAH',
-            additionalInfo: row['Додаткова інформація'] || row['Опис'] || '',
-            comment: row['Коментар до платежу'] || row['Коментар'] || '',
-            balance: row['Залишок'] || '0',
-            balanceCurrency: row['Валюта залишку'] || 'UAH',
-          }));
+          const rawDonations: RawDonation[] = (results.data as Record<string, string>[]).map((row) => {
+            const date = row['Дата та час операції'] || row['Дата та час'] || '';
+            return {
+              date,
+              // The CSV has clock text only; it is Kyiv time. Store the instant so rows
+              // can later be matched with API rows and shown in the user's own time.
+              ts: kyivWallClockToUnix(date) ?? undefined,
+              category: row['Категорія операції'] || row['Категорія'] || '',
+              amount: row['Сума'] || '0',
+              currency: row['Валюта'] || 'UAH',
+              additionalInfo: row['Додаткова інформація'] || row['Опис'] || '',
+              comment: row['Коментар до платежу'] || row['Коментар'] || '',
+              balance: row['Залишок'] || '0',
+              balanceCurrency: row['Валюта залишку'] || 'UAH',
+            };
+          });
 
           resolve(rawDonations);
         } catch {
@@ -70,11 +77,13 @@ export function normalizeDonations(rawDonations: RawDonation[]): NormalizeResult
 
   for (const raw of rawDonations) {
     try {
-      const timestamp = parseUkrainianDate(raw.date);
-      if (!timestamp || isNaN(timestamp.getTime())) {
+      const ts = rowTimestamp(raw);
+      if (ts === null) {
         console.warn('Invalid date:', raw.date);
         continue;
       }
+      // A true instant: shown and bucketed (days, hours) in the user's local time
+      const timestamp = new Date(ts * 1000);
 
       const amount = parseUkrainianNumber(raw.amount);
       if (isNaN(amount) || amount <= 0) {
@@ -106,42 +115,6 @@ export function normalizeDonations(rawDonations: RawDonation[]): NormalizeResult
   return { donations, withdrawals, currentBalance };
 }
 
-/**
- * Parses Ukrainian date format: "DD.MM.YYYY HH:mm"
- */
-export function parseUkrainianDate(dateStr: string): Date | null {
-  if (!dateStr) return null;
-
-  try {
-    // Split date and time
-    const [datePart, timePart] = dateStr.split(' ');
-    if (!datePart) return null;
-
-    // Parse date: DD.MM.YYYY
-    const [day, month, year] = datePart.split('.').map(Number);
-
-    // Parse time: HH:mm (optional)
-    let hours = 0;
-    let minutes = 0;
-    if (timePart) {
-      const [h, m] = timePart.split(':').map(Number);
-      hours = h || 0;
-      minutes = m || 0;
-    }
-
-    // JavaScript Date: month is 0-indexed
-    const date = new Date(year, month - 1, day, hours, minutes);
-
-    return date;
-  } catch {
-    return null;
-  }
-}
-
-/**
- * Parses Ukrainian number format (comma as decimal separator)
- * Examples: "2000.00" -> 2000, "1,500.50" -> 1500.5
- */
 function parseUkrainianNumber(numStr: string): number {
   if (!numStr) return 0;
 
