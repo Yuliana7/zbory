@@ -15,7 +15,15 @@ import { updateRangeStart } from '../utils/monobankApi';
 import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, GlobeIcon, PlusIcon, SaveIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, GlobeIcon, PlusIcon, SaveIcon, WarningIcon, XIcon } from '../icons';
+
+/** 180 → "3 год", 90 → "1 год 30 хв", -5 → "5 хв" (direction doesn't matter to the reader). */
+function formatShift(minutes: number): string {
+  const abs = Math.abs(minutes);
+  const h = Math.floor(abs / 60);
+  const m = abs % 60;
+  return [h > 0 ? `${h} год` : '', m > 0 ? `${m} хв` : ''].filter(Boolean).join(' ');
+}
 
 export function UploadPage() {
   const { t } = useTranslation('upload');
@@ -154,7 +162,20 @@ export function UploadPage() {
         {mergeResult && (
           <div className="max-w-5xl mx-auto mb-4 px-4 py-3 bg-green-50 border border-green-200 rounded-xl text-sm text-green-800 animate-fade-in flex items-center gap-2">
             <CheckCircleIcon className="w-5 h-5 shrink-0" />
-            {t('merge.result', { added: mergeResult.added, duplicates: mergeResult.duplicates })}
+            <div>
+              {t('merge.result', { added: mergeResult.added, duplicates: mergeResult.duplicates })}
+              {mergeResult.timeShiftMinutes !== null && (
+                <p className="mt-1 text-xs text-green-700">
+                  {t('merge.timeShift', { shift: formatShift(mergeResult.timeShiftMinutes) })}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+        {mergeResult?.suspectedOverlap && (
+          <div role="alert" className="max-w-5xl mx-auto mb-4 px-4 py-3 bg-amber-50 border border-amber-300 rounded-xl text-sm text-amber-900 animate-fade-in flex items-start gap-2">
+            <WarningIcon className="w-5 h-5 shrink-0 mt-0.5 text-amber-600" />
+            {t('merge.suspectedOverlap', { added: mergeResult.added })}
           </div>
         )}
         <PreviewTable

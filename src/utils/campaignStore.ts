@@ -2,6 +2,7 @@ import type { FriendJar, MonobankJarRef, RawDonation, SharedStyle } from '../typ
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 import { getBackend } from './db';
+import { withTimestamps } from './timestamps';
 
 // Campaign library: named datasets persisted in IndexedDB so volunteers can
 // keep every jar they've run and (later) merge files and compare campaigns.
@@ -99,7 +100,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
 
   await kv.put(DATA_STORE, {
     id: meta.id,
-    rawData: input.rawData,
+    rawData: withTimestamps(input.rawData), // projects saved before rows had a Unix time get it now
     style: input.style ?? existingData?.style,
     friends: input.friends ?? existingData?.friends,
     monobankJar: input.monobankJar ?? existingData?.monobankJar,

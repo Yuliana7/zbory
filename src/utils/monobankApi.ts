@@ -1,5 +1,5 @@
 import type { RawDonation } from '../types';
-import { parseUkrainianDate } from './csvParser';
+import { rowTimestamp, unixToKyivWallClock } from './timestamps';
 
 // Monobank personal API (https://api.monobank.ua/docs). The user's token is
 // passed straight through to monobank and never stored or logged by the app —
@@ -264,10 +264,7 @@ export async function fetchJarStatement({
 // ─── Mapping to the app's data model ──────────────────────────────────────────
 
 const pad2 = (n: number) => String(n).padStart(2, '0');
-const toRowDate = (unixSec: number) => {
-  const d = new Date(unixSec * 1000);
-  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-};
+
 const kopecks = (n: number) => (n / 100).toFixed(2);
 
 /**
@@ -281,7 +278,9 @@ export function statementItemsToRawDonations(items: MonoStatementItem[]): RawDon
     .filter((i) => !i.hold && i.amount !== 0)
     .sort((a, b) => b.time - a.time)
     .map((i) => ({
-      date: toRowDate(i.time),
+      // The API's own instant is the source of truth; the clock text is the CSV's Kyiv-time spelling of it
+      ts: i.time,
+      date: unixToKyivWallClock(i.time),
       category: i.amount < 0 ? WITHDRAWAL_CATEGORY : DONATION_CATEGORY,
       amount: kopecks(Math.abs(i.amount)),
       currency: 'UAH',
@@ -294,27 +293,24 @@ export function statementItemsToRawDonations(items: MonoStatementItem[]): RawDon
 
 // ─── Date ranges ──────────────────────────────────────────────────────────────
 
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
-
-/** Unix seconds for an <input type="date"> value, at the start of that local day. */
+/** Unix seconds for an <input type="date"> value, at the start of that day on the user's clock. */
 export const dayStartSec = (isoDate: string) => {
   const [y, m, d] = isoDate.split('-').map(Number);
   return Math.floor(new Date(y, m - 1, d).getTime() / 1000);
 };
 
-/** Unix seconds for the end of that local day, never later than `nowSec`. */
+/** Unix seconds for the end of that day on the user's clock, never later than `nowSec`. */
 export const dayEndSec = (isoDate: string, nowSec: number) => {
   const [y, m, d] = isoDate.split('-').map(Number);
   return Math.min(nowSec, Math.floor(new Date(y, m - 1, d, 23, 59, 59).getTime() / 1000));
 };
 
-/** ISO date (YYYY-MM-DD) in local time. */
+/** ISO date (YYYY-MM-DD) of a Date's own (local) calendar day. */
 export const toIsoDate = (d: Date) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
 
-/** Default import range: the last 30 days, ending today. */
+/** Default import range: the last 30 days, ending today (the user's today). */
 export function defaultRange(now = new Date()): { from: string; to: string } {
-  const from = new Date(startOfDay(now));
-  from.setDate(from.getDate() - 30);
+  const from = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 30);
   return { from: toIsoDate(from), to: toIsoDate(now) };
 }
 
@@ -326,8 +322,8 @@ export function defaultRange(now = new Date()): { from: string; to: string } {
 export function updateRangeStart(rawData: RawDonation[]): string | null {
   let newest = -Infinity;
   for (const row of rawData) {
-    const t = parseUkrainianDate(row.date)?.getTime();
-    if (t !== undefined && !Number.isNaN(t) && t > newest) newest = t;
+    const ts = rowTimestamp(row);
+    if (ts !== null && ts > newest) newest = ts;
   }
-  return Number.isFinite(newest) ? toIsoDate(new Date(newest)) : null;
+  return Number.isFinite(newest) ? toIsoDate(new Date(newest * 1000)) : null;
 }

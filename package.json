@@ -8,7 +8,8 @@
     "build": "tsc && vite build",
     "preview": "vite preview",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
-    "test:render": "node tests/render/run.mjs"
+    "test:render": "node tests/render/run.mjs",
+    "test:tz": "node tests/render/run.mjs --tz-matrix"
   },
   "dependencies": {
     "chart.js": "^4.4.6",
