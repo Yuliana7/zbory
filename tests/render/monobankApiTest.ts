@@ -6,6 +6,7 @@ import {
   fetchJarStatement,
   fetchJars,
   isUahJar,
+  kyivIsoDate,
   jarGoal,
   statementItemsToRawDonations,
   updateRangeStart,
@@ -28,7 +29,7 @@ const item = (over: Partial<MonoStatementItem> & { id: string; time: number }): 
 });
 
 // ── mapping ──
-const t0 = new Date(2026, 2, 15, 11, 5).getTime() / 1000; // 15.03.2026 11:05 local
+const t0 = 1791291654; // 2026-10-06 13:00:54 UTC = 16:00:54 in Kyiv (summer time, UTC+3)
 const rows = statementItemsToRawDonations([
   item({ id: 'a', time: t0 - 3600, amount: 20000, balance: 30000, comment: 'Дякуємо', description: 'Від: Оля' }),
   item({ id: 'b', time: t0, amount: 16650, balance: 46650, description: 'Від: 🐈' }),
@@ -37,7 +38,7 @@ const rows = statementItemsToRawDonations([
   item({ id: 'e', time: t0 + 180, amount: 0, balance: 6650 }),
 ]);
 check('map: holds and zero amounts are skipped', rows.length === 3);
-check('map: newest first', rows[0].date === '15.03.2026 11:06' && rows[2].date === '15.03.2026 10:05');
+check('map: newest first', rows[0].date === '06.10.2026 16:01' && rows[2].date === '06.10.2026 15:00', rows.map((r) => r.date).join(' | '));
 check('map: kopecks → hryvnia string', rows[1].amount === '166.50' && rows[1].balance === '466.50');
 check('map: withdrawal is a positive "Часткове зняття" row', rows[0].category === 'Часткове зняття' && rows[0].amount === '400.00');
 check('map: donation category + description + comment pass through', rows[2].category === 'За посиланням' && rows[2].additionalInfo === 'Від: Оля' && rows[2].comment === 'Дякуємо');
@@ -52,8 +53,28 @@ check('isUahJar', isUahJar(jar()) && !isUahJar(jar({ currencyCode: 840 })));
 // ── ranges ──
 check('estimate: 1 request within 31 days', estimateRequests(0, 30 * DAY) === 1 && estimateRequests(0, 31 * DAY) === 1);
 check('estimate: more windows for longer ranges', estimateRequests(0, 31 * DAY + 1) === 2 && estimateRequests(0, 90 * DAY) === 3);
-const range = defaultRange(new Date(2026, 9, 2, 15, 30));
+const range = defaultRange(Date.UTC(2026, 9, 2, 12, 30));
 check('defaultRange: last 30 days ending today', range.from === '2026-09-02' && range.to === '2026-10-02', JSON.stringify(range));
+check('defaultRange: "today" is Kyiv\'s day even when it is still yesterday elsewhere', defaultRange(Date.UTC(2026, 9, 2, 22, 30)).to === '2026-10-03');
+check('defaultRange: across a month boundary', JSON.stringify(defaultRange(Date.UTC(2026, 2, 1, 12, 0))) === '{"from":"2026-01-30","to":"2026-03-01"}');
+check('kyivIsoDate: just after Kyiv midnight', kyivIsoDate(Date.UTC(2026, 9, 5, 21, 0, 1)) === '2026-10-06' && kyivIsoDate(Date.UTC(2026, 9, 5, 20, 59, 59)) === '2026-10-05');
+
+// ── clock times are Kyiv time, whatever zone the device is in (the CSV is Kyiv time too) ──
+const at = (unix: number) => statementItemsToRawDonations([item({ id: 'z', time: unix })])[0].date;
+check('time zone: summer (UTC+3)', at(Date.UTC(2026, 6, 15, 12, 0, 0) / 1000) === '15.07.2026 15:00', at(Date.UTC(2026, 6, 15, 12, 0, 0) / 1000));
+check('time zone: winter (UTC+2)', at(Date.UTC(2026, 0, 15, 12, 0, 0) / 1000) === '15.01.2026 14:00', at(Date.UTC(2026, 0, 15, 12, 0, 0) / 1000));
+check('time zone: just before / after the spring change (03:00 → 04:00)', at(Date.UTC(2026, 2, 29, 0, 59, 0) / 1000) === '29.03.2026 02:59' && at(Date.UTC(2026, 2, 29, 1, 0, 0) / 1000) === '29.03.2026 04:00');
+check('time zone: just before / after the autumn change (04:00 → 03:00)', at(Date.UTC(2026, 9, 25, 0, 59, 0) / 1000) === '25.10.2026 03:59' && at(Date.UTC(2026, 9, 25, 1, 0, 0) / 1000) === '25.10.2026 03:00');
+check('time zone: midnight rolls the date over in Kyiv', at(Date.UTC(2026, 9, 5, 21, 0, 0) / 1000) === '06.10.2026 00:00');
+
+// ── date ranges are cut on Kyiv days ──
+check('day start: Kyiv midnight in summer', dayStartSec('2026-10-06') === Date.UTC(2026, 9, 5, 21, 0, 0) / 1000);
+check('day start: Kyiv midnight in winter', dayStartSec('2026-01-15') === Date.UTC(2026, 0, 14, 22, 0, 0) / 1000);
+const far = Date.UTC(2030, 0, 1) / 1000;
+check('day end: 23:59:59 Kyiv time', dayEndSec('2026-10-06', far) === Date.UTC(2026, 9, 6, 20, 59, 59) / 1000);
+check('day end: never later than now', dayEndSec('2026-10-06', 1_000) === 1_000);
+check('day length across the spring change is 23 h', dayEndSec('2026-03-29', far) + 1 - dayStartSec('2026-03-29') === 23 * 3600);
+check('day length across the autumn change is 25 h', dayEndSec('2026-10-25', far) + 1 - dayStartSec('2026-10-25') === 25 * 3600);
 check(
   'updateRangeStart: day of the newest row',
   updateRangeStart([

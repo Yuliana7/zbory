@@ -123,6 +123,7 @@ Open **Мої збори → Змінити → Оновити з Monobank** on 
 
 ### Good to know
 - **Your token stays on your device.** It lives in memory on that screen only: it is never saved (not in the project, not in the browser's storage), never logged, and is sent only to `api.monobank.ua`. Only the donations it returned, and the jar's id and name, are saved.
+- **Times are Kyiv time,** like in monobank's own CSV exports, wherever your device is — so rows fetched from the API line up with a CSV of the same jar, and the date range you pick means Kyiv days.
 - **Long periods take a few minutes.** Monobank allows one request per minute per endpoint and 31 days per statement request, so a long range is fetched in parts with a visible countdown, and you can stop at any time. A short range is instant.
 - **"Monobank did not accept the token"** — copy it again, completely, with no extra characters.
 - **"Monobank asks to wait"** — you hit its rate limit; the app waits a minute and retries by itself.

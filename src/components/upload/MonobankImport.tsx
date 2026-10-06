@@ -12,7 +12,7 @@ import {
   isUahJar,
   jarGoal,
   statementItemsToRawDonations,
-  toIsoDate,
+  kyivIsoDate,
   type FetchProgress,
   type MonoJar,
 } from '../../utils/monobankApi';
@@ -64,7 +64,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
   // Leaving the screen cancels any request or countdown still running
   useEffect(() => () => abortRef.current?.abort(), []);
 
-  const today = toIsoDate(new Date());
+  const today = kyivIsoDate();
   const selectedJar = mode === 'update' ? null : jars.find((j) => j.id === jarId) ?? null;
   const rangeValid = range.from !== '' && range.to !== '' && range.from <= range.to && range.to <= today;
   const requests = rangeValid ? estimateRequests(dayStartSec(range.from), dayEndSec(range.to, Math.floor(Date.now() / 1000))) : 1;
