@@ -89,20 +89,21 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
                 )}
               </div>
             </div>
-            <div className="mt-3 flex gap-2">
-              <button
-                onClick={() => handleLoadCampaign(campaign.id, { proceed: true })}
-                disabled={state.isLoading}
-                className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg transition-colors"
-              >
-                {t('proceed')}
-                <ArrowRightIcon className="w-3.5 h-3.5" />
-              </button>
+            <div className="mt-3 flex gap-2 sm:justify-end">
               <button
                 onClick={() => setMenuFor(campaign)}
                 className="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
               >
                 {t('modify')}
+              </button>
+              {/* the main action goes last (rightmost); full width on a phone, a sensible fixed width on desktop */}
+              <button
+                onClick={() => handleLoadCampaign(campaign.id, { proceed: true })}
+                disabled={state.isLoading}
+                className="flex-1 sm:flex-none sm:w-48 flex items-center justify-center gap-1.5 px-3 py-2 text-sm font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 text-white rounded-lg transition-colors"
+              >
+                {t('proceed')}
+                <ArrowRightIcon className="w-3.5 h-3.5" />
               </button>
             </div>
           </li>
