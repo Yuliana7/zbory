@@ -34,7 +34,7 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 
 **The rest of the flow**
 
-| File preview, goal & friendly jars | Analytics |
+| Preview page, in sections (data, goal, friendly jars, add data) | Analytics |
 | :---: | :---: |
 | ![Preview of the parsed statement with goal and friendly jars](docs/screenshots/02-preview.png) | ![Analytics page with friends chart, insights and charts](docs/screenshots/03-analytics.png) |
 
@@ -66,7 +66,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu to update its data (from Monobank, add a CSV, edit rows, goal and helpers, delete) and lands on the preview with **Зберегти зміни**.
+- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu (update from Monobank, add a CSV, edit rows, goal and helpers, delete) and takes you to the matching section of the preview page — the page is split into *Перегляд*, *Мета*, *Друзі збору* and *Додати дані*, each reachable by a link (`#goal`, `#add-data`, …) — where **Зберегти зміни** keeps what you changed.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 

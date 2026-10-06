@@ -1,10 +1,9 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { FileUpload } from '../components/upload/FileUpload';
 import { NewProjectOptions } from '../components/upload/NewProjectOptions';
 import type { CampaignAction } from '../components/upload/CampaignActionsSheet';
-import { PreviewTable } from '../components/upload/PreviewTable';
+import { ProjectPreview } from '../components/upload/ProjectPreview';
 import { CampaignList } from '../components/upload/CampaignList';
 import { EmptyState } from '../components/upload/EmptyState';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
@@ -12,10 +11,11 @@ import { MonobankImport, type MonobankFetchResult } from '../components/upload/M
 import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadSession, clearSession } from '../utils/session';
 import { updateRangeStart } from '../utils/monobankApi';
+import { setSectionHash, type SectionId } from '../utils/sectionAnchors';
 import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, GlobeIcon, PlusIcon, SaveIcon, WarningIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, SaveIcon, WarningIcon, XIcon } from '../icons';
 
 /** 180 → "3 год", 90 → "1 год 30 хв", -5 → "5 хв" (direction doesn't matter to the reader). */
 function formatShift(minutes: number): string {
@@ -33,7 +33,6 @@ export function UploadPage() {
   const { app, isLoading } = state;
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
   const [savedSession, setSavedSession] = useState(() => loadSession());
-  const [showMerge, setShowMerge] = useState(false);
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
   const [showManual, setShowManual] = useState(false);
   // Step 1 has two views: the saved projects and the ways to start a new one
@@ -108,15 +107,20 @@ export function UploadPage() {
     }
   };
 
-  // "Змінити" on a saved project: open it, then go straight to the chosen screen.
-  // Whatever the action, the user ends up on the preview with "Зберегти зміни".
+  // «Змінити» on a saved project: open it on the preview, already scrolled to the section for
+  // the chosen option (the URL hash names it). Whatever the option, the changes that follow
+  // are saved from the preview with «Зберегти зміни».
+  const SECTION_FOR_ACTION: Record<CampaignAction, SectionId> = {
+    edit: 'preview',
+    csv: 'add-data',
+    monobank: 'add-data',
+    details: 'goal',
+  };
   const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
+    setSectionHash(SECTION_FOR_ACTION[action]);
     const loaded = await handleLoadCampaign(campaign.id);
     if (!loaded) return;
     setMergeResult(null);
-    if (action === 'edit') setEditRows(rawDonationsToManualRows(loaded.rawData));
-    else if (action === 'csv') setShowMerge(true);
-    else if (action === 'monobank') setMonobankMerge(loaded.monobankJar ? 'update' : 'link');
   };
 
   // Edit mode: overlay the editor over whatever else would show
@@ -178,65 +182,27 @@ export function UploadPage() {
             {t('merge.suspectedOverlap', { added: mergeResult.added })}
           </div>
         )}
-        <PreviewTable
+        <ProjectPreview
           donations={app.donations}
           rawData={app.rawData ?? []}
           totalCount={app.donations.length}
           invalidRowCount={invalidRowCount}
           onProceed={handleProceedToInsights}
-          onCancel={handleReset}
+          onBack={handleReset}
           onEdit={app.rawData ? handleStartEdit : undefined}
+          onMergeFile={async (file) => {
+            const result = await handleMergeFile(file);
+            if (result) setMergeResult(result);
+            return !!result;
+          }}
+          onMonobank={() => {
+            setMonobankMerge(app.monobankJar ? 'update' : 'link');
+            setMergeResult(null);
+          }}
+          monobankJar={app.monobankJar}
+          isLoading={isLoading}
           initialGoal={app.goal}
         />
-        {/* Merge another export of the same jar into the loaded dataset */}
-        <div className="max-w-5xl mx-auto mt-6 text-center">
-          {!showMerge && (
-            <button
-              onClick={() => {
-                setMonobankMerge(app.monobankJar ? 'update' : 'link');
-                setMergeResult(null);
-              }}
-              className="flex items-center gap-1.5 mx-auto mb-3 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
-                         hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
-            >
-              <GlobeIcon className="w-4 h-4" />
-              {app.monobankJar ? `${t('monobank.updateButton')} · ${app.monobankJar.title}` : t('monobank.linkButton')}
-            </button>
-          )}
-          {showMerge ? (
-            <div className="animate-fade-in">
-              <p className="text-sm text-gray-600 mb-4">{t('merge.title')}</p>
-              <FileUpload
-                onFileSelect={async (file) => {
-                  const result = await handleMergeFile(file);
-                  if (result) {
-                    setMergeResult(result);
-                    setShowMerge(false);
-                  }
-                }}
-                isLoading={isLoading}
-              />
-              <button
-                onClick={() => setShowMerge(false)}
-                className="mt-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                {t('merge.cancel')}
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={() => {
-                setShowMerge(true);
-                setMergeResult(null);
-              }}
-              className="flex items-center gap-1.5 mx-auto text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed border-indigo-300
-                         hover:border-indigo-500 rounded-xl px-4 py-2 transition-colors"
-            >
-              <PlusIcon className="w-4 h-4" />
-              {t('merge.button')}
-            </button>
-          )}
-        </div>
       </div>
     );
   }
