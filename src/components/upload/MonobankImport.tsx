@@ -9,6 +9,7 @@ import {
   estimateRequests,
   fetchJarStatement,
   fetchJars,
+  REQUEST_GAP_SECONDS,
   isUahJar,
   jarGoal,
   statementItemsToRawDonations,
@@ -17,6 +18,8 @@ import {
   type MonoJar,
 } from '../../utils/monobankApi';
 import { SpinnerIcon } from '../../icons';
+import { DateField } from '../DateField';
+import { CountdownRing } from './CountdownRing';
 
 export interface MonobankFetchResult {
   rows: RawDonation[];
@@ -187,8 +190,11 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
           </label>
 
           {stage === 'loadingJars' && jarsWait > 0 && (
-            <p className="text-xs text-indigo-600" aria-live="polite">
-              {t('monobank.waitingPause', { seconds: jarsWait })} · {t('monobank.rateLimitPause')}
+            <p className="flex items-center gap-2 text-xs text-indigo-600" aria-live="polite">
+              <CountdownRing secondsLeft={jarsWait} totalSeconds={REQUEST_GAP_SECONDS} className="w-5 h-5 shrink-0" />
+              <span>
+                {t('monobank.waitingPause', { seconds: jarsWait })} · {t('monobank.rateLimitPause')}
+              </span>
             </p>
           )}
 
@@ -198,7 +204,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
               disabled={!token.trim() || stage === 'loadingJars'}
               className="btn-primary flex-1 flex items-center justify-center gap-2"
             >
-              {stage === 'loadingJars' && <SpinnerIcon className="w-4 h-4" />}
+              {stage === 'loadingJars' && <SpinnerIcon className="w-4 h-4 animate-spin" />}
               {mode === 'update' ? t('monobank.continue') : t('monobank.showJars')}
             </button>
             <button onClick={onCancel} className="btn-secondary">
@@ -266,30 +272,22 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
           {selectedJar && <p className="text-sm text-gray-600">{t('monobank.fromJar', { title: selectedJar.title })}</p>}
           {mode === 'update' && <p className="text-sm text-gray-600">{t('monobank.updateHint')}</p>}
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="block text-xs text-gray-500 mb-1">{t('monobank.from')}</span>
-              <input
-                type="date"
-                value={range.from}
-                max={range.to || today}
-                disabled={stage === 'fetching'}
-                onChange={(e) => setRange((r) => ({ ...r, from: e.target.value }))}
-                className={INPUT}
-              />
-            </label>
-            <label className="block">
-              <span className="block text-xs text-gray-500 mb-1">{t('monobank.to')}</span>
-              <input
-                type="date"
-                value={range.to}
-                min={range.from}
-                max={today}
-                disabled={stage === 'fetching'}
-                onChange={(e) => setRange((r) => ({ ...r, to: e.target.value }))}
-                className={INPUT}
-              />
-            </label>
+          <div className="grid grid-cols-2 gap-4">
+            <DateField
+              label={t('monobank.from')}
+              value={range.from}
+              max={range.to || today}
+              disabled={stage === 'fetching'}
+              onChange={(from) => setRange((r) => ({ ...r, from }))}
+            />
+            <DateField
+              label={t('monobank.to')}
+              value={range.to}
+              min={range.from}
+              max={today}
+              disabled={stage === 'fetching'}
+              onChange={(to) => setRange((r) => ({ ...r, to }))}
+            />
           </div>
 
           {requests > 1 && stage === 'range' && (
@@ -299,7 +297,11 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
           {stage === 'fetching' && (
             <div className="px-4 py-3 bg-indigo-50 border border-indigo-100 rounded-xl text-sm text-indigo-900" aria-live="polite">
               <div className="flex items-center gap-2 font-medium">
-                <SpinnerIcon className="w-4 h-4" />
+                {progress && progress.waitSeconds > 0 ? (
+                  <CountdownRing secondsLeft={progress.waitSeconds} totalSeconds={REQUEST_GAP_SECONDS} className="w-5 h-5 shrink-0" />
+                ) : (
+                  <SpinnerIcon className="w-5 h-5 shrink-0 animate-spin" />
+                )}
                 {progress && progress.waitSeconds > 0
                   ? // part 2+ of a long period vs. a plain pause (a repeated request, or Monobank asking us to slow down)
                     t(progress.done > 0 ? 'monobank.waiting' : 'monobank.waitingPause', { seconds: progress.waitSeconds })
