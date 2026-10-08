@@ -75,6 +75,7 @@
     "friendsLine": "Рядок «через друзів»",
     "friendsList": "Список друзів",
     "friendsTotal": "Сума друзів",
+    "friendsReached": "Рядок «досягли цілі»",
     "friendsAmounts": "Суми (друзі з усього)",
     "friendsShareBar": "Смуга внеску друзів",
     "friendsCount": "Кількість друзів"
@@ -295,6 +296,8 @@
     },
     "friends-leaderboard": {
       "title": "Заголовок",
+      "targetLabel": "Підпис цілі (під смугою)",
+      "reachedLabel": "Підпис «досягли цілі»",
       "totalLabel": "Підпис суми друзів"
     },
     "friends-share": {
@@ -308,7 +311,17 @@
     "label": "Друзі збору",
     "hint": "Гроші друзів уже входять у загальну суму збору — тут лише видно, хто скільки допоміг. З'являться шаблони «Друзі збору».",
     "namePlaceholder": "Ім'я або назва",
-    "amountPlaceholder": "Сума, ₴",
+    "amountPlaceholder": "Зібрано, ₴",
+    "targetPlaceholder": "Ціль, ₴",
+    "progress": "{{pct}}% від цілі",
+    "reachedBadge": "ціль досягнуто",
+    "reachedSummary": "Досягли цілі: {{reached}} з {{total}}",
+    "display": {
+      "title": "Показувати на картці",
+      "all": "Усі",
+      "none": "Жодного",
+      "hint": "Зніміть позначку, щоб прибрати друга з цієї картки. Дані друга при цьому не змінюються."
+    },
     "add": "Додати друга",
     "remove": "Прибрати",
     "summary": "Через друзів: {{amount}} ₴ ({{pct}}% збору)",

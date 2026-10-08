@@ -36,6 +36,7 @@ export function makeCard(templateId: TemplateType, personalComments: Array<{ tex
     format: TEMPLATE_DEFAULT_FORMAT[templateId],
     textOverrides: {},
     hiddenElements: [],
+    hiddenFriendIds: [],
     showRefunds: false,
     dateFrom: '',
     dateTo: '',

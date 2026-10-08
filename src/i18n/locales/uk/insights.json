@@ -39,6 +39,9 @@
     "edit": "Редагувати",
     "done": "Готово",
     "more": "+ ще {{n}}",
+    "reachedSummary": "Досягли цілі: {{reached}} з {{total}}",
+    "reachedBadge": "Ціль досягнуто",
+    "ofTarget": "{{pct}}% від цілі {{target}} ₴",
     "exceeds": "Сума друзів більша за весь збір — перевірте суми."
   },
   "charts": {

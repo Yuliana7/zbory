@@ -49,6 +49,8 @@ export interface FriendJar {
   id: string;
   name: string;
   raised: number; // UAH
+  /** what this helper set out to raise (UAH); progress is raised ÷ target and may pass 100% */
+  target?: number;
 }
 
 // Aggregated statistics
@@ -125,6 +127,8 @@ export interface CardState {
   textOverrides: Record<string, string>;
   /** data-element ids the user has turned off via tap-to-remove */
   hiddenElements: string[];
+  /** friendly jars left off the leaderboard card (everything else shows; new jars show by default) */
+  hiddenFriendIds?: string[];
   showRefunds: boolean;
   dateFrom: string;
   dateTo: string;

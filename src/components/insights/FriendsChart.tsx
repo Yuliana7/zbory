@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FriendJar } from '../../types';
-import { computeFriendStats, formatSharePct } from '../../utils/friendJars';
+import { computeFriendStats, formatSharePct, friendBar } from '../../utils/friendJars';
 import { FriendsEditor } from '../FriendsEditor';
 
 interface FriendsChartProps {
@@ -13,17 +13,18 @@ interface FriendsChartProps {
 const MAX_ROWS = 10;
 const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-/** How much each helper jar brought in. Per-helper bars are scaled to the best
- * helper (comparison), the top bar shows helpers' share of the whole jar. */
+/** How much each helper jar brought in. A helper with a target gets a bar towards that target
+ * (full, with a check mark, once reached — the percentage can go past 100); until anyone has a
+ * target the bars compare helpers with the best one. The top bar shows the helpers' share of
+ * the whole jar. */
 export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const { t } = useTranslation('insights');
   const [editing, setEditing] = useState(false);
-  const { ranked, total, share, exceedsTotal } = computeFriendStats(friends, totalAmount);
+  const { ranked, total, share, exceedsTotal, withTarget, reached } = computeFriendStats(friends, totalAmount);
 
   if (ranked.length === 0 && !editing) return null;
 
   const rows = ranked.slice(0, MAX_ROWS);
-  const top = rows[0]?.raised ?? 1;
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -33,6 +34,9 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
           <p className="text-sm text-gray-600 mt-1">
             {t('friends.summary', { amount: fmt(total), pct: formatSharePct(share), n: ranked.length })}
           </p>
+          {withTarget > 0 && (
+            <p className="text-sm text-gray-600">{t('friends.reachedSummary', { reached, total: withTarget })}</p>
+          )}
         </div>
         <button
           onClick={() => setEditing((e) => !e)}
@@ -50,23 +54,37 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
           </div>
 
           <div className="space-y-3">
-            {rows.map((f, i) => (
+            {rows.map((f, i) => {
+              const bar = friendBar(f, ranked);
+              return (
               <div key={f.id}>
                 <div className="flex items-baseline justify-between gap-3 text-sm mb-1">
                   <span className="min-w-0 truncate font-medium text-gray-800">
                     <span className="text-gray-400 mr-2">{i + 1}</span>
                     {f.name || '—'}
+                    {bar.reached && <span className="ml-2 text-green-600" title={t('friends.reachedBadge')}>✓</span>}
                   </span>
                   <span className="shrink-0 whitespace-nowrap">
                     <span className="font-semibold text-gray-900">{fmt(f.raised)} ₴</span>
                     <span className="text-xs text-gray-400 ml-2">{formatSharePct(f.raised / totalAmount)}%</span>
                   </span>
                 </div>
-                <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
-                  <div className="h-full rounded-full bg-indigo-400" style={{ width: `${(f.raised / top) * 100}%` }} />
-                </div>
+                {bar.mode !== 'none' && (
+                  <div className="h-2.5 rounded-full bg-gray-100 overflow-hidden">
+                    <div
+                      className={`h-full rounded-full ${bar.reached ? 'bg-green-500' : 'bg-indigo-400'}`}
+                      style={{ width: `${bar.fill * 100}%` }}
+                    />
+                  </div>
+                )}
+                {bar.pct !== null && f.target && (
+                  <p className={`mt-1 text-xs ${bar.reached ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
+                    {t('friends.ofTarget', { pct: Math.round(bar.pct), target: fmt(f.target) })}
+                  </p>
+                )}
               </div>
-            ))}
+              );
+            })}
           </div>
           {ranked.length > MAX_ROWS && (
             <p className="mt-3 text-xs text-gray-400">{t('friends.more', { n: ranked.length - MAX_ROWS })}</p>
