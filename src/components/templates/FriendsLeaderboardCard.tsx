@@ -20,7 +20,6 @@ interface FriendsLeaderboardCardProps {
   hidden?: Set<string>;
 }
 
-const MEDALS = ['🥇', '🥈', '🥉'];
 // Same greens the progress card uses for a reached goal
 const REACHED_BAR = 'linear-gradient(90deg, #4ade80, #22c55e)';
 const REACHED_TEXT = '#4ade80';
@@ -71,7 +70,7 @@ export const FriendsLeaderboardCard = forwardRef<HTMLDivElement, FriendsLeaderbo
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                     <div style={{ width: 56, textAlign: 'center', fontSize: fz(36), fontWeight: 700, color: p.secondary, flexShrink: 0 }}>
-                      {MEDALS[i] ?? i + 1}
+                      {i + 1}
                     </div>
                     <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 14, fontSize: fz(32), fontWeight: 700 }}>
                       <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{f.name || '—'}</span>

@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, friendProgress, parseAmount, visibleFriends } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -76,6 +76,16 @@ check('cleanFriends: keeps a target-only row', cleanFriends([{ id: 'z', name: 'Z
 check('visibleFriends: filters hidden ids', visibleFriends(ts.ranked, ['a', 'b']).map((f) => f.id).join() === 'c,d');
 check('visibleFriends: undefined hides nothing', visibleFriends(ts.ranked, undefined).length === ts.ranked.length);
 
+// ── draft vs saved ──
+const drows = friendsToRows(tg);
+check('draft: untouched rows are not dirty', !friendsDiffer(drows, tg));
+check('draft: a blank new row is not dirty', !friendsDiffer([...drows, { id: 'n', name: '', raised: '', target: '' }], tg));
+check('draft: edited amount is dirty', friendsDiffer(drows.map((r) => (r.id === 'b' ? { ...r, raised: '301' } : r)), tg));
+check('draft: removed row is dirty', friendsDiffer(drows.slice(1), tg));
+check('draft: added named row is dirty', friendsDiffer([...drows, { id: 'n', name: 'Нова', raised: '', target: '' }], tg));
+check('draft: rowsToFriends keeps target, drops blanks', rowsToFriends([...drows, { id: 'n', name: '', raised: '', target: '' }]).length === 4 && rowsToFriends(drows)[0].target === 1000);
+check('draft: first friend with no saved list, typed name is dirty', friendsDiffer([{ id: 'q', name: 'Q', raised: '', target: '' }], undefined));
+check('Leaderboard: no medal emoji', !renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} format="story" />).includes('🥇'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} format="story" />);
 check('Leaderboard: overflow shows 142%', strip(html).includes('142%'));
 check('Leaderboard: ✓ only on reached jars', (html.match(/data-reached/g) ?? []).length === 1);
