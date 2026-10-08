@@ -93,3 +93,48 @@ export function formatSharePct(share: number): string {
   const pct = share * 100;
   return pct > 0 && pct < 1 ? '<1' : String(Math.round(pct));
 }
+
+/** A helper row as typed in the editor (amounts are still text). */
+export interface FriendDraftRow {
+  id: string;
+  name: string;
+  raised: string;
+  target: string;
+}
+
+export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[] =>
+  (friends ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+    raised: f.raised ? String(f.raised) : '',
+    target: f.target ? String(f.target) : '',
+  }));
+
+/** Typed rows → clean helpers, exactly what gets stored. */
+export function rowsToFriends(rows: FriendDraftRow[]): FriendJar[] {
+  return cleanFriends(
+    rows.map((r) => {
+      const target = parseAmount(r.target);
+      return { id: r.id, name: r.name, raised: parseAmount(r.raised) ?? 0, ...(target ? { target } : null) };
+    }),
+  );
+}
+
+/** Do the typed rows differ from what is stored? (Blank rows don't count — they'd be dropped.) */
+export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undefined): boolean {
+  const norm = (list: FriendJar[]) => JSON.stringify(list.map((f) => [f.id, f.name, f.raised, f.target ?? null]));
+  return norm(rowsToFriends(rows)) !== norm(cleanFriends(saved ?? []));
+}
+
+/** Names are the helpers' identity: compared ignoring case and extra spaces. */
+export const friendNameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+
+/** Ids of rows whose name is also used by another row (blank names never clash). */
+export function duplicateNameIds(rows: FriendDraftRow[]): Set<string> {
+  const byName = new Map<string, string[]>();
+  for (const r of rows) {
+    const key = friendNameKey(r.name);
+    if (key) byName.set(key, [...(byName.get(key) ?? []), r.id]);
+  }
+  return new Set([...byName.values()].filter((ids) => ids.length > 1).flat());
+}

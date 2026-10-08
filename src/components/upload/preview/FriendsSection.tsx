@@ -1,8 +1,9 @@
 import { useTranslation } from 'react-i18next';
 import { FriendsEditor } from '../../FriendsEditor';
+import type { FriendsDraft } from '../../../hooks/useFriendsDraft';
 import { SectionCard } from './SectionCard';
 
-export function FriendsSection() {
+export function FriendsSection({ draft }: { draft: FriendsDraft }) {
   const { t } = useTranslation('upload');
   const { t: tExport } = useTranslation('export');
   return (
@@ -14,7 +15,7 @@ export function FriendsSection() {
         </>
       }
     >
-      <FriendsEditor />
+      <FriendsEditor draft={draft} />
     </SectionCard>
   );
 }

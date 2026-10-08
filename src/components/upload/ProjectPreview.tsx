@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useFriendsDraft } from '../../hooks/useFriendsDraft';
 import { useTranslation } from 'react-i18next';
 import type { Donation, MonobankJarRef, RawDonation } from '../../types';
 import { useAppContext } from '../../context/AppContext';
@@ -9,6 +10,7 @@ import { SECTION_IDS, clearSectionHash, type SectionId } from '../../utils/secti
 import { PreviewSection } from './preview/PreviewSection';
 import { GoalSection } from './preview/GoalSection';
 import { FriendsSection } from './preview/FriendsSection';
+import { UnsavedFriendsDialog } from './preview/UnsavedFriendsDialog';
 import { AddDataSection } from './preview/AddDataSection';
 import { useSectionAnchors } from './preview/useSectionAnchors';
 
@@ -51,8 +53,20 @@ export function ProjectPreview({
   const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showInvalidWarning, setShowInvalidWarning] = useState(false);
   const goal = parseGoal(goalInput);
+  const friendsDraft = useFriendsDraft();
+  // the step the user tried to take while helper edits were unsaved; the dialog decides what happens to it
+  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
 
   const handleProceed = () => {
+    if (friendsDraft.dirty) {
+      setPendingLeave(() => proceed);
+      goTo('friends');
+      return;
+    }
+    proceed();
+  };
+
+  const proceed = () => {
     // Incomplete rows get one warning first; a second press goes ahead anyway
     if (invalidRowCount > 0 && !showInvalidWarning) {
       setShowInvalidWarning(true);
@@ -64,8 +78,31 @@ export function ProjectPreview({
   };
 
   const handleBack = () => {
+    if (friendsDraft.dirty) {
+      setPendingLeave(() => leaveBack);
+      return;
+    }
+    leaveBack();
+  };
+
+  const leaveBack = () => {
     clearSectionHash();
     onBack();
+  };
+
+  // The dialog's three answers. Saving goes through the same draft the form uses; the step
+  // continues once the saved helpers are in place.
+  const resolveLeave = (how: 'save' | 'discard') => {
+    const go = pendingLeave;
+    setPendingLeave(null);
+    if (how === 'save') {
+      // two helpers with one name can't be stored — stay and let the form show which
+      if (!friendsDraft.save()) {
+        goTo('friends');
+        return;
+      }
+    } else friendsDraft.discard();
+    go?.();
   };
 
   const handleDownload = () => {
@@ -138,7 +175,7 @@ export function ProjectPreview({
         onDownload={handleDownload}
       />
       <GoalSection value={goalInput} onChange={setGoalInput} invalid={goalInput !== '' && goal === null} />
-      <FriendsSection />
+      <FriendsSection draft={friendsDraft} />
       <AddDataSection monobankJar={monobankJar} onMergeFile={onMergeFile} onMonobank={onMonobank} isLoading={isLoading} />
 
       {/* the page is long, especially on a phone — don't make people scroll back up to continue */}
@@ -151,6 +188,14 @@ export function ProjectPreview({
           <ArrowRightIcon className="w-4 h-4" />
         </button>
       </div>
+
+      {pendingLeave && (
+        <UnsavedFriendsDialog
+          onSave={() => resolveLeave('save')}
+          onDiscard={() => resolveLeave('discard')}
+          onCancel={() => setPendingLeave(null)}
+        />
+      )}
     </div>
   );
 }
