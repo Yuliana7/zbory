@@ -82,6 +82,7 @@ export function CardCanvas({ card, style, aggregates, goal, friends, commentInsi
         goal={goal}
         // helper totals cover the whole campaign — meaningless next to a date-filtered total
         friends={card.dateFrom || card.dateTo ? undefined : friends}
+        hiddenFriendIds={card.hiddenFriendIds}
         format={card.format}
         palette={style.palette}
         textOverrides={card.textOverrides}
@@ -107,6 +108,7 @@ interface RendererProps {
   aggregates: Aggregates;
   goal?: number;
   friends?: FriendJar[];
+  hiddenFriendIds?: string[];
   format: Format;
   palette: SharedStyle['palette'];
   textOverrides: Record<string, string>;
@@ -131,6 +133,7 @@ function TemplateRenderer({
   aggregates,
   goal,
   friends,
+  hiddenFriendIds,
   format,
   palette,
   textOverrides,
@@ -189,7 +192,7 @@ function TemplateRenderer({
     case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} />;
     case 'emoji-cloud': return <EmojiCloudCard {...shared} commentInsights={commentInsights} />;
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
-    case 'friends-leaderboard': return <FriendsLeaderboardCard {...shared} friends={friends} />;
+    case 'friends-leaderboard': return <FriendsLeaderboardCard {...shared} friends={friends} hiddenFriendIds={hiddenFriendIds} />;
     case 'friends-share': return <FriendsShareCard {...shared} friends={friends} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;

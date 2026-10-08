@@ -142,6 +142,8 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   ],
   'friends-leaderboard': [
     { key: 'title' },
+    { key: 'targetLabel' },
+    { key: 'reachedLabel' },
     { key: 'totalLabel' },
   ],
   'friends-share': [
@@ -371,6 +373,7 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
   'friends-leaderboard': [
     HEADER,
     el('list', 'layout.friendsList'),
+    el('reachedLine', 'layout.friendsReached'),
     el('totalLine', 'layout.friendsTotal'),
     UA_FLAG,
     GLOW,

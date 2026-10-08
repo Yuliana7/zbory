@@ -168,6 +168,9 @@
     "friends-leaderboard": {
         "title": "Друзі збору",
         "totalLabel": "Разом через друзів",
+        "targetLabel": "ціль",
+        "reachedLabel": "Досягли цілі",
+        "reachedOf": "{{reached}} з {{total}}",
         "more": "+ ще {{n}}"
     },
     "friends-share": {

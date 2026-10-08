@@ -570,6 +570,9 @@ function ExportPageInner() {
               open={openSections.has('friends')}
               onToggle={() => toggleSection('friends')}
               count={(app.friends ?? []).filter((f) => f.raised > 0).length}
+              pickable={templateId === 'friends-leaderboard'}
+              hiddenFriendIds={card.hiddenFriendIds ?? []}
+              onHiddenFriendIdsChange={(ids) => updateCard({ hiddenFriendIds: ids })}
             />
           )}
 

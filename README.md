@@ -76,6 +76,8 @@ Skip the CSV: paste your personal API token and the app pulls a jar's donations 
 ### Friendly jars (дружні збори)
 Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals.
 
+Each helper can also have a **target**. The bar then shows that jar's own progress (`raised / target`), not how it compares with the biggest helper. Going past the target is fine: the bar fills up, the real percentage (e.g. `142%`) is shown, and the helper gets a green ✓. On the leaderboard template, a *Показувати на картці* checklist picks which helpers appear, and a removable "reached the target: 2 of 3" line summarises it. Helpers without a target keep the old relative bars until any helper gets one.
+
 ### Everything else
 - Installable **PWA**, works offline after the first visit, with an update prompt. The installed app paints the status-bar area in the app's indigo on both iOS and Android.
 - **Private by design:** no backend, no accounts, no analytics. Your statement is parsed in the browser and stays there (localStorage for the last session, IndexedDB for saved fundraisers). The only network requests are for the app's own files.
@@ -150,7 +152,7 @@ A few design decisions worth knowing about:
 
 - **Cards are plain React components at 1080 px wide**, scaled down for preview with CSS `zoom` and captured at native size for export — what you see is what you download.
 - **Removable elements** are declared per template (`TEMPLATE_REMOVABLE_ELEMENTS`) and marked with `data-element` in the markup, so every template gets edit mode for free.
-- **Friendly jars are attribution only.** A helper is `{ name, raised }` and is never added to any total — those donations are already in the main jar's statement.
+- **Friendly jars are attribution only.** A helper is `{ name, raised, target? }` and is never added to any total — those donations are already in the main jar's statement.
 - **Downloads go through one helper** (`src/utils/download.ts`): the share sheet on iOS, an in-document anchor with a delayed `revokeObjectURL` everywhere else.
 
 ### Project layout

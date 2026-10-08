@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, parseAmount } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -52,6 +52,55 @@ html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={r
 const expectPct = Math.round((1500 / aggregates.totalAmount) * 100);
 check('Share: shows the share %', strip(html).includes(`${Math.min(100, expectPct)}%`), `(expected ${expectPct}%)`);
 check('Share: counts friends', />2</.test(html));
+
+// ── targets ──
+const tg = [
+  { id: 'a', name: 'Оля', raised: 1420, target: 1000 },
+  { id: 'b', name: 'Тарас', raised: 300, target: 1000 },
+  { id: 'c', name: 'Без цілі', raised: 500 },
+  { id: 'd', name: 'Ще нуль', raised: 0, target: 800 },
+];
+check('progress: overflow keeps the real %', Math.round(friendProgress(tg[0]).pct ?? 0) === 142 && friendProgress(tg[0]).reached);
+check('progress: exactly 100% is reached', friendProgress({ id: 'x', name: 'x', raised: 500, target: 500 }).reached);
+check('progress: no target → null', friendProgress(tg[2]).pct === null && !friendProgress(tg[2]).reached);
+const ts = computeFriendStats(tg, 10000);
+check('stats: zero-raised jar with a target is listed', ts.ranked.some((f) => f.id === 'd'));
+check('stats: total ignores zero jars, counts raised only', ts.total === 2220);
+check('stats: reached/withTarget counts', ts.reached === 1 && ts.withTarget === 3);
+const bo = friendBar(tg[0], ts.ranked);
+check('bar: target mode caps fill at 1', bo.mode === 'target' && bo.fill === 1 && bo.reached);
+check('bar: partial fill vs own target', Math.abs(friendBar(tg[1], ts.ranked).fill - 0.3) < 1e-9);
+check('bar: no bar for target-less jar once others have targets', friendBar(tg[2], ts.ranked).mode === 'none');
+check('bar: legacy relative bar when no one has a target', friendBar(friends[0], stats.ranked).mode === 'relative' && Math.abs(friendBar(friends[0], stats.ranked).fill - 0.25) < 1e-9);
+check('cleanFriends: keeps a target-only row', cleanFriends([{ id: 'z', name: 'Z', raised: 0, target: 100 }]).length === 1);
+check('visibleFriends: filters hidden ids', visibleFriends(ts.ranked, ['a', 'b']).map((f) => f.id).join() === 'c,d');
+check('visibleFriends: undefined hides nothing', visibleFriends(ts.ranked, undefined).length === ts.ranked.length);
+
+// ── draft vs saved ──
+const drows = friendsToRows(tg);
+check('draft: untouched rows are not dirty', !friendsDiffer(drows, tg));
+check('draft: a blank new row is not dirty', !friendsDiffer([...drows, { id: 'n', name: '', raised: '', target: '' }], tg));
+check('draft: edited amount is dirty', friendsDiffer(drows.map((r) => (r.id === 'b' ? { ...r, raised: '301' } : r)), tg));
+check('draft: removed row is dirty', friendsDiffer(drows.slice(1), tg));
+check('draft: added named row is dirty', friendsDiffer([...drows, { id: 'n', name: 'Нова', raised: '', target: '' }], tg));
+check('draft: rowsToFriends keeps target, drops blanks', rowsToFriends([...drows, { id: 'n', name: '', raised: '', target: '' }]).length === 4 && rowsToFriends(drows)[0].target === 1000);
+check('draft: first friend with no saved list, typed name is dirty', friendsDiffer([{ id: 'q', name: 'Q', raised: '', target: '' }], undefined));
+const dup = duplicateNameIds([
+  { id: '1', name: 'Оля', raised: '', target: '' }, { id: '2', name: '  оля ', raised: '', target: '' },
+  { id: '3', name: '', raised: '', target: '' }, { id: '4', name: '', raised: '', target: '' }, { id: '5', name: 'Тарас', raised: '', target: '' },
+]);
+check('names: case/space-insensitive duplicates flagged, blanks and uniques not', [...dup].sort().join() === '1,2');
+check('Leaderboard: no medal emoji', !renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} format="story" />).includes('🥇'));
+html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} format="story" />);
+check('Leaderboard: overflow shows 142%', strip(html).includes('142%'));
+check('Leaderboard: ✓ only on reached jars', (html.match(/data-reached/g) ?? []).length === 1);
+check('Leaderboard: reached line', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 3'));
+html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} hiddenFriendIds={['a']} format="story" />);
+check('Leaderboard: hidden jar gone, total + reached follow', !strip(html).includes('Оля') && !html.includes('data-reached') && /800\s*₴/.test(strip(html)) && strip(html).includes('0 з 2'));
+html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={real} format="story" />);
+check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
+html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={tg} format="post" />);
+check('Share: counts only jars that raised something', />3</.test(html));
 
 // ── progress line: only with friends, removable, never touches the headline total ──
 const base = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" />);

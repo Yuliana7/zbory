@@ -88,7 +88,7 @@ export const FriendsShareCard = forwardRef<HTMLDivElement, FriendsShareCardProps
             }}
           >
             <div style={{ fontSize: fz(26), color: p.secondary }}>{tx('countLabel')}</div>
-            <div style={{ fontSize: fz(44), fontWeight: 800 }}>{ranked.length}</div>
+            <div style={{ fontSize: fz(44), fontWeight: 800 }}>{ranked.filter((f) => f.raised > 0).length}</div>
           </div>
         )}
         <UAFlagBar show={!hidden.has('uaflag')} />
