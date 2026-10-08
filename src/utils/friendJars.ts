@@ -125,3 +125,16 @@ export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undef
   const norm = (list: FriendJar[]) => JSON.stringify(list.map((f) => [f.id, f.name, f.raised, f.target ?? null]));
   return norm(rowsToFriends(rows)) !== norm(cleanFriends(saved ?? []));
 }
+
+/** Names are the helpers' identity: compared ignoring case and extra spaces. */
+export const friendNameKey = (name: string) => name.trim().replace(/\s+/g, ' ').toLowerCase();
+
+/** Ids of rows whose name is also used by another row (blank names never clash). */
+export function duplicateNameIds(rows: FriendDraftRow[]): Set<string> {
+  const byName = new Map<string, string[]>();
+  for (const r of rows) {
+    const key = friendNameKey(r.name);
+    if (key) byName.set(key, [...(byName.get(key) ?? []), r.id]);
+  }
+  return new Set([...byName.values()].filter((ids) => ids.length > 1).flat());
+}

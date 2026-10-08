@@ -19,7 +19,7 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
   const { state } = useAppContext();
   const { app } = state;
   const own = useFriendsDraft();
-  const { rows, setRows, dirty, save, discard } = external ?? own;
+  const { rows, setRows, dirty, duplicates, save, discard } = external ?? own;
 
   const mainTotal = app.aggregates?.totalAmount ?? (app.donations ?? []).reduce((sum, d) => sum + d.amount, 0);
 
@@ -53,7 +53,8 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
                 onChange={(e) => patch(r.id, { name: e.target.value })}
                 placeholder={t('friends.namePlaceholder')}
                 aria-label={t('friends.namePlaceholder')}
-                className={`${INPUT} min-w-0`}
+                aria-invalid={duplicates.has(r.id)}
+                className={`${INPUT} min-w-0 ${duplicates.has(r.id) ? 'border-red-400 focus:ring-red-300' : ''}`}
               />
               <button
                 onClick={() => remove(r.id)}
@@ -84,6 +85,7 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
                 />
               </div>
             </div>
+            {duplicates.has(r.id) && <p className="mt-1 text-xs text-red-500">{t('friends.duplicate')}</p>}
             {progress.pct !== null && (
               <p className={`mt-1 text-xs ${progress.reached ? 'text-green-600 font-medium' : 'text-gray-500'}`}>
                 {progress.reached ? '✓ ' : ''}
@@ -118,7 +120,11 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
           <p className="text-sm text-amber-800">{t('friends.unsaved')}</p>
           <div className="flex gap-2">
-            <button onClick={save} className="flex-1 btn-primary flex items-center justify-center gap-2">
+            <button
+              onClick={save}
+              disabled={duplicates.size > 0}
+              className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
               <CheckIcon className="w-4 h-4" />
               {t('friends.save')}
             </button>

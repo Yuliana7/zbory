@@ -95,8 +95,13 @@ export function ProjectPreview({
   const resolveLeave = (how: 'save' | 'discard') => {
     const go = pendingLeave;
     setPendingLeave(null);
-    if (how === 'save') friendsDraft.save();
-    else friendsDraft.discard();
+    if (how === 'save') {
+      // two helpers with one name can't be stored — stay and let the form show which
+      if (!friendsDraft.save()) {
+        goTo('friends');
+        return;
+      }
+    } else friendsDraft.discard();
     go?.();
   };
 
