@@ -11,7 +11,7 @@ interface SaveCampaignControlProps {
   fullWidth?: boolean;
   /** Goal value owned by the caller (e.g. the upload preview's not-yet-committed
    * goal input) — takes precedence over app.goal so saving here can't drop it. */
-  goalOverride?: number;
+  goalOverride?: number | null;
   /** make the button the primary action (e.g. a saved project has unsaved changes) */
   highlight?: boolean;
 }

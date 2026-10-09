@@ -4,7 +4,7 @@ import { formatCurrency, formatShortDate } from '../../../utils/dataAggregator';
 import { DownloadIcon, EditIcon, WarningIcon } from '../../../icons';
 import { SectionCard } from './SectionCard';
 
-const ROWS_SHOWN = 10;
+const ROWS_SHOWN = 5;
 const SECONDARY_BUTTON =
   'flex items-center gap-2 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-200 ' +
   'rounded-lg px-3 py-2 shadow-sm hover:border-gray-300 transition-all';
@@ -25,7 +25,6 @@ export function PreviewSection({ donations, totalCount, invalidRowCount, showInv
   const { t } = useTranslation('upload');
   return (
     <SectionCard
-      id="preview"
       title={t('preview.title')}
       description={t('preview.foundCount', { count: totalCount })}
       actions={
@@ -76,7 +75,7 @@ export function PreviewSection({ donations, totalCount, invalidRowCount, showInv
       </div>
 
       {totalCount > ROWS_SHOWN && (
-        <div className="mt-4 text-center text-sm text-gray-500">{t('preview.showingOf', { total: totalCount })}</div>
+        <div className="mt-4 text-center text-sm text-gray-500">{t('preview.showingOf', { shown: ROWS_SHOWN, total: totalCount })}</div>
       )}
 
       {showInvalidWarning && invalidRowCount > 0 && (

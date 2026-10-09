@@ -204,7 +204,7 @@ interface AppContextValue {
   handleRestoreSession: () => boolean;
   handleLoadCampaign: (id: string, opts?: { proceed?: boolean }) => Promise<LoadedCampaign | null>;
   handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
-  handleSaveCampaign: (name: string, goalOverride?: number) => Promise<CampaignMeta | null>;
+  handleSaveCampaign: (name: string, goalOverride?: number | null) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }) => MergeResult | null;
   handleMonobankSource: (jar?: MonobankJarRef, goal?: number) => void;
@@ -522,7 +522,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // upload preview's goal input, before the user hits "Proceed") save that
   // value directly — state.app.goal only updates on PROCEED_TO_INSIGHTS, so
   // saving from the preview screen would otherwise persist a stale/empty goal.
-  const handleSaveCampaign = useCallback(async (name: string, goalOverride?: number): Promise<CampaignMeta | null> => {
+  const handleSaveCampaign = useCallback(async (name: string, goalOverride?: number | null): Promise<CampaignMeta | null> => {
     if (!state.app.rawData) return null;
     try {
       const meta = await saveCampaign({
@@ -530,7 +530,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
         name,
         rawData: state.app.rawData,
         fileName: state.app.originalFileName,
-        goal: goalOverride !== undefined ? goalOverride : state.app.goal,
+        // null = the goal was cleared; undefined = keep what the project has
+        goal: goalOverride === null ? undefined : goalOverride !== undefined ? goalOverride : state.app.goal,
         style: state.app.stackStyle ?? undefined,
         friends: state.app.friends,
         monobankJar: state.app.monobankJar,

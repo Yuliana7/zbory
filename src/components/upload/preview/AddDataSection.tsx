@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { MonobankJarRef } from '../../../types';
 import { GlobeIcon, PlusIcon } from '../../../icons';
 import { FileUpload } from '../FileUpload';
-import { SectionCard } from './SectionCard';
+import { CollapsibleSection } from './CollapsibleSection';
 
 const OPTION_BUTTON =
   'flex items-center justify-center gap-2 text-sm font-medium text-indigo-600 hover:text-indigo-800 border border-dashed ' +
@@ -15,16 +15,19 @@ interface AddDataSectionProps {
   onMergeFile: (file: File) => Promise<boolean>;
   onMonobank: () => void;
   isLoading: boolean;
+  open: boolean;
+  onToggle: () => void;
 }
 
 /** Bring more donations of the same jar into the project, from a CSV or from Monobank.
  * Rows already in the project are recognised and skipped. */
-export function AddDataSection({ monobankJar, onMergeFile, onMonobank, isLoading }: AddDataSectionProps) {
+export function AddDataSection({ monobankJar, onMergeFile, onMonobank, isLoading, open, onToggle }: AddDataSectionProps) {
   const { t } = useTranslation('upload');
   const [pickingFile, setPickingFile] = useState(false);
 
   return (
-    <SectionCard id="add-data" title={t('addData.title')} description={t('addData.description')}>
+    <CollapsibleSection title={t('addData.title')} summary={t('addData.summary')} open={open} onToggle={onToggle}>
+      <p className="mb-3 text-sm text-gray-500">{t('addData.description')}</p>
       {pickingFile ? (
         <div className="animate-fade-in">
           <p className="mb-3 text-sm text-gray-600">{t('merge.title')}</p>
@@ -55,6 +58,6 @@ export function AddDataSection({ monobankJar, onMergeFile, onMonobank, isLoading
           </button>
         </div>
       )}
-    </SectionCard>
+    </CollapsibleSection>
   );
 }

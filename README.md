@@ -66,7 +66,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu (update from Monobank, add a CSV, edit rows, goal and helpers, delete) and takes you to the matching section of the preview page — the page is split into *Перегляд*, *Мета*, *Друзі збору* and *Додати дані*, each reachable by a link (`#goal`, `#add-data`, …) — where **Зберегти зміни** keeps what you changed.
+- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, delete), and each option opens a focused full screen for just that one thing. The preview of a freshly loaded project is one page: the first rows of data are always open, and the goal, friendly jars and "add more data" sit in collapsed one-line rows (each shows what is currently set) that open on tap.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
