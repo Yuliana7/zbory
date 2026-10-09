@@ -4,7 +4,7 @@ import { useFriendsDraft } from '../../../hooks/useFriendsDraft';
 import { useUnsavedFriendsGuard } from '../../../hooks/useUnsavedFriendsGuard';
 import { ScreenShell } from './ScreenShell';
 
-/** «Змінити» → «Друзі збору»: only the helper jars. «Зберегти друзів» already writes them to the
+/** «Редагувати» → «Друзі збору»: only the helper jars. «Зберегти друзів» already writes them to the
  * saved project, so leaving only has to make sure nothing typed is dropped by accident. */
 export function FriendsScreen({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation('upload');

@@ -5,7 +5,7 @@ import { parseGoal } from '../../../utils/goal';
 import { GoalField } from '../preview/GoalField';
 import { ScreenShell } from './ScreenShell';
 
-/** «Змінити» → «Мета збору»: just the goal of a saved project. Saving writes it to the library. */
+/** «Редагувати» → «Мета збору»: just the goal of a saved project. Saving writes it to the library. */
 export function GoalScreen({ onDone }: { onDone: () => void }) {
   const { t } = useTranslation('upload');
   const { state, handleSaveCampaign } = useAppContext();

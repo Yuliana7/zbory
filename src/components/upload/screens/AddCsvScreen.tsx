@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { FileUpload } from '../FileUpload';
 import { ScreenShell } from './ScreenShell';
 
-/** «Змінити» → «Додати CSV-виписку»: pick a file to merge into the project. */
+/** «Редагувати» → «Додати CSV-виписку»: pick a file to merge into the project. */
 export function AddCsvScreen({
   onFile,
   onBack,

@@ -30,7 +30,7 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 
 | Saved projects | New project | On desktop |
 | :---: | :---: | :---: |
-| ![Saved projects, each with Аналітика → and Змінити](docs/screenshots/07a-step1-projects.png) | ![CSV, Monobank API or manual entry](docs/screenshots/07b-step1-new-project.png) | ![Step 1 on desktop](docs/screenshots/01-upload.png) |
+| ![Saved projects, each with Аналітика → and Редагувати](docs/screenshots/07a-step1-projects.png) | ![CSV, Monobank API or manual entry](docs/screenshots/07b-step1-new-project.png) | ![Step 1 on desktop](docs/screenshots/01-upload.png) |
 
 **The rest of the flow**
 
@@ -66,7 +66,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Змінити** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, delete), and each option opens a focused full screen for just that one thing. The preview of a freshly loaded project is one page: the first rows of data are always open, and the goal, friendly jars and "add more data" sit in collapsed one-line rows (each shows what is currently set) that open on tap.
+- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Редагувати** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, delete), and each option opens a focused full screen for just that one thing. The preview of a freshly loaded project is one page: the first rows of data are always open, and the goal, friendly jars and "add more data" sit in collapsed one-line rows (each shows what is currently set) that open on tap.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
@@ -90,7 +90,7 @@ Each helper can also have a **target**. The bar then shows that jar's own progre
 3. **Read the analytics.** Tap a highlighted moment to jump to a matching template, or go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
 5. **Edit and export.** Change the format, add your photo (*Фон та стиль → Редагувати позицію*), hide elements, edit text, save a theme, then **Завантажити PNG** (or the ZIP for a series).
-6. **Save the fundraiser** from the preview or analytics step if you'll be back — next time pick it in *Мої збори* and tap **Аналітика →** (or **Змінити** to refresh its data first).
+6. **Save the fundraiser** from the preview or analytics step if you'll be back — next time pick it in *Мої збори* and tap **Аналітика →** (or **Редагувати** to refresh its data first).
 
 ## Importing from Monobank (step by step)
 
@@ -117,10 +117,10 @@ No CSV needed: the app can read a jar's donations straight from Monobank with a 
 6. **Save** the project. It's named after the jar by default.
 
 ### 3. Update it later
-Open **Мої збори → Змінити → Оновити з Monobank** on that project (you'll see "Monobank · <jar name>" under its name). Paste a token again, and the app fetches from the day of your newest saved donation and merges the result, skipping anything already there.
+Open **Мої збори → Редагувати → Оновити з Monobank** on that project (you'll see "Monobank · <jar name>" under its name). Paste a token again, and the app fetches from the day of your newest saved donation and merges the result, skipping anything already there.
 
 <p align="center">
-  <img src="docs/screenshots/11-project-menu.png" alt="The Змінити menu on a saved project" width="230">
+  <img src="docs/screenshots/11-project-menu.png" alt="The Редагувати menu on a saved project" width="230">
 </p>
 
 ### Good to know
@@ -165,7 +165,7 @@ src/
     templates/        the 19 card templates + shared card shell
     insights/         charts and analytics panels
     upload/           new-project options, preview table, manual entry, Monobank import,
-                      saved-project list and its Змінити menu
+                      saved-project list and its Редагувати menu
   context/          app state (reducer) and session wiring
   utils/            parsing, aggregation, insights, storage, export, template config
   i18n/locales/uk/  all UI strings

@@ -24,12 +24,12 @@ function formatShift(minutes: number): string {
   return [h > 0 ? `${h} год` : '', m > 0 ? `${m} хв` : ''].filter(Boolean).join(' ');
 }
 
-/** What «Змінити» opened a saved project for. Each one is a screen of its own. */
+/** What «Редагувати» opened a saved project for. Each one is a screen of its own. */
 type Focus = 'goal' | 'friends' | 'csv' | 'rows';
 
 /** Step 1 is a small state machine over what app state already says: nothing loaded → the home
  * screen (or one of the ways to start a project); a project loaded → its preview, or the focused
- * screen «Змінити» asked for. */
+ * screen «Редагувати» asked for. */
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
@@ -45,7 +45,7 @@ export function UploadPage() {
   const [showMonobank, setShowMonobank] = useState(false);
   const [monobankRows, setMonobankRows] = useState<ManualRow[] | null>(null);
   const [monobankMerge, setMonobankMerge] = useState<'update' | 'link' | null>(null);
-  // «Змінити» on a saved project opens a focused screen; leaving it without a data change goes
+  // «Редагувати» on a saved project opens a focused screen; leaving it without a data change goes
   // back to the project list, whereas a change of data continues on the preview (to review/save)
   const [focus, setFocus] = useState<Focus | null>(null);
   const [fromList, setFromList] = useState(false);
@@ -120,7 +120,7 @@ export function UploadPage() {
     return !!result;
   };
 
-  // «Змінити» → an option: load the project, then show the screen for that option. The screen is
+  // «Редагувати» → an option: load the project, then show the screen for that option. The screen is
   // chosen before the load finishes so the preview never flashes in between.
   const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
     setMergeResult(null);
