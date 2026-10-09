@@ -86,6 +86,8 @@ export type AppAction =
         insights: Insight[];
         commentInsights: CommentInsights | null;
         goal?: number;
+        /** opened with «Аналітика» from the project list, never through the preview */
+        fromLibrary?: boolean;
       };
     }
   | { type: 'TEMPLATES_SELECTED'; payload: TemplateType[] }
@@ -152,7 +154,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
     case 'PROCEED_TO_INSIGHTS':
       return {
         ...state,
-        app: { ...state.app, ...action.payload, step: 'insights' },
+        app: { ...state.app, ...action.payload, fromLibrary: action.payload.fromLibrary ?? false, step: 'insights' },
       };
 
     case 'TEMPLATES_SELECTED':
@@ -447,7 +449,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       updateSessionMonobankJar(monobankJar ?? undefined);
       updateSessionGoal(meta.goal);
       if (opts?.proceed) {
-        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: meta.goal } });
+        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: meta.goal, fromLibrary: true } });
       }
       return { rawData, monobankJar: monobankJar ?? undefined };
     } catch {
@@ -505,7 +507,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (opts?.proceed) {
         dispatch({
           type: 'PROCEED_TO_INSIGHTS',
-          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined },
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined, fromLibrary: true },
         });
       }
       return true;

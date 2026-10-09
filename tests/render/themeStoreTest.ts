@@ -1,4 +1,4 @@
-import { saveTheme, listThemes, deleteTheme } from '../../src/utils/themeStore';
+import { saveTheme, updateTheme, listThemes, deleteTheme } from '../../src/utils/themeStore';
 import { DEFAULT_SHARED_STYLE } from '../../src/utils/exportStack';
 
 const assertEq = (label: string, actual: unknown, expected: unknown) => {
@@ -30,6 +30,16 @@ const assertEq = (label: string, actual: unknown, expected: unknown) => {
   assertEq('save again: distinct id (no update-in-place)', again.id !== created.id, true);
   list = await listThemes();
   assertEq('save again: three themes now', list.length, 3);
+
+  // ── update: same id and name, new look; an unknown id does nothing ──
+  const updated = await updateTheme(second.id, { ...DEFAULT_SHARED_STYLE, bgRotate: 90 });
+  assertEq('update: keeps id', updated?.id, second.id);
+  assertEq('update: keeps name', updated?.name, 'Осінь');
+  assertEq('update: new style stored', updated?.style.bgRotate, 90);
+  assertEq('update: still stamped with its own id', updated?.style.themeId, second.id);
+  assertEq('update: moves to the top', (await listThemes())[0].id, second.id);
+  assertEq('update: unknown id → null', await updateTheme('nope', DEFAULT_SHARED_STYLE), null);
+  assertEq('update: no new record', (await listThemes()).length, 3);
 
   // ── delete ──
   await deleteTheme(created.id);

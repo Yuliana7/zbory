@@ -326,9 +326,10 @@ export function getDayOfWeek(date: Date | string): string {
 }
 
 /**
- * Calculates campaign duration in days
+ * Campaign duration in calendar days, counting both the first and the last day:
+ * donations on a single day are 1 day, 8 → 10 October is 3.
  */
 export function getCampaignDuration(aggregates: Aggregates): number {
-  const diff = aggregates.lastDate.getTime() - aggregates.firstDate.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const day = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((day(aggregates.lastDate) - day(aggregates.firstDate)) / 86_400_000) + 1;
 }

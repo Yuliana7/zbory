@@ -14,7 +14,7 @@ import { ArrowLeftIcon, ArrowRightIcon, XIcon } from '../icons';
 export function InsightsPage() {
   const { t } = useTranslation('insights');
   const { t: tC } = useTranslation('campaigns');
-  const { state, dispatch, goToStep, handleTemplateSelect } = useAppContext();
+  const { state, dispatch, goToStep, handleTemplateSelect, handleReset } = useAppContext();
   const { app } = state;
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
@@ -53,7 +53,8 @@ export function InsightsPage() {
         <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => goToStep('upload')}
+            // straight from the project list → back to the list; after the preview → back to the preview
+            onClick={() => (app.fromLibrary ? handleReset() : goToStep('upload'))}
             className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"

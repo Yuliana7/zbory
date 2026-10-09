@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { SharedStyle } from '../../../types';
-import { saveTheme, listThemes, deleteTheme, type ThemeRecord } from '../../../utils/themeStore';
+import { saveTheme, updateTheme, listThemes, deleteTheme, type ThemeRecord } from '../../../utils/themeStore';
 import { Collapsible } from '../shared';
 import { CheckIcon, PlusIcon, TrashIcon } from '../../../icons';
 
@@ -35,6 +35,17 @@ export function ThemesPanel({ open, onToggle, style, onApplyTheme }: ThemesPanel
   }, []);
 
   const activeTheme = themes.find((th) => th.id === style.themeId);
+
+  // the theme this look started from: changing it afterwards offers to update that theme
+  const baseTheme = themes.find((th) => th.id === style.baseThemeId);
+  const modified = !!baseTheme && style.themeId !== baseTheme.id;
+
+  const handleUpdate = async () => {
+    if (!baseTheme) return;
+    const updated = await updateTheme(baseTheme.id, style);
+    load();
+    if (updated) onApplyTheme(updated);
+  };
 
   const handleDelete = async (theme: ThemeRecord) => {
     if (!window.confirm(t('themes.deleteConfirm', { name: theme.name }))) return;
@@ -87,6 +98,21 @@ export function ThemesPanel({ open, onToggle, style, onApplyTheme }: ThemesPanel
                 </div>
               );
             })}
+          </div>
+        )}
+
+        {baseTheme && (
+          <div className="space-y-1">
+            <button
+              onClick={handleUpdate}
+              disabled={!modified}
+              className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-sm font-medium transition-colors
+                         bg-indigo-600 hover:bg-indigo-700 text-white disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-default"
+            >
+              <CheckIcon className="w-3.5 h-3.5" />
+              {t('themes.updateCurrent', { name: baseTheme.name })}
+            </button>
+            <p className="text-xs text-gray-400">{modified ? t('themes.updateHint') : t('themes.updateNothing')}</p>
           </div>
         )}
 

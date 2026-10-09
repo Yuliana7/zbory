@@ -118,6 +118,8 @@ export interface SharedStyle {
   fontScale: number;
   /** id of the saved theme this style was last applied from exactly; cleared by any manual edit */
   themeId?: string | null;
+  /** the saved theme this style started from — kept through edits, so that theme can be updated */
+  baseThemeId?: string | null;
 }
 
 // Everything content-related that one card in the editing stack owns
@@ -202,6 +204,8 @@ export interface AppState {
   friends?: FriendJar[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
+  /** analytics was opened straight from the project list — «Назад» returns there, not to the preview */
+  fromLibrary?: boolean;
   /** the analytics «Готові моменти» block was closed — stays closed while this dataset is open */
   momentsDismissed?: boolean;
   /** a saved campaign was changed (rows, helpers) since it was last saved */

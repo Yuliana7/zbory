@@ -31,10 +31,20 @@ export async function saveTheme(input: SaveThemeInput): Promise<ThemeRecord> {
     name: input.name.trim(),
     // Stamped to its own id so the stored style is self-consistent —
     // applying this theme later carries the correct themeId with it.
-    style: { ...input.style, themeId: id },
+    style: { ...input.style, themeId: id, baseThemeId: id },
     createdAt: now,
     updatedAt: now,
   };
+  await getBackend().put(THEME_STORE, theme);
+  return theme;
+}
+
+/** Overwrites an existing theme's look with the given style (same id and name). Cards that
+ * already applied the theme keep their own copy — only later applications see the change. */
+export async function updateTheme(id: string, style: SharedStyle): Promise<ThemeRecord | null> {
+  const existing = ((await getBackend().getAll(THEME_STORE)) as ThemeRecord[]).find((th) => th.id === id);
+  if (!existing) return null;
+  const theme: ThemeRecord = { ...existing, style: { ...style, themeId: id, baseThemeId: id }, updatedAt: Date.now() };
   await getBackend().put(THEME_STORE, theme);
   return theme;
 }
