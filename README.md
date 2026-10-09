@@ -2,14 +2,14 @@
 
 **Turn a Monobank jar statement into a clear picture of your fundraiser — and into ready-to-post graphics for Instagram, Telegram and Stories.**
 
-**[Open the app → yuliana7.github.io/zbory](https://yuliana7.github.io/zbory/)**
+**[Open the app → yuliana7.github.io/zbory](https://yuliana7.github.io/zbory/)** · **[Посібник для волонтерів (українською) →](docs/USER_GUIDE.uk.md)**
 
-> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору, підказки «що робити далі» та 19 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
+> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 19 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
 
 <p align="center">
-  <img src="docs/screenshots/05-export-mobile.png" alt="Editing a progress card on a phone" width="260">
+  <img src="docs/screenshots/20-export-with-photo.jpg" alt="Editing a friends leaderboard card with your own photo, on a phone" width="260">
   &nbsp;&nbsp;
-  <img src="docs/screenshots/06-background-editor.png" alt="Full-screen background editor with pinch-to-zoom and rotate" width="260">
+  <img src="docs/screenshots/14-background-editor.jpg" alt="Full-screen background editor with pinch-to-zoom and rotate" width="260">
 </p>
 
 ## Why this exists
@@ -18,7 +18,7 @@ Running a fundraiser is two jobs. The first is raising the money; the second is 
 
 Monobank jars give you a CSV statement (or an API) and not much else. Zbory takes that data and does the tedious parts:
 
-- **See what's happening** — totals, pace, best day, who donates repeatedly, when your audience is online, and a forecast of when you'll hit the goal.
+- **See what's happening** — totals, pace, best day, who donates repeatedly and who carries the jar, when your audience is online, and how your helpers' own jars are doing.
 - **Know what to post** — it spots share-worthy moments ("100 donations!", "a quarter of the goal", "record day") and links straight to the matching template.
 - **Make the graphic in a minute, on a phone** — pick a template, drop in your own photo, remove what you don't need, download a PNG sized for Stories or a post.
 
@@ -26,21 +26,41 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 
 ## Screenshots
 
+All screenshots use the synthetic demo data from `tests/data/` — the names are made up.
+
 **Step 1 — your projects, and three ways to start a new one**
 
-| Saved projects | New project | On desktop |
-| :---: | :---: | :---: |
-| ![Saved projects, each with Аналітика → and Редагувати](docs/screenshots/07a-step1-projects.png) | ![CSV, Monobank API or manual entry](docs/screenshots/07b-step1-new-project.png) | ![Step 1 on desktop](docs/screenshots/01-upload.png) |
+| Start | Saved projects | The «Редагувати» menu | Desktop |
+| :---: | :---: | :---: | :---: |
+| ![CSV, Monobank API or manual entry](docs/screenshots/01-start.jpg) | ![Saved projects, each with Аналітика → and Редагувати](docs/screenshots/04-projects.jpg) | ![Menu: update from Monobank, add CSV, edit rows, goal, friends, delete](docs/screenshots/05-edit-menu.jpg) | ![Project list on desktop](docs/screenshots/22-desktop-projects.jpg) |
 
-**The rest of the flow**
+**Check the data, add a goal and friendly jars** — a fresh project opens on one page: the first rows of data are always open, and the goal, friends and "add more data" are rows that open on tap.
 
-| Preview page, in sections (data, goal, friendly jars, add data) | Analytics |
+| Preview | Goal and friends opened |
 | :---: | :---: |
-| ![Preview of the parsed statement with goal and friendly jars](docs/screenshots/02-preview.png) | ![Analytics page with friends chart, insights and charts](docs/screenshots/03-analytics.png) |
+| <img src="docs/screenshots/02-preview.jpg" alt="Preview with collapsed sections" width="260"> | <img src="docs/screenshots/03-preview-open.jpg" alt="Goal and friendly jars with targets" width="260"> |
 
-| Template gallery |
-| :---: |
-| ![Template gallery](docs/screenshots/04-gallery.png) |
+**Step 2 — analytics**
+
+| Overview and ready-to-post moments | Friendly jars chart | Who holds the fundraiser up |
+| :---: | :---: | :---: |
+| ![Moments and total](docs/screenshots/06-analytics.jpg) | ![Friends chart with targets](docs/screenshots/07-analytics-friends.jpg) | ![Audience card](docs/screenshots/08-analytics-audience.jpg) |
+
+**Steps 3–4 — pick templates, edit, export**
+
+| Gallery | Friendly jars templates | Editor |
+| :---: | :---: | :---: |
+| ![Template gallery](docs/screenshots/09-gallery.jpg) | ![The friends group in the gallery](docs/screenshots/10-gallery-friends.jpg) | ![Editing the card](docs/screenshots/11-export.jpg) |
+
+| Friends picker | Themes | Background |
+| :---: | :---: | :---: |
+| ![Choose which friends are on the card](docs/screenshots/12-export-friends.jpg) | ![Saved themes](docs/screenshots/15-export-themes.jpg) | ![Your own photo](docs/screenshots/13-export-background.jpg) |
+
+The exported PNG (1080×1920 here):
+
+<p align="center"><img src="docs/screenshots/card-friends-leaderboard.png" alt="Exported friends leaderboard card" width="260"></p>
+
+On desktop: [preview](docs/screenshots/21-desktop-preview.jpg) · [analytics](docs/screenshots/23-desktop-analytics.jpg).
 
 Importing from the Monobank API has its own [step-by-step guide](#importing-from-monobank-step-by-step) below.
 
@@ -49,10 +69,11 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 ### Analytics
 - Parses the CSV statement exported from a Monobank jar, **or fetches it straight from the Monobank API**, or lets you type donations in by hand.
 - Total raised, donation count, typical (median) vs. average donation, most frequent amount, best day, time-of-day activity, campaign duration.
-- Cumulative growth chart and a rolling 30-day chart of donations and withdrawals.
+- Cumulative growth chart and a daily chart of donations and withdrawals for up to the last 30 days (a younger fundraiser shows only the days it has had). The «На рахунку» / refunds figures appear only when there are withdrawals or refunds.
 - Repeat donors and most generous donors; anonymous donations are counted but kept out of the lists.
-- Goal tracking with a completion forecast, plus actionable suggestions ("best time to post", "ask for a concrete amount").
-- **Share-worthy moments** — milestones and records that jump you straight to the right template.
+- **«Хто тримає збір»:** how much of the jar the regular donors and the top three carry, with a one-tap shortcut to a thank-you template.
+- Goal: shown as progress on the templates and used to detect milestones.
+- **Share-worthy moments** — milestones and records that jump you straight to the right template (the block can be dismissed; it stays dismissed while you move around the same fundraiser).
 - **Refund detection** — Monobank doesn't list refunds in the statement; the app infers them from balance vs. donations vs. withdrawals.
 
 ### Templates & editing
@@ -62,7 +83,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - **Your own background** with a full-screen, gesture-isolated editor: drag, pinch-to-zoom, two-finger rotate, brightness and opacity. The page doesn't scroll or move the photo by accident while you edit. Large phone photos are scaled down to 3000 px on upload (about 1:1 at maximum zoom), which keeps exports and saved projects light.
 - 8 colour palettes, font scaling, per-card date ranges.
 - **Series:** build several cards at once; they share one background and style (a card can detach and keep its own).
-- **Themes:** save the current look under a name and switch between looks across fundraisers. Applying a theme copies it, so editing or deleting a theme never changes a card you already made.
+- **Themes:** save the current look under a name and switch between looks across fundraisers. Applying a theme copies it, so editing or deleting a theme never changes a card you already made. A theme can also be updated with your latest tweaks («Оновити тему»).
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
@@ -74,7 +95,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 Skip the CSV: paste your personal API token and the app pulls a jar's donations directly — jar picker, date range, review table, and later **Оновити з Monobank** to fetch only what's new. The token is never stored. See the [step-by-step guide](#importing-from-monobank-step-by-step).
 
 ### Friendly jars (дружні збори)
-Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals.
+Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals. Helper names are unique (case and extra spaces are ignored). Edits are explicit: **Зберегти друзів** writes them to the project (to the library too, once the project is saved), and leaving the page with unsaved edits asks first.
 
 Each helper can also have a **target**. The bar then shows that jar's own progress (`raised / target`), not how it compares with the biggest helper. Going past the target is fine: the bar fills up, the real percentage (e.g. `142%`) is shown, and the helper gets a green ✓. On the leaderboard template, a *Показувати на картці* checklist picks which helpers appear, and a removable "reached the target: 2 of 3" line summarises it. Helpers without a target keep the old relative bars until any helper gets one.
 
@@ -97,11 +118,11 @@ Each helper can also have a **target**. The bar then shows that jar's own progre
 No CSV needed: the app can read a jar's donations straight from Monobank with a personal API token. It takes about a minute the first time.
 
 <p align="center">
-  <img src="docs/screenshots/08-monobank-token.png" alt="Instructions and token field" width="230">
+  <img src="docs/screenshots/16-monobank-token.jpg" alt="Instructions and token field" width="230">
   &nbsp;
-  <img src="docs/screenshots/09-monobank-jars.png" alt="Choosing a jar" width="230">
+  <img src="docs/screenshots/17-monobank-jars.jpg" alt="Choosing a jar" width="230">
   &nbsp;
-  <img src="docs/screenshots/10-monobank-range.png" alt="Choosing the date range" width="230">
+  <img src="docs/screenshots/18-monobank-range.jpg" alt="Choosing the date range" width="230">
 </p>
 
 ### 1. Get a token
@@ -120,7 +141,7 @@ No CSV needed: the app can read a jar's donations straight from Monobank with a 
 Open **Мої збори → Редагувати → Оновити з Monobank** on that project (you'll see "Monobank · <jar name>" under its name). Paste a token again, and the app fetches from the day of your newest saved donation and merges the result, skipping anything already there.
 
 <p align="center">
-  <img src="docs/screenshots/11-project-menu.png" alt="The Редагувати menu on a saved project" width="230">
+  <img src="docs/screenshots/05-edit-menu.jpg" alt="The Редагувати menu on a saved project" width="230">
 </p>
 
 ### Good to know
@@ -164,8 +185,9 @@ src/
   components/
     templates/        the 19 card templates + shared card shell
     insights/         charts and analytics panels
-    upload/           new-project options, preview table, manual entry, Monobank import,
-                      saved-project list and its Редагувати menu
+    upload/           new-project options, the one-page preview (collapsible sections), manual
+                      entry, Monobank import, saved-project list and its Редагувати menu;
+                      screens/ holds the home page and the focused goal / friends / CSV screens
   context/          app state (reducer) and session wiring
   utils/            parsing, aggregation, insights, storage, export, template config
   i18n/locales/uk/  all UI strings
@@ -202,8 +224,12 @@ Pushes to `main` build and deploy to GitHub Pages via `.github/workflows/deploy.
 ## Roadmap
 
 - **Custom template builder** — compose your own card from the available elements.
-- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual unless Monobank adds it.
+- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual. Unofficial, community-documented endpoints can read a helper jar's amount from its public link, but they are undocumented, rate-limited and not callable from a browser (no CORS), so the app deliberately doesn't depend on them.
 
 ## Contributing
 
 Issues and pull requests are welcome. Please run `npm run lint`, `npm run test:render` and `npm run build` before opening a PR.
+
+## License
+
+[MIT](LICENSE) © 2026 Yuliana Romaniv. Free to use, copy, modify and distribute, with the license notice kept. The Inter font bundled with the app is licensed separately under the SIL Open Font License.
