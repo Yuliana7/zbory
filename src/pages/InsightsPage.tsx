@@ -132,7 +132,6 @@ export function InsightsPage() {
       <InsightsPanel
         insights={perJar?.insights ?? app.insights}
         aggregates={perJar?.aggregates ?? app.aggregates}
-        goal={isMerged ? app.goal : undefined}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
         friends={isMerged ? (app.friends ?? []) : undefined}
