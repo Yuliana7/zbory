@@ -31,6 +31,7 @@ import {
 } from '../../icons';
 import { CardCanvas } from './CardCanvas';
 import { ElementsOverlay } from './ElementsOverlay';
+import { ToggleRow } from './shared';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
 import { ThemesPanel } from './panels/ThemesPanel';
@@ -501,6 +502,18 @@ function ExportPageInner() {
             onShowSafeZonesChange={setShowSafeZones}
           />
 
+          {/* its own switch, so changing just this card's font size doesn't mean opening the background panel */}
+          {cards.length > 1 && (
+            <div className="rounded-xl border border-gray-200 bg-white p-4">
+              <ToggleRow
+                label={t('stack.unlinkStyle')}
+                value={styleUnlinked}
+                onChange={(v) => updateCard({ styleOverride: v ? { ...sharedStyle } : null })}
+              />
+              <p className="mt-1 text-xs text-gray-400">{t('stack.unlinkHint')}</p>
+            </div>
+          )}
+
           <ThemesPanel
             open={openSections.has('themes')}
             onToggle={() => toggleSection('themes')}
@@ -514,9 +527,6 @@ function ExportPageInner() {
             style={style}
             onPatchStyle={patchStyle}
             styleBadge={styleBadge}
-            multiCard={cards.length > 1}
-            styleUnlinked={styleUnlinked}
-            onToggleUnlink={(v) => updateCard({ styleOverride: v ? { ...sharedStyle } : null })}
             bgInputRef={bgInputRef}
             onBgUpload={handleBgUpload}
             onEditPosition={() => setBackgroundEditorOpen(true)}

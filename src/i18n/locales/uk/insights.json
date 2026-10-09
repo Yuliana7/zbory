@@ -30,7 +30,8 @@
     "donations_many": "Вже {{count}} донатів",
     "donations_other": "Вже {{count}} донатів",
     "total": "Перетнули {{amount}}",
-    "recordDay": "Рекордний день — {{amount}}"
+    "recordDay": "Рекордний день — {{amount}}",
+    "dismiss": "Сховати"
   },
   "friends": {
     "title": "Друзі збору",
@@ -54,7 +55,11 @@
     "bestDay": "Найкращий день",
     "withdrawalDay": "День зняття",
     "withdrawalsLabel": "Зняття коштів",
-    "totalWithdrawn": "Знято всього"
+    "totalWithdrawn": "Знято всього",
+    "dailyLabelShort_one": "Донати за {{count}} день",
+    "dailyLabelShort_few": "Донати за {{count}} дні",
+    "dailyLabelShort_many": "Донати за {{count}} днів",
+    "dailyLabelShort_other": "Донати за {{count}} днів"
   },
   "comments": {
     "topEmojis": "🎭 Найпопулярніші емоджі",

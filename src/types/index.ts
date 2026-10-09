@@ -202,6 +202,8 @@ export interface AppState {
   friends?: FriendJar[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
+  /** the analytics «Готові моменти» block was closed — stays closed while this dataset is open */
+  momentsDismissed?: boolean;
   /** a saved campaign was changed (rows, helpers) since it was last saved */
   unsavedChanges?: boolean;
   originalFileName: string | null;

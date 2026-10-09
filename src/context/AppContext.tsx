@@ -3,6 +3,7 @@ import {
   useContext,
   useReducer,
   useCallback,
+  useRef,
   type ReactNode,
   type Dispatch,
 } from 'react';
@@ -74,6 +75,7 @@ const INITIAL_STATE: FullState = {
 export type AppAction =
   | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; unsaved?: boolean } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
+  | { type: 'MOMENTS_DISMISSED' }
   // Before the fetched rows are reviewed: remember which jar they came from (and its goal)
   | { type: 'MONOBANK_SOURCE_SET'; payload: { jar?: MonobankJarRef; goal?: number } }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
@@ -128,8 +130,12 @@ function appReducer(state: FullState, action: AppAction): FullState {
           friends: action.payload.friends,
           monobankJar: action.payload.monobankJar,
           unsavedChanges: action.payload.unsaved ?? false,
+          momentsDismissed: false, // a different dataset gets its moments back
         },
       };
+
+    case 'MOMENTS_DISMISSED':
+      return { ...state, app: { ...state.app, momentsDismissed: true } };
 
     case 'MONOBANK_SOURCE_SET':
       return { ...state, app: { ...state.app, monobankJar: action.payload.jar, goal: action.payload.goal } };
@@ -200,7 +206,7 @@ interface AppContextValue {
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }) => MergeResult | null;
   handleMonobankSource: (jar?: MonobankJarRef, goal?: number) => void;
-  handleFriendsChange: (friends: FriendJar[]) => void;
+  handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
   goToStep: (step: AppState['step']) => void;
 }
 
@@ -210,6 +216,9 @@ const AppContext = createContext<AppContextValue | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
   const [state, dispatch] = useReducer(appReducer, INITIAL_STATE);
+  // latest state for callbacks that must stay stable (and not close over stale data)
+  const stateRef = useRef(state);
+  stateRef.current = state;
   const { t } = useTranslation('common');
   const { t: tInsights } = useTranslation('insights');
 
@@ -532,10 +541,30 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
 
-  const handleFriendsChange = useCallback((friends: FriendJar[]) => {
+  // Helpers are stored with the open project right away when it is already in the library, so
+  // «Зберегти друзів» is a real save; a project that was never saved keeps them for this session
+  // only (it has no name yet — the top «Зберегти» puts it in the library).
+  const handleFriendsChange = useCallback(async (friends: FriendJar[]) => {
     dispatch({ type: 'FRIENDS_UPDATED', payload: friends });
     updateSessionFriends(friends);
-  }, []);
+    const { app } = stateRef.current;
+    if (!app.activeCampaignId || !app.activeCampaignName || !app.rawData) return;
+    try {
+      const meta = await saveCampaign({
+        id: app.activeCampaignId,
+        name: app.activeCampaignName,
+        rawData: app.rawData,
+        fileName: app.originalFileName,
+        goal: app.goal,
+        style: app.stackStyle ?? undefined,
+        friends,
+        monobankJar: app.monobankJar,
+      });
+      dispatch({ type: 'CAMPAIGN_SAVED', payload: { id: meta.id, name: meta.name } });
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
+    }
+  }, [t]);
 
   const goToStep = useCallback(
     (step: AppState['step']) => {

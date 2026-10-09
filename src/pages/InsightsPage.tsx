@@ -9,7 +9,7 @@ import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
-import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+import { ArrowLeftIcon, ArrowRightIcon, XIcon } from '../icons';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
@@ -90,11 +90,19 @@ export function InsightsPage() {
       )}
 
       {/* Share-worthy moments — one tap jumps to the matching template */}
-      {isMerged && moments.length > 0 && (
+      {isMerged && moments.length > 0 && !app.momentsDismissed && (
         <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3">
-            {t('moments.title')}
-          </p>
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">{t('moments.title')}</p>
+            <button
+              onClick={() => dispatch({ type: 'MOMENTS_DISMISSED' })}
+              title={t('moments.dismiss')}
+              aria-label={t('moments.dismiss')}
+              className="-m-1 p-1 text-amber-500 hover:text-amber-800 transition-colors"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {moments.map((m) => (
               <button
