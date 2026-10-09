@@ -1,6 +1,6 @@
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations, getCampaignDuration, getTimeBuckets } from '../../src/utils/dataAggregator';
-import { generateInsights, generateActionableInsights } from '../../src/utils/insightGenerator';
+import { generateInsights } from '../../src/utils/insightGenerator';
 import dict from '../../src/i18n/locales/uk/insights.json';
 import { loadRawDonations } from './testFixture';
 
@@ -61,13 +61,7 @@ for (const ins of generateInsights(aggregates, t)) {
   if (ins.description) console.log(`   ${ins.description}`);
 }
 
-console.log('\n─── Що робити далі (goal = 20 000) ───');
-for (const a of generateActionableInsights(aggregates, t, 20000)) {
-  console.log(`\n${a.icon} ${a.title} — ${a.value}`);
-  if (a.description) console.log(`   ${a.description}`);
-}
-
-const allText = JSON.stringify([generateInsights(aggregates, t), generateActionableInsights(aggregates, t, 20000)]);
+const allText = JSON.stringify(generateInsights(aggregates, t));
 assertEq('no missing i18n keys/vars', allText.includes('<<MISSING'), false);
 
 // duration counts calendar days inclusively: one day of donations is 1 day, never 0

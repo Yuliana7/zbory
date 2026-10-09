@@ -148,7 +148,6 @@ export interface Insight {
   description?: string;
   // Optional breakdown lines rendered inside the card (e.g. mode/median/mean)
   stats?: Array<{ icon: string; label: string; value: string }>;
-  type?: 'insight' | 'action'; // 'action' = "Що робити далі?" recommendations
 }
 
 // Template types

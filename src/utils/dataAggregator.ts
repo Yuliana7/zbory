@@ -266,25 +266,6 @@ export function findBestDay(aggregates: Aggregates): { date: string; amount: num
 }
 
 /**
- * Finds the peak hour (most donations)
- */
-export function findPeakHour(aggregates: Aggregates): { hour: number; count: number } | null {
-  if (aggregates.byHour.size === 0) return null;
-
-  let peakHour = 0;
-  let peakCount = 0;
-
-  for (const [hour, count] of aggregates.byHour.entries()) {
-    if (count > peakCount) {
-      peakCount = count;
-      peakHour = hour;
-    }
-  }
-
-  return { hour: peakHour, count: peakCount };
-}
-
-/**
  * Formats amount as Ukrainian currency
  */
 export function formatCurrency(amount: number): string {

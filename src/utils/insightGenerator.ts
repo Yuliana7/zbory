@@ -4,12 +4,10 @@ import {
   formatUkrainianDate,
   getDayOfWeek,
   findBestDay,
-  findPeakHour,
   getCampaignDuration,
   getTimeBuckets,
 } from './dataAggregator';
 import type { TimeBucketKey } from './dataAggregator';
-import { defaultAskUnit } from './dataAggregator';
 
 type TFn = (key: string, options?: Record<string, unknown>) => string;
 
@@ -21,7 +19,6 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
     title: t('generated.totalTitle'),
     value: formatCurrency(aggregates.totalAmount),
     description: t('generated.totalDesc', { count: aggregates.donationCount }),
-    type: 'insight',
   });
 
   insights.push(buildTypicalDonationInsight(aggregates, t));
@@ -35,7 +32,6 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
       title: t('generated.bestDayTitle'),
       value: formatUkrainianDate(bestDate),
       description: t('generated.bestDayDesc', { day: dayName, amount: formatCurrency(bestDay.amount) }),
-      type: 'insight',
     });
   }
 
@@ -51,7 +47,6 @@ export function generateInsights(aggregates: Aggregates, t: TFn): Insight[] {
       from: formatUkrainianDate(aggregates.firstDate),
       to: formatUkrainianDate(aggregates.lastDate),
     }),
-    type: 'insight',
   });
 
   return insights;
@@ -103,7 +98,6 @@ function buildTypicalDonationInsight(aggregates: Aggregates, t: TFn): Insight {
       { icon: '📈', label: t('generated.typical.mean'), value: formatCurrency(Math.round(mean)) },
     ],
     description: `${rangeSentence} ${shapeSentence}`,
-    type: 'insight',
   };
 }
 
@@ -129,155 +123,7 @@ function buildTimeBucketsInsight(aggregates: Aggregates, t: TFn): Insight | null
       label: t(`generated.timeBuckets.${b.key}`),
       value: t('generated.timeBuckets.donations', { count: b.count }),
     })),
-    type: 'insight',
   };
-}
-
-export function generateActionableInsights(aggregates: Aggregates, t: TFn, goal?: number): Insight[] {
-  const actions: Insight[] = [];
-
-  const peakHour = findPeakHour(aggregates);
-  if (peakHour) {
-    const now = new Date();
-    const isStillToday = now.getHours() < peakHour.hour;
-    const descKey = isStillToday ? 'generated.actionBestTimeDesc_today' : 'generated.actionBestTimeDesc_daily';
-    actions.push({
-      icon: '⏰',
-      title: t('generated.actionBestTimeTitle'),
-      value: `${peakHour.hour}:00–${peakHour.hour + 1}:00`,
-      description: t(descKey, {
-        hour: peakHour.hour,
-        hourEnd: peakHour.hour + 1,
-        count: peakHour.count,
-        total: aggregates.donationCount,
-        pct: Math.round((peakHour.count / aggregates.donationCount) * 100),
-      }),
-      type: 'action',
-    });
-  }
-
-  const momentumInsight = buildMomentumInsight(aggregates, t);
-  if (momentumInsight) actions.push(momentumInsight);
-
-  if (goal && aggregates.totalAmount < goal) {
-    // The abstract remaining sum, converted into a countable ask volunteers
-    // can put straight into a story: "ще 42 донати по 100 ₴"
-    const remaining = goal - aggregates.totalAmount;
-    const unit = defaultAskUnit(aggregates.medianDonation);
-    const askCount = Math.ceil(remaining / unit);
-    actions.push({
-      icon: '🧮',
-      title: t('generated.actionAskTitle'),
-      value: t('generated.actionAskValue', { count: askCount, unit: formatCurrency(unit) }),
-      description: t('generated.actionAskDesc', {
-        remaining: formatCurrency(Math.round(remaining)),
-        unit: formatCurrency(unit),
-      }),
-      type: 'action',
-    });
-
-    const forecast = estimateDaysToGoal(aggregates, goal);
-    if (forecast !== null) {
-      const eta = new Date();
-      eta.setDate(eta.getDate() + forecast.days);
-      actions.push({
-        icon: '🎯',
-        title: t('generated.actionGoalTitle'),
-        value: t('generated.actionGoalValue', { count: forecast.days }),
-        description: t('generated.actionGoalDesc', {
-          remaining: formatCurrency(Math.round(forecast.remaining)),
-          rate: formatCurrency(Math.round(forecast.dailyRate)),
-          date: formatUkrainianDate(eta),
-        }),
-        type: 'action',
-      });
-    }
-  }
-
-  const total = aggregates.donationCount;
-  const smallPct = (aggregates.smallDonations / total) * 100;
-  if (smallPct > 60) {
-    actions.push({
-      icon: '💸',
-      title: t('generated.actionTipTitle'),
-      value: t('generated.actionTipValue', { pct: Math.round(smallPct) }),
-      description: t('generated.actionTipDesc', { count: aggregates.smallDonations, total }),
-      type: 'action',
-    });
-  }
-
-  return actions;
-}
-
-// Compares the last day against the average of up to 7 preceding days —
-// a single-day-to-single-day comparison was too noisy to act on.
-function buildMomentumInsight(aggregates: Aggregates, t: TFn): Insight | null {
-  const sortedDates = [...aggregates.byDate.keys()].sort();
-  if (sortedDates.length < 2) return null;
-
-  const lastDate = sortedDates[sortedDates.length - 1];
-  const lastAmount = aggregates.byDate.get(lastDate)!.amount;
-
-  const prevDates = sortedDates.slice(Math.max(0, sortedDates.length - 8), -1);
-  const prevAvg =
-    prevDates.reduce((sum, d) => sum + aggregates.byDate.get(d)!.amount, 0) / prevDates.length;
-
-  if (prevAvg === 0) return null;
-  const changePct = Math.round(((lastAmount - prevAvg) / prevAvg) * 100);
-
-  // `count` drives the i18next plural form (1 previous day vs an average of N)
-  const proof = {
-    last: formatCurrency(Math.round(lastAmount)),
-    avg: formatCurrency(Math.round(prevAvg)),
-    days: prevDates.length,
-    count: prevDates.length,
-  };
-
-  if (changePct <= -20) {
-    return {
-      icon: '🐢',
-      title: t('generated.momentumDownTitle'),
-      value: t('generated.momentumDownValue', { pct: Math.abs(changePct), count: prevDates.length }),
-      description: t('generated.momentumDownDesc', proof),
-      type: 'action',
-    };
-  }
-
-  if (changePct >= 20) {
-    return {
-      icon: '🚀',
-      title: t('generated.momentumUpTitle'),
-      value: t('generated.momentumUpValue', { pct: changePct, count: prevDates.length }),
-      description: t('generated.momentumUpDesc', proof),
-      type: 'action',
-    };
-  }
-
-  return null;
-}
-
-function estimateDaysToGoal(
-  aggregates: Aggregates,
-  goal: number,
-): { days: number; dailyRate: number; remaining: number } | null {
-  const { cumulative, totalAmount } = aggregates;
-  if (cumulative.length < 3) return null;
-
-  const windowSize = Math.min(7, cumulative.length);
-  const recent = cumulative.slice(-windowSize);
-  const firstEntry = recent[0];
-  const lastEntry = recent[recent.length - 1];
-
-  const startDate = new Date(firstEntry.date);
-  const endDate = new Date(lastEntry.date);
-  const daysDiff = Math.max(1, (endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
-  const amountGain = lastEntry.total - firstEntry.total;
-
-  if (amountGain <= 0) return null;
-
-  const dailyRate = amountGain / daysDiff;
-  const remaining = goal - totalAmount;
-  return { days: Math.ceil(remaining / dailyRate), dailyRate, remaining };
 }
 
 export function generateThankYouMessage(totalAmount: number, donationCount: number, t: TFn): string {
