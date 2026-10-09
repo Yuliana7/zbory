@@ -1,21 +1,20 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { NewProjectOptions } from '../components/upload/NewProjectOptions';
 import type { CampaignAction } from '../components/upload/CampaignActionsSheet';
 import { ProjectPreview } from '../components/upload/ProjectPreview';
-import { CampaignList } from '../components/upload/CampaignList';
-import { EmptyState } from '../components/upload/EmptyState';
+import { HomeScreen } from '../components/upload/screens/HomeScreen';
+import { GoalScreen } from '../components/upload/screens/GoalScreen';
+import { FriendsScreen } from '../components/upload/screens/FriendsScreen';
+import { AddCsvScreen } from '../components/upload/screens/AddCsvScreen';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { MonobankImport, type MonobankFetchResult } from '../components/upload/MonobankImport';
 import { rawDonationsToManualRows } from '../utils/csvExporter';
-import { loadSession, clearSession } from '../utils/session';
 import { updateRangeStart } from '../utils/monobankApi';
-import { setSectionHash, type SectionId } from '../utils/sectionAnchors';
-import { listCampaigns, type CampaignMeta } from '../utils/campaignStore';
+import type { CampaignMeta } from '../utils/campaignStore';
 import type { MergeResult } from '../utils/mergeDonations';
 import type { ManualRow } from '../types';
-import { ArrowLeftIcon, CheckCircleIcon, SaveIcon, WarningIcon, XIcon } from '../icons';
+import { ArrowLeftIcon, CheckCircleIcon, WarningIcon } from '../icons';
 
 /** 180 → "3 год", 90 → "1 год 30 хв", -5 → "5 хв" (direction doesn't matter to the reader). */
 function formatShift(minutes: number): string {
@@ -25,37 +24,31 @@ function formatShift(minutes: number): string {
   return [h > 0 ? `${h} год` : '', m > 0 ? `${m} хв` : ''].filter(Boolean).join(' ');
 }
 
+/** What «Редагувати» opened a saved project for. Each one is a screen of its own. */
+type Focus = 'goal' | 'friends' | 'csv' | 'rows';
+
+/** Step 1 is a small state machine over what app state already says: nothing loaded → the home
+ * screen (or one of the ways to start a project); a project loaded → its preview, or the focused
+ * screen «Редагувати» asked for. */
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
-  const { state, handleFileSelect, handleProceedToInsights, handleReset, handleManualDataProceed, handleRestoreSession, handleMergeFile, handleMergeRows, handleMonobankSource, handleLoadCampaign } =
+  const { state, handleProceedToInsights, handleReset, handleManualDataProceed, handleMergeFile, handleMergeRows, handleMonobankSource, handleLoadCampaign } =
     useAppContext();
   const { app, isLoading } = state;
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
-  const [savedSession, setSavedSession] = useState(() => loadSession());
   const [mergeResult, setMergeResult] = useState<MergeResult | null>(null);
   const [showManual, setShowManual] = useState(false);
-  // Step 1 has two views: the saved projects and the ways to start a new one
-  const [tab, setTab] = useState<'saved' | 'new'>('saved');
   // Monobank API: the import screen, the review table of what it returned, and the
   // screen shown over an already-loaded preview — 'update' refreshes the jar the
   // project came from, 'link' picks a jar for a project that has none yet
   const [showMonobank, setShowMonobank] = useState(false);
   const [monobankRows, setMonobankRows] = useState<ManualRow[] | null>(null);
   const [monobankMerge, setMonobankMerge] = useState<'update' | 'link' | null>(null);
-  // null = not loaded yet (avoids flashing the empty state before we know)
-  const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
-
-  // UploadPage doesn't unmount between "preview" and "default" (both are just
-  // branches of this same component while app.step stays 'upload') — so a
-  // campaign saved from the preview screen wouldn't show up on cancel without
-  // this refetch. Re-running whenever donations clear covers both that path
-  // and the initial mount, matching the fresh listCampaigns() a real remount
-  // (e.g. coming back via Insights → "Назад") already gets for free.
-  useEffect(() => {
-    if (app.donations) return;
-    listCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
-  }, [app.donations]);
+  // «Редагувати» on a saved project opens a focused screen; leaving it without a data change goes
+  // back to the project list, whereas a change of data continues on the preview (to review/save)
+  const [focus, setFocus] = useState<Focus | null>(null);
+  const [fromList, setFromList] = useState(false);
 
   const invalidRowCount = useMemo(() => {
     if (!app.rawData) return 0;
@@ -66,16 +59,27 @@ export function UploadPage() {
     }).length;
   }, [app.rawData]);
 
-  const handleStartEdit = () => {
-    if (!app.rawData) return;
-    setEditRows(rawDonationsToManualRows(app.rawData));
+  const closeFocus = () => {
+    setFocus(null);
+    setEditRows(null);
+    setMonobankMerge(null);
+    if (fromList) {
+      setFromList(false);
+      handleReset();
+    }
   };
 
-  const handleCancelEdit = () => setEditRows(null);
+  // data changed → the preview takes over (it has «Зберегти зміни»)
+  const continueOnPreview = () => {
+    setFocus(null);
+    setEditRows(null);
+    setMonobankMerge(null);
+    setFromList(false);
+  };
 
   const handleEditProceed = (rows: ManualRow[]) => {
     handleManualDataProceed(rows);
-    setEditRows(null);
+    continueOnPreview();
   };
 
   const handleManualProceed = (rows: ManualRow[]) => {
@@ -103,28 +107,37 @@ export function UploadPage() {
     const result = handleMergeRows(rows, { monobankJar: jar });
     if (result) {
       setMergeResult(result);
-      setMonobankMerge(null);
+      continueOnPreview();
     }
   };
 
-  // «Змінити» on a saved project: open it on the preview, already scrolled to the section for
-  // the chosen option (the URL hash names it). Whatever the option, the changes that follow
-  // are saved from the preview with «Зберегти зміни».
-  const SECTION_FOR_ACTION: Record<CampaignAction, SectionId> = {
-    edit: 'preview',
-    csv: 'add-data',
-    monobank: 'add-data',
-    goal: 'goal',
-    friends: 'friends',
-  };
-  const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
-    setSectionHash(SECTION_FOR_ACTION[action]);
-    const loaded = await handleLoadCampaign(campaign.id);
-    if (!loaded) return;
-    setMergeResult(null);
+  const handleCsvMerge = async (file: File): Promise<boolean> => {
+    const result = await handleMergeFile(file);
+    if (result) {
+      setMergeResult(result);
+      continueOnPreview();
+    }
+    return !!result;
   };
 
-  // Edit mode: overlay the editor over whatever else would show
+  // «Редагувати» → an option: load the project, then show the screen for that option. The screen is
+  // chosen before the load finishes so the preview never flashes in between.
+  const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
+    setMergeResult(null);
+    setFromList(true);
+    if (action === 'monobank') setMonobankMerge(campaign.monobankJar ? 'update' : 'link');
+    else setFocus(action === 'edit' ? 'rows' : action === 'csv' ? 'csv' : action);
+    const loaded = await handleLoadCampaign(campaign.id);
+    if (!loaded) {
+      setFocus(null);
+      setMonobankMerge(null);
+      setFromList(false);
+      return;
+    }
+    if (action === 'edit') setEditRows(rawDonationsToManualRows(loaded.rawData));
+  };
+
+  // Editing rows: the table over whatever else would show
   if (editRows) {
     return (
       <div className="py-8">
@@ -134,34 +147,41 @@ export function UploadPage() {
         <ManualEntryEditor
           initialRows={editRows}
           onProceed={handleEditProceed}
-          onCancel={handleCancelEdit}
+          onCancel={closeFocus}
           isLoading={isLoading}
         />
       </div>
     );
   }
 
-  // Bring newer donations into a loaded project from Monobank
-  if (app.donations && monobankMerge) {
-    return (
-      <div className="py-8">
-        {monobankMerge === 'update' && app.monobankJar ? (
-          <MonobankImport
-            mode="update"
-            jar={app.monobankJar}
-            fromDate={app.rawData ? (updateRangeStart(app.rawData) ?? undefined) : undefined}
-            onFetched={handleMonobankMerged}
-            onCancel={() => setMonobankMerge(null)}
-          />
-        ) : (
-          <MonobankImport mode="import" onFetched={handleMonobankMerged} onCancel={() => setMonobankMerge(null)} />
-        )}
-      </div>
-    );
-  }
-
-  // Preview after file is parsed (upload or manual entry)
   if (app.donations) {
+    // a saved project is open for «Редагувати рядки», the table is about to appear
+    if (focus === 'rows') return null;
+
+    // Bring newer donations into a loaded project from Monobank
+    if (monobankMerge) {
+      return (
+        <div className="py-8">
+          {monobankMerge === 'update' && app.monobankJar ? (
+            <MonobankImport
+              mode="update"
+              jar={app.monobankJar}
+              fromDate={app.rawData ? (updateRangeStart(app.rawData) ?? undefined) : undefined}
+              onFetched={handleMonobankMerged}
+              onCancel={closeFocus}
+            />
+          ) : (
+            <MonobankImport mode="import" onFetched={handleMonobankMerged} onCancel={closeFocus} />
+          )}
+        </div>
+      );
+    }
+
+    if (focus === 'goal') return <GoalScreen onDone={closeFocus} />;
+    if (focus === 'friends') return <FriendsScreen onDone={closeFocus} />;
+    if (focus === 'csv') return <AddCsvScreen onFile={handleCsvMerge} onBack={closeFocus} isLoading={isLoading} />;
+
+    // Preview after file is parsed (upload, manual entry, Monobank)
     return (
       <div className="py-8">
         {mergeResult && (
@@ -190,12 +210,10 @@ export function UploadPage() {
           invalidRowCount={invalidRowCount}
           onProceed={handleProceedToInsights}
           onBack={handleReset}
-          onEdit={app.rawData ? handleStartEdit : undefined}
-          onMergeFile={async (file) => {
-            const result = await handleMergeFile(file);
-            if (result) setMergeResult(result);
-            return !!result;
-          }}
+          onEdit={
+            app.rawData ? () => setEditRows(rawDonationsToManualRows(app.rawData!)) : undefined
+          }
+          onMergeFile={handleCsvMerge}
           onMonobank={() => {
             setMonobankMerge(app.monobankJar ? 'update' : 'link');
             setMergeResult(null);
@@ -254,87 +272,11 @@ export function UploadPage() {
     );
   }
 
-  // Default: saved campaigns (if any) go first, with a compact way to add a
-  // new one below; first-run volunteers with no saved campaigns get a
-  // welcoming empty state with a short explainer instead.
   return (
-    <div className="py-8 sm:py-12">
-      {/* Restore autosaved session */}
-      {savedSession && (
-        <div className="max-w-xl mx-auto mb-8 flex items-center gap-3 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-xl animate-fade-in">
-          <SaveIcon className="w-5 h-5 text-indigo-500 shrink-0" />
-          <div className="flex-1 min-w-0 text-left">
-            <p className="text-sm font-medium text-indigo-900">
-              {t('restore.title', {
-                name: savedSession.fileName ?? t('restore.manualData'),
-                count: savedSession.rawData.length,
-              })}
-            </p>
-            <p className="text-xs text-indigo-500 mt-0.5">
-              {new Date(savedSession.savedAt).toLocaleString('uk-UA')}
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              if (!handleRestoreSession()) {
-                clearSession();
-                setSavedSession(null);
-              }
-            }}
-            className="shrink-0 px-3 py-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg transition-colors"
-          >
-            {t('restore.button')}
-          </button>
-          <button
-            onClick={() => {
-              clearSession();
-              setSavedSession(null);
-            }}
-            title={t('restore.dismiss')}
-            className="shrink-0 p-1.5 text-indigo-400 hover:text-indigo-600 rounded-lg transition-colors"
-          >
-            <XIcon className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {campaigns === null ? null : campaigns.length > 0 ? (
-        <>
-          <div role="tablist" className="max-w-md mx-auto mb-8 flex p-1 bg-gray-100 rounded-xl">
-            {(['saved', 'new'] as const).map((key) => (
-              <button
-                key={key}
-                role="tab"
-                aria-selected={tab === key}
-                onClick={() => setTab(key)}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                {t(`view.${key}`)}
-                {key === 'saved' && <span className="ml-1.5 text-xs text-gray-400">{campaigns.length}</span>}
-              </button>
-            ))}
-          </div>
-          {tab === 'saved' ? (
-            <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={handleCampaignAction} />
-          ) : (
-            <NewProjectOptions
-              onFileSelect={handleFileSelect}
-              onMonobankClick={() => setShowMonobank(true)}
-              onManualClick={() => setShowManual(true)}
-              isLoading={isLoading}
-            />
-          )}
-        </>
-      ) : (
-        <EmptyState
-          onFileSelect={handleFileSelect}
-          onManualClick={() => setShowManual(true)}
-          onMonobankClick={() => setShowMonobank(true)}
-          isLoading={isLoading}
-        />
-      )}
-    </div>
+    <HomeScreen
+      onMonobank={() => setShowMonobank(true)}
+      onManual={() => setShowManual(true)}
+      onAction={handleCampaignAction}
+    />
   );
 }

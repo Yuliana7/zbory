@@ -4,7 +4,7 @@ import type { CampaignMeta } from '../../utils/campaignStore';
 import { CheckCircleIcon, EditIcon, GlobeIcon, PlusIcon, TrashIcon, UsersIcon } from '../../icons';
 import type { IconProps } from '../../icons/types';
 
-/** What "Змінити" can do to a saved project; each one opens a full-screen flow. */
+/** What "Редагувати" can do to a saved project; each one opens a full-screen flow. */
 export type CampaignAction = 'monobank' | 'csv' | 'edit' | 'goal' | 'friends';
 
 interface CampaignActionsSheetProps {

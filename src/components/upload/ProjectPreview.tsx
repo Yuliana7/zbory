@@ -1,18 +1,19 @@
-import { useState } from 'react';
-import { useFriendsDraft } from '../../hooks/useFriendsDraft';
+import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Donation, MonobankJarRef, RawDonation } from '../../types';
 import { useAppContext } from '../../context/AppContext';
+import { useFriendsDraft } from '../../hooks/useFriendsDraft';
+import { useUnsavedFriendsGuard } from '../../hooks/useUnsavedFriendsGuard';
 import { SaveCampaignControl } from '../insights/SaveCampaignControl';
 import { ArrowLeftIcon, ArrowRightIcon } from '../../icons';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
-import { SECTION_IDS, clearSectionHash, type SectionId } from '../../utils/sectionAnchors';
+import { parseGoal } from '../../utils/goal';
 import { PreviewSection } from './preview/PreviewSection';
 import { GoalSection } from './preview/GoalSection';
 import { FriendsSection } from './preview/FriendsSection';
-import { UnsavedFriendsDialog } from './preview/UnsavedFriendsDialog';
 import { AddDataSection } from './preview/AddDataSection';
-import { useSectionAnchors } from './preview/useSectionAnchors';
+
+type OptionalSection = 'goal' | 'friends' | 'add-data';
 
 interface ProjectPreviewProps {
   donations: Donation[];
@@ -29,9 +30,8 @@ interface ProjectPreviewProps {
   initialGoal?: number; // prefilled when the dataset came with a goal (campaign / restored session)
 }
 
-/** Step 1's check-and-adjust page, in sections: the data itself, the campaign goal, friendly
- * jars and adding more data. Each section has a URL hash (see sectionAnchors) so the
- * «Змінити» menu can open the page already scrolled to the one you picked. */
+/** Step 1's check-and-adjust page for a freshly loaded project: the data itself, always open,
+ * and the optional parts (goal, friendly jars, more data) as rows that open on demand. */
 export function ProjectPreview({
   donations,
   rawData,
@@ -48,62 +48,38 @@ export function ProjectPreview({
 }: ProjectPreviewProps) {
   const { t } = useTranslation('upload');
   const { t: tCamp } = useTranslation('campaigns');
-  const unsaved = !!useAppContext().state.app.unsavedChanges;
-  const goTo = useSectionAnchors();
+  const { state } = useAppContext();
+  const unsaved = !!state.app.unsavedChanges;
   const [goalInput, setGoalInput] = useState(initialGoal ? String(initialGoal) : '');
   const [showInvalidWarning, setShowInvalidWarning] = useState(false);
+  const [open, setOpen] = useState<Set<OptionalSection>>(new Set());
+  const dataRef = useRef<HTMLDivElement>(null);
   const goal = parseGoal(goalInput);
+
+  const toggle = (id: OptionalSection) =>
+    setOpen((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+
   const friendsDraft = useFriendsDraft();
-  // the step the user tried to take while helper edits were unsaved; the dialog decides what happens to it
-  const [pendingLeave, setPendingLeave] = useState<(() => void) | null>(null);
+  // leaving with helper edits that were never saved asks first; if saving is refused, show why
+  const { guard, dialog } = useUnsavedFriendsGuard(friendsDraft, () => setOpen((prev) => new Set(prev).add('friends')));
 
   const handleProceed = () => {
-    if (friendsDraft.dirty) {
-      setPendingLeave(() => proceed);
-      goTo('friends');
-      return;
-    }
-    proceed();
-  };
-
-  const proceed = () => {
     // Incomplete rows get one warning first; a second press goes ahead anyway
     if (invalidRowCount > 0 && !showInvalidWarning) {
       setShowInvalidWarning(true);
-      goTo('preview');
+      dataRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       return;
     }
-    clearSectionHash(); // leaving the preview for good
-    onProceed(goal ?? undefined);
+    if (friendsDraft.dirty) setOpen((prev) => new Set(prev).add('friends'));
+    guard(() => onProceed(goal ?? undefined));
   };
 
-  const handleBack = () => {
-    if (friendsDraft.dirty) {
-      setPendingLeave(() => leaveBack);
-      return;
-    }
-    leaveBack();
-  };
-
-  const leaveBack = () => {
-    clearSectionHash();
-    onBack();
-  };
-
-  // The dialog's three answers. Saving goes through the same draft the form uses; the step
-  // continues once the saved helpers are in place.
-  const resolveLeave = (how: 'save' | 'discard') => {
-    const go = pendingLeave;
-    setPendingLeave(null);
-    if (how === 'save') {
-      // two helpers with one name can't be stored — stay and let the form show which
-      if (!friendsDraft.save()) {
-        goTo('friends');
-        return;
-      }
-    } else friendsDraft.discard();
-    go?.();
-  };
+  const handleBack = () => guard(onBack);
 
   const handleDownload = () => {
     const csv = manualRowsToCSVString(rawDonationsToManualRows(rawData));
@@ -114,12 +90,6 @@ export function ProjectPreview({
   };
 
   const proceedLabel = showInvalidWarning && invalidRowCount > 0 ? t('preview.proceedAnywayButton') : t('preview.proceedButton');
-  const sectionLabel: Record<SectionId, string> = {
-    preview: t('sections.preview'),
-    goal: t('sections.goal'),
-    friends: t('sections.friends'),
-    'add-data': t('sections.addData'),
-  };
 
   return (
     <div className="max-w-5xl mx-auto animate-fade-in space-y-4">
@@ -139,7 +109,8 @@ export function ProjectPreview({
           {t('preview.cancelButton')}
         </button>
         <div className="flex items-center gap-2">
-          <SaveCampaignControl goalOverride={goal ?? undefined} highlight={unsaved} />
+          {/* an empty goal field means "no goal": null clears the saved one */}
+          <SaveCampaignControl goalOverride={goal} highlight={unsaved} />
           <button
             onClick={handleProceed}
             className="flex items-center gap-2 text-sm font-semibold text-white bg-indigo-600 hover:bg-indigo-700
@@ -151,60 +122,40 @@ export function ProjectPreview({
         </div>
       </div>
 
-      <nav aria-label={t('sections.nav')}>
-        <ul className="flex gap-2 overflow-x-auto pb-1">
-          {SECTION_IDS.map((id) => (
-            <li key={id} className="shrink-0">
-              <button
-                onClick={() => goTo(id)}
-                className="px-3 py-1.5 rounded-full text-xs font-medium text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors"
-              >
-                {sectionLabel[id]}
-              </button>
-            </li>
-          ))}
-        </ul>
-      </nav>
-
-      <PreviewSection
-        donations={donations}
-        totalCount={totalCount}
-        invalidRowCount={invalidRowCount}
-        showInvalidWarning={showInvalidWarning}
-        onEdit={onEdit}
-        onDownload={handleDownload}
+      <div ref={dataRef} className="scroll-mt-4">
+        <PreviewSection
+          donations={donations}
+          totalCount={totalCount}
+          invalidRowCount={invalidRowCount}
+          showInvalidWarning={showInvalidWarning}
+          onEdit={onEdit}
+          onDownload={handleDownload}
+        />
+      </div>
+      <GoalSection value={goalInput} onChange={setGoalInput} open={open.has('goal')} onToggle={() => toggle('goal')} />
+      <FriendsSection
+        draft={friendsDraft}
+        savedCount={state.app.friends?.length ?? 0}
+        open={open.has('friends')}
+        onToggle={() => toggle('friends')}
       />
-      <GoalSection value={goalInput} onChange={setGoalInput} invalid={goalInput !== '' && goal === null} />
-      <FriendsSection draft={friendsDraft} />
-      <AddDataSection monobankJar={monobankJar} onMergeFile={onMergeFile} onMonobank={onMonobank} isLoading={isLoading} />
+      <AddDataSection
+        monobankJar={monobankJar}
+        onMergeFile={onMergeFile}
+        onMonobank={onMonobank}
+        isLoading={isLoading}
+        open={open.has('add-data')}
+        onToggle={() => toggle('add-data')}
+      />
 
-      {/* the page is long, especially on a phone — don't make people scroll back up to continue */}
       <div className="flex justify-end pt-2">
-        <button
-          onClick={handleProceed}
-          className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2"
-        >
+        <button onClick={handleProceed} className="btn-primary w-full sm:w-auto flex items-center justify-center gap-2">
           {proceedLabel}
           <ArrowRightIcon className="w-4 h-4" />
         </button>
       </div>
 
-      {pendingLeave && (
-        <UnsavedFriendsDialog
-          onSave={() => resolveLeave('save')}
-          onDiscard={() => resolveLeave('discard')}
-          onCancel={() => setPendingLeave(null)}
-        />
-      )}
+      {dialog}
     </div>
   );
-}
-
-function parseGoal(raw: string): number | null {
-  const trimmed = raw.trim();
-  if (!trimmed) return null;
-  const normalized = trimmed.replace(/[\s,.]/g, '');
-  const value = Number(normalized);
-  if (!Number.isFinite(value) || value <= 0) return null;
-  return value;
 }

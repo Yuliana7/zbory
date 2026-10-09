@@ -14,12 +14,12 @@ const formatIsoDate = (iso: string) => {
 interface CampaignListProps {
   campaigns: CampaignMeta[];
   onCampaignsChange: (campaigns: CampaignMeta[]) => void;
-  /** "Змінити" → one of the actions in the menu; the page opens the matching screen */
+  /** "Редагувати" → one of the actions in the menu; the page opens the matching screen */
   onAction: (campaign: CampaignMeta, action: CampaignAction) => void;
 }
 
 /** Saved projects on this device. "Аналітика" goes straight to step 2 with
- * everything that was saved (rows, goal, helpers, style); "Змінити" opens a
+ * everything that was saved (rows, goal, helpers, style); "Редагувати" opens a
  * small menu for updating the project's data. */
 export function CampaignList({ campaigns, onCampaignsChange, onAction }: CampaignListProps) {
   const { t } = useTranslation('campaigns');

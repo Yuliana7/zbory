@@ -1,41 +1,31 @@
 import { useTranslation } from 'react-i18next';
-import { SectionCard } from './SectionCard';
+import { formatCurrency } from '../../../utils/dataAggregator';
+import { parseGoal } from '../../../utils/goal';
+import { CollapsibleSection } from './CollapsibleSection';
+import { GoalField } from './GoalField';
 
 interface GoalSectionProps {
   value: string;
   onChange: (value: string) => void;
-  /** the typed text isn't a usable amount */
-  invalid: boolean;
+  open: boolean;
+  onToggle: () => void;
 }
 
-export function GoalSection({ value, onChange, invalid }: GoalSectionProps) {
+export function GoalSection({ value, onChange, open, onToggle }: GoalSectionProps) {
   const { t } = useTranslation('upload');
+  const goal = parseGoal(value);
   return (
-    <SectionCard
-      id="goal"
+    <CollapsibleSection
       title={
         <>
           {t('preview.goal.label')} <span className="text-sm font-normal text-gray-500">{t('preview.goal.optional')}</span>
         </>
       }
-      description={t('preview.goal.hint')}
+      summary={goal ? formatCurrency(goal) : t('preview.goal.notSet')}
+      open={open}
+      onToggle={onToggle}
     >
-      <div className="relative max-w-xs">
-        <input
-          type="text"
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder={t('preview.goal.placeholder')}
-          aria-label={t('preview.goal.label')}
-          // text-base (16px): anything smaller makes iOS zoom the page on focus
-          className="w-full pl-3 pr-8 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-900
-                     focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent
-                     placeholder:text-gray-400"
-        />
-        <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-gray-400 pointer-events-none">₴</span>
-      </div>
-      {invalid && <p className="mt-1 text-xs text-red-500">{t('preview.goal.invalidNumber')}</p>}
-    </SectionCard>
+      <GoalField value={value} onChange={onChange} invalid={value.trim() !== '' && goal === null} />
+    </CollapsibleSection>
   );
 }
