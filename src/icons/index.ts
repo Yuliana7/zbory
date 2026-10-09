@@ -15,5 +15,6 @@ export * from './SaveIcon';
 export * from './SpinnerIcon';
 export * from './TrashIcon';
 export * from './UploadIcon';
+export * from './UsersIcon';
 export * from './WarningIcon';
 export * from './XIcon';

@@ -28,7 +28,7 @@ export const FinalReportCard = forwardRef<HTMLDivElement, FinalReportCardProps>(
 
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-    const duration = getCampaignDuration(aggregates) + 1;
+    const duration = getCampaignDuration(aggregates);
     const bestDay = findBestDay(aggregates);
     const hasWithdrawals = aggregates.totalWithdrawn > 0;
 

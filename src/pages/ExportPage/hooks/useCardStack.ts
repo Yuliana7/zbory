@@ -51,7 +51,8 @@ export function useCardStack(
 
   // A manual edit (palette click, a slider, a new bg upload — none of which
   // ever include themeId themselves) always un-marks the style as "exactly
-  // this theme"; only applyTheme below passes themeId explicitly.
+  // this theme"; only applyTheme below passes themeId explicitly. baseThemeId
+  // is left alone, so the theme it started from can still be updated.
   const patchStyle = (patch: Partial<SharedStyle>) => {
     const next = 'themeId' in patch ? patch : { ...patch, themeId: null };
     if (card.styleOverride) {
@@ -61,7 +62,7 @@ export function useCardStack(
     }
   };
 
-  const applyTheme = (theme: ThemeRecord) => patchStyle({ ...theme.style });
+  const applyTheme = (theme: ThemeRecord) => patchStyle({ ...theme.style, themeId: theme.id, baseThemeId: theme.id });
 
   const goPrev = useCallback(() => setCurrent((i) => Math.max(0, i - 1)), []);
   const goNext = useCallback(() => setCurrent((i) => Math.min(cards.length - 1, i + 1)), [cards.length]);

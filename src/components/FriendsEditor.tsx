@@ -137,12 +137,16 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
           </div>
         </div>
       ) : (
-        rows.length > 0 && (
+        // only once something has actually been saved — an empty or still-blank form is not "saved"
+        (app.friends?.length ?? 0) > 0 &&
+        (app.activeCampaignId ? (
           <p className="flex items-center gap-1.5 text-xs text-green-600">
             <CheckIcon className="w-3.5 h-3.5" />
             {t('friends.saved')}
           </p>
-        )
+        ) : (
+          <p className="text-xs text-gray-500">{t('friends.savedSession')}</p>
+        ))
       )}
     </div>
   );

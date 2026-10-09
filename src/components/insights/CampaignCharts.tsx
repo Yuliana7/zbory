@@ -42,11 +42,18 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
 
   const hasWithdrawals = totalWithdrawn > 0;
   const hasRefunds = impliedRefunds > 500;
+  // «На рахунку» only says something when money left the jar (or came back as refunds);
+  // otherwise it equals the total shown above
+  const showStats = hasWithdrawals || hasRefunds;
 
-  // ── Day columns: fixed last-30-day window, donations up + withdrawals down ─
-  // A campaign can run for months, but the daily chart stays a rolling 30-day
-  // window ending on the last activity — matches the "Останні 30 днів" label
-  // and keeps the chart readable regardless of campaign length.
+  // ── Day columns: up to the last 30 days, donations up + withdrawals down ─
+  // A campaign can run for months, but the daily chart stays a rolling window ending on the
+  // last activity, capped at 30 days. A younger campaign gets only the days it has had.
+  const msPerDay = 24 * 60 * 60 * 1000;
+  const startDay = new Date(aggregates.firstDate.getFullYear(), aggregates.firstDate.getMonth(), aggregates.firstDate.getDate());
+  const endDay = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
+  const campaignDays = Math.round((endDay.getTime() - startDay.getTime()) / msPerDay) + 1;
+  const windowDays = Math.min(30, campaignDays);
 
   const dayColumns = useMemo(() => {
     const wByDay = new Map<string, number>();
@@ -57,7 +64,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
 
     const end = new Date(lastDate.getFullYear(), lastDate.getMonth(), lastDate.getDate());
     const days = [];
-    for (let i = 29; i >= 0; i--) {
+    for (let i = windowDays - 1; i >= 0; i--) {
       const d = new Date(end);
       d.setDate(d.getDate() - i);
       const key = dateKeyFromDate(d);
@@ -69,7 +76,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
       });
     }
     return days;
-  }, [byDate, withdrawals, lastDate]);
+  }, [byDate, withdrawals, lastDate, windowDays]);
 
   // ── Withdrawal events (sorted oldest → newest) ────────────────────────────
 
@@ -83,6 +90,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
     <div className="space-y-4 mb-2">
 
       {/* ── Summary stat row ─────────────────────────────────────────── */}
+      {showStats && (
       <div className={`grid gap-3 ${hasWithdrawals ? 'grid-cols-2 sm:grid-cols-4' : 'grid-cols-2'}`}>
         {hasRefunds && <StatCard label={t('charts.raised')}    value={fmtFull(totalRaised) + ' ₴'}    color="indigo" />}
         {hasWithdrawals && (
@@ -93,6 +101,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
           <StatCard label={t('charts.refunds')}  value={fmtFull(impliedRefunds) + ' ₴'} color="purple" />
         )}
       </div>
+      )}
 
       {/* ── Refunds disclaimer ───────────────────────────────────────── */}
       {hasRefunds && (
@@ -109,7 +118,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
       )}
 
       {/* ── Diverging bar chart: donations up / withdrawals down ──────── */}
-      {(() => {
+      {windowDays > 1 && (() => {
         const maxDonation = Math.max(...dayColumns.map((c) => c.donations), 1);
         const maxWithdrawn = Math.max(...dayColumns.map((c) => c.withdrawn), 1);
         const anyWithdrawal = dayColumns.some((c) => c.withdrawn > 0);
@@ -117,7 +126,7 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
-              {t('charts.dailyLabel')}
+              {windowDays >= 30 ? t('charts.dailyLabel') : t('charts.dailyLabelShort', { count: windowDays })}
             </p>
 
             {/* Donation bars — grow upward */}

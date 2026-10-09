@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { Insight, Aggregates, CommentInsights, RepeatDonor, CampaignDataset, FriendJar } from '../../types';
-import { generateActionableInsights } from '../../utils/insightGenerator';
+import { useAppContext } from '../../context/AppContext';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
 import { CumulativeChart } from './CumulativeChart';
@@ -9,7 +9,6 @@ import { FriendsChart } from './FriendsChart';
 interface InsightsPanelProps {
   insights: Insight[];
   aggregates: Aggregates;
-  goal?: number;
   commentInsights: CommentInsights | null;
   // Multi-jar "Разом" view only — powers the always-visible chart (top of page)
   // and lets the donor lists below show "у N зборах" per identity.
@@ -18,7 +17,7 @@ interface InsightsPanelProps {
   friends?: FriendJar[];
 }
 
-export function InsightsPanel({ insights, aggregates, goal, commentInsights, campaignDatasets, friends }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, commentInsights, campaignDatasets, friends }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -34,10 +33,14 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights, cam
   );
   const duration = Math.round((lastDay.getTime() - firstDay.getTime()) / msPerDay) + 1;
 
-  const actionableInsights = generateActionableInsights(aggregates, t, goal);
+  const { handleTemplateSelect } = useAppContext();
+  const hasAudience = !!commentInsights?.hasEnoughData;
+  // How much of the jar the loyal and the biggest donors carry: the people behind the total
+  const sumOf = (list: RepeatDonor[]) => list.reduce((sum, d) => sum + d.totalAmount, 0);
+  const pctOfTotal = (amount: number) => (aggregates.totalAmount > 0 ? Math.round((amount / aggregates.totalAmount) * 100) : 0);
 
   return (
-    <div className="space-y-4 lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start">
+    <div className={`space-y-4 ${hasAudience ? 'lg:space-y-0 lg:grid lg:grid-cols-2 lg:gap-6 lg:items-start' : ''}`}>
       {/* Left column: hero, charts, insight cards */}
       <div className="space-y-4">
         {/* Hero stat */}
@@ -98,37 +101,43 @@ export function InsightsPanel({ insights, aggregates, goal, commentInsights, cam
         ))}
       </div>
 
-      {/* Right column: "Що робити далі?" onward */}
+      {/* Right column: the audience */}
       <div className="space-y-4">
-        {/* Actionable recommendations */}
-        {actionableInsights.length > 0 && (
-          <div className="pt-2 lg:pt-0">
-            <SectionDivider label={t('sections.whatNext')} color="amber" />
-            <div className="space-y-3">
-              {actionableInsights.map((action, i) => (
-                <div
-                  key={i}
-                  className="bg-amber-50 rounded-xl p-4 border border-amber-200 flex items-start gap-3"
-                >
-                  <span className="text-2xl leading-none mt-0.5">{action.icon}</span>
-                  <div className="min-w-0">
-                    <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide">{action.title}</p>
-                    <p className="text-base font-semibold text-amber-900 mt-0.5">{action.value}</p>
-                    {action.description && (
-                      <p className="text-xs text-amber-800 mt-0.5 leading-relaxed">{action.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Comment analysis */}
         {commentInsights?.hasEnoughData && (
           <div className="pt-2">
             <SectionDivider label={t('sections.comments')} color="purple" />
             <div className="space-y-3">
+
+              {(commentInsights.repeatDonors.length > 0 || commentInsights.topDonorsBySum.length >= 3) && (
+                <div className="bg-amber-50 rounded-xl p-4 border border-amber-200">
+                  <p className="text-xs text-amber-700 font-semibold uppercase tracking-wide mb-2">{t('audience.title')}</p>
+                  <ul className="space-y-1 text-sm text-amber-900">
+                    {commentInsights.repeatDonors.length > 0 && (
+                      <li>
+                        🧡{' '}
+                        {t('audience.repeat', {
+                          count: commentInsights.repeatDonors.length,
+                          pct: pctOfTotal(sumOf(commentInsights.repeatDonors)),
+                        })}
+                      </li>
+                    )}
+                    {commentInsights.topDonorsBySum.length >= 3 && (
+                      <li>
+                        💎 {t('audience.top3', { pct: pctOfTotal(sumOf(commentInsights.topDonorsBySum.slice(0, 3))) })}
+                      </li>
+                    )}
+                  </ul>
+                  <button
+                    onClick={() => handleTemplateSelect('top-donors-count')}
+                    className="mt-3 flex items-center gap-1.5 px-3 py-2 bg-white border border-amber-200 rounded-xl text-sm font-medium
+                               text-gray-800 shadow-sm hover:border-amber-400 hover:shadow transition-all"
+                  >
+                    {t('audience.thank')}
+                    <span className="text-amber-500 font-semibold">→</span>
+                  </button>
+                </div>
+              )}
 
               {commentInsights.topEmojis.length > 0 && (
                 <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm">

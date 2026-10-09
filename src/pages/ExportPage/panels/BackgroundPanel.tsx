@@ -2,7 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { SharedStyle } from '../../../types';
 import { PALETTES } from '../../../utils/palettes';
 import { CheckIcon, ImageIcon } from '../../../icons';
-import { Collapsible, ToggleRow } from '../shared';
+import { Collapsible } from '../shared';
 
 interface BackgroundPanelProps {
   open: boolean;
@@ -10,28 +10,18 @@ interface BackgroundPanelProps {
   style: SharedStyle;
   onPatchStyle: (patch: Partial<SharedStyle>) => void;
   styleBadge?: string;
-  multiCard: boolean;
-  styleUnlinked: boolean;
-  onToggleUnlink: (unlink: boolean) => void;
   bgInputRef: React.RefObject<HTMLInputElement>;
   onBgUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onEditPosition: () => void;
 }
 
 export function BackgroundPanel({
-  open, onToggle, style, onPatchStyle, styleBadge, multiCard, styleUnlinked, onToggleUnlink, bgInputRef, onBgUpload, onEditPosition,
+  open, onToggle, style, onPatchStyle, styleBadge, bgInputRef, onBgUpload, onEditPosition,
 }: BackgroundPanelProps) {
   const { t } = useTranslation('export');
   return (
     <Collapsible label={t('background.label')} badge={styleBadge} badgeColor="indigo" open={open} onToggle={onToggle}>
       <div className="space-y-4">
-        {multiCard && (
-          <div className="pb-1 border-b border-gray-100">
-            <ToggleRow label={t('stack.unlinkStyle')} value={styleUnlinked} onChange={onToggleUnlink} />
-            <p className="mt-1 text-xs text-gray-400">{t('stack.unlinkHint')}</p>
-          </div>
-        )}
-
         {/* Palette swatches */}
         <div>
           <p className="text-xs font-medium text-gray-500 mb-2">{t('palette.label')}</p>

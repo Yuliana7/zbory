@@ -58,7 +58,9 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
               selected.has(campaign.id) ? 'border-indigo-400 bg-indigo-50/40' : 'border-gray-200 hover:border-indigo-300'
             }`}
           >
-            <div className="flex items-start gap-3">
+            {/* phone: info on top, buttons under it; desktop: everything on one line */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:gap-4">
+            <div className="flex flex-1 min-w-0 items-start gap-3">
               {campaigns.length >= 2 && (
                 <button
                   onClick={() => toggleSelect(campaign.id)}
@@ -89,7 +91,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
                 )}
               </div>
             </div>
-            <div className="mt-3 flex gap-2 sm:justify-end">
+            <div className="flex gap-2 sm:shrink-0">
               <button
                 onClick={() => setMenuFor(campaign)}
                 className="px-4 py-2 text-sm font-medium bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-lg transition-colors"
@@ -105,6 +107,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
                 {t('proceed')}
                 <ArrowRightIcon className="w-3.5 h-3.5" />
               </button>
+            </div>
             </div>
           </li>
         ))}

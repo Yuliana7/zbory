@@ -9,12 +9,12 @@ import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
-import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+import { ArrowLeftIcon, ArrowRightIcon, XIcon } from '../icons';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
   const { t: tC } = useTranslation('campaigns');
-  const { state, dispatch, goToStep, handleTemplateSelect } = useAppContext();
+  const { state, dispatch, goToStep, handleTemplateSelect, handleReset } = useAppContext();
   const { app } = state;
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
@@ -53,7 +53,8 @@ export function InsightsPage() {
         <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={() => goToStep('upload')}
+            // straight from the project list → back to the list; after the preview → back to the preview
+            onClick={() => (app.fromLibrary ? handleReset() : goToStep('upload'))}
             className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"
@@ -90,11 +91,19 @@ export function InsightsPage() {
       )}
 
       {/* Share-worthy moments — one tap jumps to the matching template */}
-      {isMerged && moments.length > 0 && (
+      {isMerged && moments.length > 0 && !app.momentsDismissed && (
         <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4">
-          <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider mb-3">
-            {t('moments.title')}
-          </p>
+          <div className="flex items-start justify-between gap-2 mb-3">
+            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">{t('moments.title')}</p>
+            <button
+              onClick={() => dispatch({ type: 'MOMENTS_DISMISSED' })}
+              title={t('moments.dismiss')}
+              aria-label={t('moments.dismiss')}
+              className="-m-1 p-1 text-amber-500 hover:text-amber-800 transition-colors"
+            >
+              <XIcon className="w-4 h-4" />
+            </button>
+          </div>
           <div className="flex flex-wrap gap-2">
             {moments.map((m) => (
               <button
@@ -123,7 +132,6 @@ export function InsightsPage() {
       <InsightsPanel
         insights={perJar?.insights ?? app.insights}
         aggregates={perJar?.aggregates ?? app.aggregates}
-        goal={isMerged ? app.goal : undefined}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
         friends={isMerged ? (app.friends ?? []) : undefined}

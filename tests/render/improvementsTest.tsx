@@ -5,7 +5,6 @@ import i18n from '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations, defaultAskUnit } from '../../src/utils/dataAggregator';
 import { detectMoments } from '../../src/utils/momentDetector';
-import { generateActionableInsights } from '../../src/utils/insightGenerator';
 import { analyzeComments, getPersonalComments } from '../../src/utils/commentAnalyzer';
 import { createZip } from '../../src/utils/zip';
 import { FinalReportCard } from '../../src/components/templates/FinalReportCard';
@@ -109,12 +108,6 @@ for (const m of moments) console.log(`  ${m.icon} ${m.text} → ${m.templateId}`
 check('moments: goal 50% detected', moments.some((m) => m.id === 'goal-50'));
 check('moments: record day is fresh (single-day campaign, best day = last day) → present', moments.some((m) => m.id === 'record-day'));
 check('moments: no missing i18n', moments.every((m) => !m.text.includes('moments.') && !m.text.includes('{{')));
-
-// ── Concrete-ask action insight ──
-const actions = generateActionableInsights(aggregates, tInsights, GOAL);
-const ask = actions.find((a) => a.icon === '🧮');
-console.log(`─── Ask insight ───\n  ${ask?.value}\n  ${ask?.description}\n`);
-check('ask insight present with 18 units', !!ask && ask.value!.includes('18'));
 
 // ── ZIP writer: build a zip, verify with unzip ──
 const zipBlob = createZip([

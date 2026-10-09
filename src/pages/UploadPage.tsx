@@ -114,7 +114,8 @@ export function UploadPage() {
     edit: 'preview',
     csv: 'add-data',
     monobank: 'add-data',
-    details: 'goal',
+    goal: 'goal',
+    friends: 'friends',
   };
   const handleCampaignAction = async (campaign: CampaignMeta, action: CampaignAction) => {
     setSectionHash(SECTION_FOR_ACTION[action]);

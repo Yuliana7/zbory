@@ -266,25 +266,6 @@ export function findBestDay(aggregates: Aggregates): { date: string; amount: num
 }
 
 /**
- * Finds the peak hour (most donations)
- */
-export function findPeakHour(aggregates: Aggregates): { hour: number; count: number } | null {
-  if (aggregates.byHour.size === 0) return null;
-
-  let peakHour = 0;
-  let peakCount = 0;
-
-  for (const [hour, count] of aggregates.byHour.entries()) {
-    if (count > peakCount) {
-      peakCount = count;
-      peakHour = hour;
-    }
-  }
-
-  return { hour: peakHour, count: peakCount };
-}
-
-/**
  * Formats amount as Ukrainian currency
  */
 export function formatCurrency(amount: number): string {
@@ -326,9 +307,10 @@ export function getDayOfWeek(date: Date | string): string {
 }
 
 /**
- * Calculates campaign duration in days
+ * Campaign duration in calendar days, counting both the first and the last day:
+ * donations on a single day are 1 day, 8 → 10 October is 3.
  */
 export function getCampaignDuration(aggregates: Aggregates): number {
-  const diff = aggregates.lastDate.getTime() - aggregates.firstDate.getTime();
-  return Math.ceil(diff / (1000 * 60 * 60 * 24));
+  const day = (d: Date) => Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  return Math.round((day(aggregates.lastDate) - day(aggregates.firstDate)) / 86_400_000) + 1;
 }

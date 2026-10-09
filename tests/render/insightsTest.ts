@@ -1,6 +1,6 @@
 import { normalizeDonations } from '../../src/utils/csvParser';
-import { aggregateDonations, getTimeBuckets } from '../../src/utils/dataAggregator';
-import { generateInsights, generateActionableInsights } from '../../src/utils/insightGenerator';
+import { aggregateDonations, getCampaignDuration, getTimeBuckets } from '../../src/utils/dataAggregator';
+import { generateInsights } from '../../src/utils/insightGenerator';
 import dict from '../../src/i18n/locales/uk/insights.json';
 import { loadRawDonations } from './testFixture';
 
@@ -61,11 +61,13 @@ for (const ins of generateInsights(aggregates, t)) {
   if (ins.description) console.log(`   ${ins.description}`);
 }
 
-console.log('\n─── Що робити далі (goal = 20 000) ───');
-for (const a of generateActionableInsights(aggregates, t, 20000)) {
-  console.log(`\n${a.icon} ${a.title} — ${a.value}`);
-  if (a.description) console.log(`   ${a.description}`);
-}
-
-const allText = JSON.stringify([generateInsights(aggregates, t), generateActionableInsights(aggregates, t, 20000)]);
+const allText = JSON.stringify(generateInsights(aggregates, t));
 assertEq('no missing i18n keys/vars', allText.includes('<<MISSING'), false);
+
+// duration counts calendar days inclusively: one day of donations is 1 day, never 0
+const at = (y: number, m: number, d: number, h: number) => new Date(y, m, d, h);
+const span = (a: Date, b: Date) => getCampaignDuration({ ...aggregates, firstDate: a, lastDate: b });
+assertEq('duration: single day → 1', span(at(2026, 9, 8, 9), at(2026, 9, 8, 21)), 1);
+assertEq('duration: late evening → early morning next day → 2', span(at(2026, 9, 8, 23), at(2026, 9, 9, 1)), 2);
+assertEq('duration: 8 → 10 October → 3', span(at(2026, 9, 8, 12), at(2026, 9, 10, 12)), 3);
+assertEq('duration: across a DST change stays whole days', span(at(2026, 9, 24, 12), at(2026, 9, 26, 12)), 3);
