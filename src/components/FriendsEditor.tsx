@@ -38,8 +38,22 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
     <div className="space-y-3">
       <p className="text-xs text-gray-400">{t('friends.hint')}</p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="ml-auto flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
+        {/* the totals, where the eyes start; the actions on the other side */}
+        <p className="text-xs text-gray-500">
+          {stats.total > 0 ? (
+            <>
+              {t('friends.summary', {
+                amount: new Intl.NumberFormat('uk-UA').format(Math.round(stats.total)),
+                pct: Math.round(stats.share * 100),
+              })}
+              {stats.withTarget > 0 && ` · ${t('friends.reachedSummary', { reached: stats.reached, total: stats.withTarget })}`}
+            </>
+          ) : stats.withTarget > 0 ? (
+            t('friends.reachedSummary', { reached: stats.reached, total: stats.withTarget })
+          ) : null}
+        </p>
+        <div className="flex flex-wrap items-center gap-2">
           {rows.length > 0 && (
             <button
               onClick={() => {
@@ -111,28 +125,17 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
       </div>
       <button
         onClick={add}
-        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg
-                   bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-sm font-medium transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed
+                   border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 text-indigo-600 text-sm font-medium transition-colors"
       >
         <PlusIcon className="w-3.5 h-3.5" />
         {t('friends.add')}
       </button>
-      {stats.total > 0 && (
-        <p className="text-xs text-gray-500">
-          {t('friends.summary', {
-            amount: new Intl.NumberFormat('uk-UA').format(Math.round(stats.total)),
-            pct: Math.round(stats.share * 100),
-          })}
-        </p>
-      )}
-      {stats.withTarget > 0 && (
-        <p className="text-xs text-gray-500">{t('friends.reachedSummary', { reached: stats.reached, total: stats.withTarget })}</p>
-      )}
       {stats.exceedsTotal && <p className="text-xs text-red-500">{t('friends.exceeds')}</p>}
       {dirty ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
           <p className="text-sm text-amber-800">{t('friends.unsaved')}</p>
-          <div className="flex gap-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
             <button
               onClick={save}
               disabled={duplicates.size > 0}

@@ -127,6 +127,12 @@ check('updatedAt: only the changed helper moves', saved2.find((f) => f.id === 'a
 const synced = rowsToFriends(lrows.map((r) => ({ ...r, syncedAt: T0 + 9000 })), saved1, T0 + 9000);
 check('updatedAt: reading a jar that changed nothing is not a modification', synced.every((f) => f.updatedAt === T0));
 check('updatedAt: closing a jar is a modification', rowsToFriends(lrows.map((r) => (r.id === 'z' ? { ...r, closed: true } : r)), saved1, T0 + 7)[2].updatedAt === T0 + 7);
+const manualRows = friendsToRows([{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }]);
+const closedByHand = manualRows.map((r) => ({ ...r, closed: true }));
+check('closed by hand: an unlinked helper can be closed, and it is an edit', friendsDiffer(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }]));
+check('closed by hand: stored, and counts as a modification', rowsToFriends(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }], T0 + 3)[0].closed === true && rowsToFriends(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }], T0 + 3)[0].updatedAt === T0 + 3);
+check('closed by hand: can be reopened', rowsToFriends(closedByHand.map((r) => ({ ...r, closed: false })), rowsToFriends(closedByHand, [], T0), T0 + 4)[0].closed === undefined);
+check('closed: a closed helper stays editable (amount change is stored)', rowsToFriends(closedByHand.map((r) => ({ ...r, raised: '99' })), rowsToFriends(closedByHand, [], T0), T0 + 5)[0].raised === 99);
 check('diff: order alone is not an edit', !friendsDiffer([...friendsToRows(saved1)].reverse(), saved1));
 check('diff: linking a jar is an edit', friendsDiffer(friendsToRows(saved1).map((r) => (r.id === 'z' ? { ...r, jarId: 'B'.repeat(16) } : r)), saved1));
 check('clean: a linked row without a name yet is kept', cleanFriends([{ id: 'q', name: '', raised: 0, jarId: 'C'.repeat(16) }]).length === 1);

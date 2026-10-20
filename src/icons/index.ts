@@ -9,6 +9,7 @@ export * from './EditIcon';
 export * from './FolderIcon';
 export * from './GlobeIcon';
 export * from './HryvniaIcon';
+export * from './LinkIcon';
 export * from './ImageIcon';
 export * from './PlusIcon';
 export * from './RefreshIcon';

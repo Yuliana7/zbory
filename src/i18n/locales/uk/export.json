@@ -350,22 +350,23 @@
     },
     "status": {
       "open": "Відкрита",
-      "closed": "Закрита"
+      "closed": "Закрита",
+      "close": "Позначити банку закритою",
+      "reopen": "Відкрити банку знову"
     },
     "link": "Прив'язати банку за ID",
     "idPlaceholder": "Довгий ID банки (з Monobank)",
     "linkConfirm": "Прив'язати",
     "unlink": "Відв'язати",
-    "linkedId": "ID {{id}}",
+    "linkedId": "ID банки: {{id}}",
     "synced": "оновлено {{when}}",
     "refresh": "Оновити з Monobank",
-    "refreshClosed": "Банку закрито — оновлювати нічого",
+    "refreshClosed": "Банка закрита — під час оновлення пропускається. Відкрийте її, щоб оновлювати.",
     "refreshAll": "Оновити всі ({{count}})",
     "refreshAllNone": "Немає відкритих банок із прив'язаним ID",
     "refreshProgress": "Оновлено {{done}} з {{total}}…",
     "refreshDone": "Оновлено: {{updated}}. Не вдалося: {{failed}}.",
     "refreshRateLimited": "Оновлено: {{updated}}. Monobank просить зачекати — решту банок оновіть за хвилину-дві.",
-    "closedNote": "Банку закрито — дані зафіксовані, змінити їх не можна. Прибрати рядок можна.",
     "jarErrors": {
       "rate-limit": "Monobank просить зачекати. Спробуйте за хвилину.",
       "network": "Не вдалося зв'язатися з Monobank. Перевірте інтернет.",
@@ -394,7 +395,8 @@
       "duplicate_many": "{{count}} банок уже є в списку",
       "duplicate_other": "{{count}} банок уже є в списку"
     },
-    "csv": "CSV"
+    "csv": "CSV",
+    "linkedTitle": "Прив'язано до банки {{id}} — натисніть, щоб побачити деталі"
   },
   "themes": {
     "label": "Теми",
