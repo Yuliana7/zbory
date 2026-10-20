@@ -212,9 +212,11 @@ export function useFriendsDraft() {
         try {
           const jar = await fetchPublicJar(ids[i]);
           const taken = new Set(rowsRef.current.map((r) => friendNameKey(r.name)));
-          let name = jar.title || jar.ownerName || '—';
-          if (taken.has(friendNameKey(name)) && jar.ownerName) name = `${name} · ${jar.ownerName}`;
-          for (let n = 2; taken.has(friendNameKey(name)); n++) name = `${jar.title || '—'} (${n})`;
+          // the owner's name; two helpers with the same name are told apart by their jar's title, then by a number
+          const owner = jar.ownerName || jar.title || '—';
+          let name = owner;
+          if (taken.has(friendNameKey(name)) && jar.title && jar.title !== owner) name = `${owner} · ${jar.title}`;
+          for (let n = 2; taken.has(friendNameKey(name)); n++) name = `${owner} (${n})`;
           const fresh = applyJarInfo({ id: newFriend().id, name, raised: '', target: '', jarId: ids[i] }, jar, Date.now());
           setRows((rs) => [...rs, fresh]);
           out.added++;

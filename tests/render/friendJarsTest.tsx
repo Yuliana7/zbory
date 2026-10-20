@@ -147,9 +147,10 @@ check('page: out of range clamps', pageOf(latest, 9).page === 1 && pageOf([], 3)
 const row0 = { id: 'r', name: '', raised: '', target: '' };
 const jarInfo = { title: 'Akatsuki Team', ownerName: 'Наталія Б.', raised: 500, goal: 10000, closed: false };
 const filled = applyJarInfo(row0, jarInfo, T0);
-check('jar read: fills an empty row (name, amount, goal)', filled.name === 'Akatsuki Team' && filled.raised === '500' && filled.target === '10000' && filled.syncedAt === T0);
+check('jar read: fills an empty row (owner name, amount, goal)', filled.name === 'Наталія Б.' && filled.raised === '500' && filled.target === '10000' && filled.syncedAt === T0);
 const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', target: '2000' }, jarInfo, T0);
 check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
+check('jar read: no owner name → the jar title', applyJarInfo(row0, { ...jarInfo, ownerName: '' }, T0).name === 'Akatsuki Team');
 check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
 
 // ── progress line: only with friends, removable, never touches the headline total ──

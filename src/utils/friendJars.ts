@@ -196,7 +196,7 @@ export function pageOf<T>(list: T[], page: number, size = FRIENDS_PAGE_SIZE): { 
 
 /**
  * What a freshly read jar changes in a row: always the amount and the closed flag; the jar's own goal
- * only when the row has no target yet, and its title only when the row has no name — whatever the user
+ * only when the row has no target yet, and the owner's name (else the jar's title) only when the row has no name — whatever the user
  * typed is theirs.
  */
 export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): FriendDraftRow {
@@ -204,7 +204,8 @@ export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): 
     ...row,
     raised: jar.raised > 0 ? String(jar.raised) : '',
     target: row.target.trim() === '' && jar.goal ? String(jar.goal) : row.target,
-    name: row.name.trim() === '' ? jar.title || jar.ownerName : row.name,
+    // the owner's name is who the helper is; the jar's title is only a fallback
+    name: row.name.trim() === '' ? jar.ownerName || jar.title : row.name,
     closed: jar.closed,
     syncedAt: now,
   };
