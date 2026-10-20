@@ -1,5 +1,6 @@
 import type { FriendJar } from '../types';
 import { generateId } from './id';
+import type { PublicJar } from './monobankJar';
 
 export interface FriendStats {
   /** helpers worth listing — raised something, or have a target to work towards — biggest first */
@@ -78,7 +79,7 @@ export function parseAmount(raw: string): number | null {
 export function cleanFriends(friends: FriendJar[]): FriendJar[] {
   return friends
     .map((f) => ({ ...f, name: f.name.trim() }))
-    .filter((f) => f.name !== '' || f.raised > 0 || (f.target ?? 0) > 0);
+    .filter((f) => f.name !== '' || f.raised > 0 || (f.target ?? 0) > 0 || !!f.jarId);
 }
 
 /** The helpers a card should show: everything listed, minus the ones the user switched off for that card. */
@@ -100,6 +101,12 @@ export interface FriendDraftRow {
   name: string;
   raised: string;
   target: string;
+  /** the helper's own jar (Monobank long id), once linked */
+  jarId?: string;
+  /** the linked jar is closed: the row is read-only */
+  closed?: boolean;
+  updatedAt?: number;
+  syncedAt?: number;
 }
 
 export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[] =>
@@ -108,22 +115,99 @@ export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[
     name: f.name,
     raised: f.raised ? String(f.raised) : '',
     target: f.target ? String(f.target) : '',
+    jarId: f.jarId,
+    closed: f.closed,
+    updatedAt: f.updatedAt,
+    syncedAt: f.syncedAt,
   }));
 
-/** Typed rows → clean helpers, exactly what gets stored. */
-export function rowsToFriends(rows: FriendDraftRow[]): FriendJar[] {
+/**
+ * Typed rows → clean helpers, exactly what gets stored. `updatedAt` moves to `now` only for a helper
+ * whose name, amount, target or status differs from `prev` (or is new); a refresh that finds nothing
+ * new leaves it alone, so "latest modified" means what it says.
+ */
+export function rowsToFriends(rows: FriendDraftRow[], prev: FriendJar[] = [], now: number = Date.now()): FriendJar[] {
+  const before = new Map(prev.map((f) => [f.id, f]));
   return cleanFriends(
     rows.map((r) => {
       const target = parseAmount(r.target);
-      return { id: r.id, name: r.name, raised: parseAmount(r.raised) ?? 0, ...(target ? { target } : null) };
+      const f: FriendJar = {
+        id: r.id,
+        name: r.name,
+        raised: parseAmount(r.raised) ?? 0,
+        ...(target ? { target } : null),
+        ...(r.jarId ? { jarId: r.jarId } : null),
+        ...(r.closed ? { closed: true } : null),
+        ...(r.syncedAt ? { syncedAt: r.syncedAt } : null),
+      };
+      const old = before.get(r.id);
+      const same =
+        old && old.name.trim() === f.name.trim() && old.raised === f.raised && (old.target ?? 0) === (f.target ?? 0) && !!old.closed === !!f.closed;
+      const updatedAt = same ? (old.updatedAt ?? r.updatedAt) : now;
+      return updatedAt ? { ...f, updatedAt } : f;
     }),
   );
 }
 
-/** Do the typed rows differ from what is stored? (Blank rows don't count — they'd be dropped.) */
+/** Do the typed rows differ from what is stored? Blank rows don't count (they'd be dropped) and neither
+ * does the order, which is only a view of the list. */
 export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undefined): boolean {
-  const norm = (list: FriendJar[]) => JSON.stringify(list.map((f) => [f.id, f.name, f.raised, f.target ?? null]));
+  const norm = (list: FriendJar[]) =>
+    JSON.stringify(
+      list
+        .map((f) => [f.id, f.name, f.raised, f.target ?? null, f.jarId ?? null, !!f.closed])
+        .sort((a, b) => String(a[0]).localeCompare(String(b[0]))),
+    );
   return norm(rowsToFriends(rows)) !== norm(cleanFriends(saved ?? []));
+}
+
+/** Where a helper stands. Only a linked jar can be known to be closed; every other one counts as open. */
+export const isClosed = (f: { closed?: boolean }) => !!f.closed;
+
+export type FriendSortKey = 'name' | 'raised' | 'status';
+
+/**
+ * Sorts typed rows for the editor: by name (А→Я), by amount (biggest first) or by status (open first).
+ * Ties fall back to the name so the order is stable; `desc` flips it.
+ */
+export function sortRows(rows: FriendDraftRow[], key: FriendSortKey, desc = false): FriendDraftRow[] {
+  const byName = (a: FriendDraftRow, b: FriendDraftRow) => a.name.localeCompare(b.name, 'uk', { sensitivity: 'base' });
+  const cmp: Record<FriendSortKey, (a: FriendDraftRow, b: FriendDraftRow) => number> = {
+    name: byName,
+    raised: (a, b) => (parseAmount(b.raised) ?? 0) - (parseAmount(a.raised) ?? 0) || byName(a, b),
+    status: (a, b) => Number(isClosed(a)) - Number(isClosed(b)) || byName(a, b),
+  };
+  const out = [...rows].sort(cmp[key]);
+  return desc ? out.reverse() : out;
+}
+
+export const FRIENDS_PAGE_SIZE = 5;
+
+/** Helpers by last change, newest first (never-changed ones last, biggest first), for read-only paging. */
+export function latestModified(friends: FriendJar[]): FriendJar[] {
+  return [...friends].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0) || b.raised - a.raised);
+}
+
+export function pageOf<T>(list: T[], page: number, size = FRIENDS_PAGE_SIZE): { items: T[]; pages: number; page: number } {
+  const pages = Math.max(1, Math.ceil(list.length / size));
+  const p = Math.min(Math.max(0, page), pages - 1);
+  return { items: list.slice(p * size, (p + 1) * size), pages, page: p };
+}
+
+/**
+ * What a freshly read jar changes in a row: always the amount and the closed flag; the jar's own goal
+ * only when the row has no target yet, and its title only when the row has no name — whatever the user
+ * typed is theirs.
+ */
+export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): FriendDraftRow {
+  return {
+    ...row,
+    raised: jar.raised > 0 ? String(jar.raised) : '',
+    target: row.target.trim() === '' && jar.goal ? String(jar.goal) : row.target,
+    name: row.name.trim() === '' ? jar.title || jar.ownerName : row.name,
+    closed: jar.closed,
+    syncedAt: now,
+  };
 }
 
 /** Names are the helpers' identity: compared ignoring case and extra spaces. */

@@ -11,6 +11,7 @@ export * from './GlobeIcon';
 export * from './HryvniaIcon';
 export * from './ImageIcon';
 export * from './PlusIcon';
+export * from './RefreshIcon';
 export * from './SaveIcon';
 export * from './SpinnerIcon';
 export * from './TrashIcon';

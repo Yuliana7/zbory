@@ -33,7 +33,7 @@ type Focus = 'goal' | 'friends' | 'csv' | 'rows';
 export function UploadPage() {
   const { t } = useTranslation('upload');
   const { t: tManual } = useTranslation('manual');
-  const { state, handleProceedToInsights, handleReset, handleManualDataProceed, handleMergeFile, handleMergeRows, handleMonobankSource, handleLoadCampaign } =
+  const { state, dispatch, handleProceedToInsights, handleReset, handleManualDataProceed, handleMergeFile, handleMergeRows, handleMonobankSource, handleLoadCampaign } =
     useAppContext();
   const { app, isLoading } = state;
   const [editRows, setEditRows] = useState<ManualRow[] | null>(null);
@@ -155,6 +155,12 @@ export function UploadPage() {
   }
 
   if (app.donations) {
+    // «Редагувати» on the analytics' friends block: the same friends screen as from the project list,
+    // and «Готово» / «Назад» return to the analytics
+    if (app.friendsEdit) {
+      return <FriendsScreen onDone={() => dispatch({ type: 'FRIENDS_EDIT_DONE' })} backLabel={t('focus.backToAnalytics')} />;
+    }
+
     // a saved project is open for «Редагувати рядки», the table is about to appear
     if (focus === 'rows') return null;
 

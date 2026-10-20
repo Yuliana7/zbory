@@ -76,6 +76,8 @@ export type AppAction =
   | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; unsaved?: boolean } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
   | { type: 'MOMENTS_DISMISSED' }
+  | { type: 'FRIENDS_EDIT_OPENED' }
+  | { type: 'FRIENDS_EDIT_DONE' }
   // Before the fetched rows are reviewed: remember which jar they came from (and its goal)
   | { type: 'MONOBANK_SOURCE_SET'; payload: { jar?: MonobankJarRef; goal?: number } }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
@@ -135,6 +137,12 @@ function appReducer(state: FullState, action: AppAction): FullState {
           momentsDismissed: false, // a different dataset gets its moments back
         },
       };
+
+    case 'FRIENDS_EDIT_OPENED':
+      return { ...state, app: { ...state.app, friendsEdit: { returnTo: 'insights' }, step: 'upload' } };
+
+    case 'FRIENDS_EDIT_DONE':
+      return { ...state, app: { ...state.app, friendsEdit: undefined, step: 'insights' } };
 
     case 'MOMENTS_DISMISSED':
       return { ...state, app: { ...state.app, momentsDismissed: true } };

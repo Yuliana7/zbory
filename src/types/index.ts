@@ -51,6 +51,14 @@ export interface FriendJar {
   raised: number; // UAH
   /** what this helper set out to raise (UAH); progress is raised ÷ target and may pass 100% */
   target?: number;
+  /** the helper's own jar, by Monobank's long id — lets «Оновити» read its amount, goal and status */
+  jarId?: string;
+  /** the jar was closed (known only for linked jars): its numbers are final and the row is read-only */
+  closed?: boolean;
+  /** when the numbers or status last changed (ms) — «latest modified» ordering on the analytics page */
+  updatedAt?: number;
+  /** when the jar was last read from Monobank (ms) */
+  syncedAt?: number;
 }
 
 // Aggregated statistics
@@ -203,6 +211,8 @@ export interface AppState {
   friends?: FriendJar[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
+  /** «Редагувати» on the analytics' friends block opened the full friends editor on step 1; done/back returns there */
+  friendsEdit?: { returnTo: 'insights' };
   /** analytics was opened straight from the project list — «Назад» returns there, not to the preview */
   fromLibrary?: boolean;
   /** the analytics «Готові моменти» block was closed — stays closed while this dataset is open */

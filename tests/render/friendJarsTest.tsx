@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortRows, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -101,6 +101,56 @@ html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} frie
 check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
 html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={tg} format="post" />);
 check('Share: counts only jars that raised something', />3</.test(html));
+
+// ── linked jars, status, sorting, paging ──
+const T0 = 1_000_000;
+const lrows = [
+  { id: 'p', name: 'Петро', raised: '300', target: '', jarId: 'A'.repeat(16), closed: true },
+  { id: 'a', name: 'Анна', raised: '1200', target: '1000' },
+  { id: 'z', name: 'Зоя', raised: '50', target: '' },
+];
+check('sort: by name (А→Я)', sortRows(lrows, 'name').map((r) => r.id).join() === 'a,z,p');
+check('sort: by name, descending', sortRows(lrows, 'name', true).map((r) => r.id).join() === 'p,z,a');
+check('sort: by amount, biggest first', sortRows(lrows, 'raised').map((r) => r.id).join() === 'a,p,z');
+check('sort: by status, open before closed', sortRows(lrows, 'status').map((r) => r.id).join() === 'a,z,p');
+check('sort: does not touch the input', lrows.map((r) => r.id).join() === 'p,a,z');
+
+const saved1 = rowsToFriends(lrows, [], T0);
+check('stored: closed + jar link are kept', saved1[0].closed === true && saved1[0].jarId === 'A'.repeat(16) && saved1[1].closed === undefined);
+check('stored: new rows are stamped with now', saved1.every((f) => f.updatedAt === T0));
+const edited = lrows.map((r) => (r.id === 'a' ? { ...r, raised: '1300' } : r));
+const saved2 = rowsToFriends(edited, saved1, T0 + 5000);
+check('updatedAt: only the changed helper moves', saved2.find((f) => f.id === 'a')!.updatedAt === T0 + 5000 && saved2.find((f) => f.id === 'z')!.updatedAt === T0);
+const synced = rowsToFriends(lrows.map((r) => ({ ...r, syncedAt: T0 + 9000 })), saved1, T0 + 9000);
+check('updatedAt: reading a jar that changed nothing is not a modification', synced.every((f) => f.updatedAt === T0));
+check('updatedAt: closing a jar is a modification', rowsToFriends(lrows.map((r) => (r.id === 'z' ? { ...r, closed: true } : r)), saved1, T0 + 7)[2].updatedAt === T0 + 7);
+check('diff: order alone is not an edit', !friendsDiffer([...friendsToRows(saved1)].reverse(), saved1));
+check('diff: linking a jar is an edit', friendsDiffer(friendsToRows(saved1).map((r) => (r.id === 'z' ? { ...r, jarId: 'B'.repeat(16) } : r)), saved1));
+check('clean: a linked row without a name yet is kept', cleanFriends([{ id: 'q', name: '', raised: 0, jarId: 'C'.repeat(16) }]).length === 1);
+
+const fl = [
+  { id: '1', name: 'a', raised: 10, updatedAt: 5 },
+  { id: '2', name: 'b', raised: 99 },
+  { id: '3', name: 'c', raised: 20, updatedAt: 9 },
+  { id: '4', name: 'd', raised: 30, updatedAt: 7 },
+  { id: '5', name: 'e', raised: 1, updatedAt: 1 },
+  { id: '6', name: 'f', raised: 2, updatedAt: 8 },
+  { id: '7', name: 'g', raised: 3, updatedAt: 2 },
+];
+const latest = latestModified(fl);
+check('latest: newest change first, never-changed last', latest.map((f) => f.id).join() === '3,6,4,1,7,5,2');
+const pg0 = pageOf(latest, 0);
+const pg1 = pageOf(latest, 1);
+check('page: five at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
+check('page: out of range clamps', pageOf(latest, 9).page === 1 && pageOf([], 3).page === 0);
+
+const row0 = { id: 'r', name: '', raised: '', target: '' };
+const jarInfo = { title: 'Akatsuki Team', ownerName: 'Наталія Б.', raised: 500, goal: 10000, closed: false };
+const filled = applyJarInfo(row0, jarInfo, T0);
+check('jar read: fills an empty row (name, amount, goal)', filled.name === 'Akatsuki Team' && filled.raised === '500' && filled.target === '10000' && filled.syncedAt === T0);
+const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', target: '2000' }, jarInfo, T0);
+check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
+check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
 
 // ── progress line: only with friends, removable, never touches the headline total ──
 const base = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" />);

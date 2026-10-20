@@ -71,7 +71,7 @@ export function FriendsPanel({ open, onToggle, count, pickable, hiddenFriendIds,
           <p className="mt-2 text-xs text-gray-400">{t('friends.display.hint')}</p>
         </div>
       )}
-      <FriendsEditor />
+      <FriendsEditor compact />
     </Collapsible>
   );
 }

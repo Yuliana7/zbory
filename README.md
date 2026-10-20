@@ -99,6 +99,12 @@ Monobank lets helpers open their own jars that pay into yours. Those donations a
 
 Each helper can also have a **target**. The bar then shows that jar's own progress (`raised / target`), not how it compares with the biggest helper. Going past the target is fine: the bar fills up, the real percentage (e.g. `142%`) is shown, and the helper gets a green ✓. On the leaderboard template, a *Показувати на картці* checklist picks which helpers appear, and a removable "reached the target: 2 of 3" line summarises it. Helpers without a target keep the old relative bars until any helper gets one.
 
+**The helper list** is a table (stacked on a phone): name, collected, target, % of target and status, a refresh button and a delete button at the end of each row, with rows clearly separated. You can sort it by name, amount or status (open first).
+
+**Linking a helper's jar (optional).** Paste a helper jar's *long id* once and it stays with that helper: **Оновити** reads its current amount, goal and **status** from Monobank, **Оновити всі** does it for every linked open jar (one request per second, stopping politely on a 429), and **Додати за ID** creates helpers from several pasted ids at once. A refresh only overwrites the amount and status — a name or target you typed is kept (an empty target takes the jar's goal). A **closed** jar is locked: its numbers are final and it can't be edited, only removed. This uses one community-documented, unofficial public endpoint (`GET api.monobank.ua/bank/jar/{id}`, no token); it is throttled, so use it sparingly, and manual entry always works. The long id is the `extJarId` in the response of the request the helper's share page (`send.monobank.ua/jar/…`) makes — look in the browser's network tab for the `api/handler` request.
+
+On the analytics page the helpers are **read-only**, five at a time, most recently changed first; **Редагувати** opens the same friends screen as step 1 and brings you back.
+
 ### Everything else
 - Installable **PWA**, works offline after the first visit, with an update prompt. The installed app paints the status-bar area in the app's indigo on both iOS and Android.
 - **Private by design:** no backend, no accounts, no analytics. Your statement is parsed in the browser and stays there (localStorage for the last session, IndexedDB for saved fundraisers). The only network requests are for the app's own files.
@@ -173,7 +179,7 @@ A few design decisions worth knowing about:
 
 - **Cards are plain React components at 1080 px wide**, scaled down for preview with CSS `zoom` and captured at native size for export — what you see is what you download.
 - **Removable elements** are declared per template (`TEMPLATE_REMOVABLE_ELEMENTS`) and marked with `data-element` in the markup, so every template gets edit mode for free.
-- **Friendly jars are attribution only.** A helper is `{ name, raised, target? }` and is never added to any total — those donations are already in the main jar's statement.
+- **Friendly jars are attribution only.** A helper is `{ name, raised, target?, jarId?, closed?, updatedAt?, syncedAt? }` and is never added to any total — those donations are already in the main jar's statement.
 - **Downloads go through one helper** (`src/utils/download.ts`): the share sheet on iOS, an in-document anchor with a delayed `revokeObjectURL` everywhere else.
 
 ### Project layout
@@ -224,7 +230,7 @@ Pushes to `main` build and deploy to GitHub Pages via `.github/workflows/deploy.
 ## Roadmap
 
 - **Custom template builder** — compose your own card from the available elements.
-- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual. Unofficial, community-documented endpoints can read a helper jar's amount from its public link, but they are undocumented, rate-limited and not callable from a browser (no CORS), so the app deliberately doesn't depend on them.
+- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual. Unofficial, community-documented endpoints can read a helper jar's amount, goal and status by its long id; the app uses only `GET /bank/jar/{id}` (CORS-enabled, no token) and only when you press a button. The call that turns a share link into a long id has no CORS, so the id is pasted by hand; being unofficial and throttled, none of it is relied on.
 
 ## Contributing
 

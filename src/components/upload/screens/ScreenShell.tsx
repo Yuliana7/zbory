@@ -6,13 +6,15 @@ interface ScreenShellProps {
   backLabel: string;
   onBack: () => void;
   children: ReactNode;
+  /** room for a table instead of a single column */
+  wide?: boolean;
 }
 
 /** A focused full screen: one thing to change, a way back. */
-export function ScreenShell({ title, backLabel, onBack, children }: ScreenShellProps) {
+export function ScreenShell({ title, backLabel, onBack, children, wide = false }: ScreenShellProps) {
   return (
     <div className="py-8">
-      <div className="max-w-xl mx-auto animate-fade-in">
+      <div className={`${wide ? 'max-w-3xl' : 'max-w-xl'} mx-auto animate-fade-in`}>
         <button
           onClick={onBack}
           className="mb-4 flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800"
