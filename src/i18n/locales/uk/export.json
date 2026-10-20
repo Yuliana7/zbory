@@ -399,7 +399,8 @@
       "duplicate_few": "{{count}} банки вже є в списку",
       "duplicate_many": "{{count}} банок уже є в списку",
       "duplicate_other": "{{count}} банок уже є в списку"
-    }
+    },
+    "csv": "CSV"
   },
   "themes": {
     "label": "Теми",

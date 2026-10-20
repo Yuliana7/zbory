@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar } from '../../types';
-import { computeFriendStats, formatSharePct, friendBar, latestModified, pageOf, FRIENDS_PAGE_SIZE } from '../../utils/friendJars';
+import { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
+import { RefreshIcon, SpinnerIcon } from '../../icons';
+import { downloadCSV } from '../../utils/csvExporter';
+import { computeFriendStats, formatSharePct, friendBar, friendsToCSV, latestModified, pageOf, FRIENDS_PAGE_SIZE } from '../../utils/friendJars';
+import { dataAsOf, formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 
 interface FriendsChartProps {
   friends: FriendJar[];
@@ -21,11 +25,19 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const { t } = useTranslation('insights');
   const { dispatch } = useAppContext();
   const [page, setPage] = useState(0);
+  const refresh = useFriendsRefresh(friends);
   const { ranked, total, share, exceedsTotal, withTarget, reached } = computeFriendStats(friends, totalAmount);
 
   if (ranked.length === 0) return null;
 
   const shown = pageOf(latestModified(ranked), page);
+  const linked = linkedOpen(friends).length;
+  const asOf = dataAsOf(friends);
+  const stamp = () => {
+    const d = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
   const from = shown.page * FRIENDS_PAGE_SIZE + 1;
   const to = from + shown.items.length - 1;
 
@@ -40,13 +52,46 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
           {withTarget > 0 && (
             <p className="text-sm text-gray-600">{t('friends.reachedSummary', { reached, total: withTarget })}</p>
           )}
+          {/* where the numbers come from: while jars are being read, how far along; afterwards, how fresh they are */}
+          {refresh.running ? (
+            <p className="mt-1 flex items-center gap-1.5 text-xs text-indigo-600" role="status">
+              <SpinnerIcon className="w-3.5 h-3.5 animate-spin" />
+              {refresh.progress ? t('friends.refreshing', refresh.progress) : t('friends.refreshingShort')}
+            </p>
+          ) : (
+            linked > 0 && (
+              <p className="mt-1 text-xs text-gray-500">
+                🔄 {asOf ? t('friends.asOf', { when: formatWhen(asOf) }) : t('friends.neverSynced')}
+              </p>
+            )
+          )}
+          {!refresh.running && refresh.outcome && (refresh.outcome.rateLimited || refresh.outcome.failed > 0) && (
+            <p className="mt-1 text-xs text-amber-700">
+              {refresh.outcome.rateLimited
+                ? t('friends.refreshRateLimited', { updated: refresh.outcome.updated })
+                : t('friends.refreshFailed', { updated: refresh.outcome.updated, failed: refresh.outcome.failed })}
+            </p>
+          )}
         </div>
-        <button
-          onClick={() => dispatch({ type: 'FRIENDS_EDIT_OPENED' })}
-          className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-        >
-          {t('friends.edit')}
-        </button>
+        <div className="shrink-0 flex items-center gap-3">
+          {linked > 0 && (
+            <button
+              onClick={refresh.refreshNow}
+              disabled={refresh.running}
+              title={t('friends.refreshHint')}
+              className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors"
+            >
+              {refresh.running ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
+              {t('friends.refresh')}
+            </button>
+          )}
+          <button
+            onClick={() => dispatch({ type: 'FRIENDS_EDIT_OPENED' })}
+            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+          >
+            {t('friends.edit')}
+          </button>
+        </div>
       </div>
 
       {/* Helpers' share of the whole jar */}
@@ -62,6 +107,9 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
               <div className="flex items-baseline justify-between gap-3 text-sm mb-1">
                 <span className="min-w-0 truncate font-medium text-gray-800">
                   {f.name || '—'}
+                  {refresh.progress?.current === f.id && (
+                    <SpinnerIcon className="ml-2 inline w-3 h-3 animate-spin text-indigo-500" />
+                  )}
                   {bar.reached && <span className="ml-2 text-green-600" title={t('friends.reachedBadge')}>✓</span>}
                   {f.closed && (
                     <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
@@ -114,6 +162,30 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
       {shown.pages > 1 && <p className="mt-2 text-[11px] text-gray-400">{t('friends.latestNote')}</p>}
 
       {exceedsTotal && <p className="mt-3 text-xs text-red-500">{t('friends.exceeds')}</p>}
+
+      <div className="mt-4 pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-gray-500">
+        {linked > 0 ? (
+          <button
+            onClick={() => refresh.setAuto(!refresh.auto)}
+            aria-pressed={refresh.auto}
+            title={t('friends.autoHint')}
+            className="flex items-center gap-1.5 hover:text-gray-800 transition-colors"
+          >
+            <span className={`inline-block w-7 h-4 rounded-full relative transition-colors ${refresh.auto ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${refresh.auto ? 'left-3.5' : 'left-0.5'}`} />
+            </span>
+            {t('friends.auto')}
+          </button>
+        ) : (
+          <span />
+        )}
+        <button
+          onClick={() => downloadCSV(friendsToCSV(friends), `druzi_zboru_${stamp()}.csv`)}
+          className="font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          {t('friends.csv')}
+        </button>
+      </div>
     </div>
   );
 }

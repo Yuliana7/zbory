@@ -222,3 +222,30 @@ export function duplicateNameIds(rows: FriendDraftRow[]): Set<string> {
   }
   return new Set([...byName.values()].filter((ids) => ids.length > 1).flat());
 }
+
+const csvField = (v: string | number) => `"${String(v).replace(/"/g, '""')}"`;
+const pad2 = (n: number) => String(n).padStart(2, '0');
+const localStamp = (ms: number) => {
+  const d = new Date(ms);
+  return `${pad2(d.getDate())}.${pad2(d.getMonth() + 1)}.${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+};
+
+/** The helper list as CSV (comma separated, text quoted, UTF-8 — Excel gets a BOM from downloadCSV).
+ * Times are on the user's own clock. */
+export function friendsToCSV(friends: FriendJar[]): string {
+  const head = ['Назва', 'Зібрано, ₴', 'Ціль, ₴', 'Відсоток цілі', 'Статус', 'ID банки', 'Остання зміна', 'Оновлено з Monobank'];
+  const lines = friends.map((f) => {
+    const { pct } = friendProgress(f);
+    return [
+      csvField(f.name),
+      f.raised.toFixed(2),
+      f.target ? f.target.toFixed(2) : '',
+      pct === null ? '' : String(Math.round(pct)),
+      csvField(f.closed ? 'Закрита' : 'Відкрита'),
+      csvField(f.jarId ?? ''),
+      f.updatedAt ? csvField(localStamp(f.updatedAt)) : '',
+      f.syncedAt ? csvField(localStamp(f.syncedAt)) : '',
+    ].join(',');
+  });
+  return [head.map(csvField).join(','), ...lines].join('\n');
+}

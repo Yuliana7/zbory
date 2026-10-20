@@ -3,7 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { useFriendsDraft, type FriendsDraft } from '../hooks/useFriendsDraft';
 import { CheckIcon, PlusIcon, RefreshIcon, SpinnerIcon } from '../icons';
-import { computeFriendStats, newFriend, sortRows, type FriendDraftRow, type FriendSortKey } from '../utils/friendJars';
+import { downloadCSV } from '../utils/csvExporter';
+import { computeFriendStats, friendsToCSV, newFriend, rowsToFriends, sortRows, type FriendDraftRow, type FriendSortKey } from '../utils/friendJars';
 import { FRIEND_COLUMNS, FriendRow } from './friends/FriendRow';
 import { AddByIdPanel } from './friends/AddByIdPanel';
 
@@ -67,6 +68,18 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
           </div>
         )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {rows.length > 0 && (
+            <button
+              onClick={() => {
+                const d = new Date();
+                const pad = (n: number) => String(n).padStart(2, '0');
+                void downloadCSV(friendsToCSV(rowsToFriends(rows, app.friends)), `druzi_zboru_${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}.csv`);
+              }}
+              className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition-colors"
+            >
+              {t('friends.csv')}
+            </button>
+          )}
           <button
             onClick={() => setAddingById((v) => !v)}
             className="px-3 py-1.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs font-medium transition-colors"
