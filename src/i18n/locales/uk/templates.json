@@ -171,12 +171,26 @@
         "targetLabel": "ціль",
         "reachedLabel": "Досягли цілі",
         "reachedOf": "{{reached}} з {{total}}",
-        "more": "+ ще {{n}}"
+        "more": "+ ще {{n}}",
+        "closedLabel": "закрита"
     },
     "friends-share": {
         "title": "Друзі збору",
         "heroLabel": "збору принесли друзі",
         "ofLabel": "з",
         "countLabel": "Друзів долучилось"
+    },
+    "friends-closed": {
+        "title": "Банки друзів завершено",
+        "heroLabel": "зібрали друзі",
+        "targetLabel": "ціль",
+        "reachedLabel": "Досягли цілі",
+        "reachedOf": "{{reached}} з {{total}}",
+        "more": "+ ще {{n}}",
+        "thanks": "Дякуємо кожному, хто долучився 💙💛",
+        "closedCount_one": "Закрито {{count}} банку",
+        "closedCount_few": "Закрито {{count}} банки",
+        "closedCount_many": "Закрито {{count}} банок",
+        "closedCount_other": "Закрито {{count}} банок"
     }
 }

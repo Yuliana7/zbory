@@ -2,11 +2,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
 import { FriendsShareCard } from '../../src/components/templates/FriendsShareCard';
+import { FriendsClosedCard } from '../../src/components/templates/FriendsClosedCard';
 
 let failures = 0;
 const check = (label: string, ok: boolean, extra = '') => {
@@ -66,6 +67,10 @@ check('progress: no target → null', friendProgress(tg[2]).pct === null && !fri
 const ts = computeFriendStats(tg, 10000);
 check('stats: zero-raised jar with a target is listed', ts.ranked.some((f) => f.id === 'd'));
 check('stats: total ignores zero jars, counts raised only', ts.total === 2220);
+check('stats: a helper without a target counts at its own amount (c: 500) in the combined target', ts.targetsTotal === 3300 && Math.abs((ts.targetsProgress ?? 0) - 2220 / 3300) < 1e-9 && ts.withoutTarget === 1);
+check('stats: combined progress can exceed 1', (computeFriendStats([{ id: 'x', name: 'x', raised: 5000, target: 1000 }], 10000).targetsProgress ?? 0) === 5);
+check('stats: no real target anywhere → no combined progress (everyone would trivially be at 100%)', computeFriendStats(friends, 4000).targetsProgress === null);
+check('stats: an untargeted helper is neutral — progress sits between like-for-like and the literal sum', (() => { const f = computeFriendStats([{ id: 'a', name: 'a', raised: 100, target: 1000 }, { id: 'b', name: 'b', raised: 600 }], 9999); const p = f.targetsProgress ?? 0; return p > 100 / 1000 && p < 700 / 1000 && Math.abs(p - 700 / 1600) < 1e-9; })());
 check('stats: reached/withTarget counts', ts.reached === 1 && ts.withTarget === 3);
 const bo = friendBar(tg[0], ts.ranked);
 check('bar: target mode caps fill at 1', bo.mode === 'target' && bo.fill === 1 && bo.reached);
@@ -101,6 +106,88 @@ html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} frie
 check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
 html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={tg} format="post" />);
 check('Share: counts only jars that raised something', />3</.test(html));
+
+// ── linked jars, status, sorting, paging ──
+const T0 = 1_000_000;
+const lrows = [
+  { id: 'p', name: 'Петро', raised: '300', target: '', jarId: 'A'.repeat(16), closed: true },
+  { id: 'a', name: 'Анна', raised: '1200', target: '1000' },
+  { id: 'z', name: 'Зоя', raised: '50', target: '' },
+];
+const lrowsF = rowsToFriends(lrows, [], T0);
+check('sort: by name (А→Я)', sortFriends(lrowsF, 'name').map((r) => r.id).join() === 'a,z,p');
+check('sort: by name, descending', sortFriends(lrowsF, 'name', true).map((r) => r.id).join() === 'p,z,a');
+check('sort: by amount, biggest first', sortFriends(lrowsF, 'raised').map((r) => r.id).join() === 'a,p,z');
+check('sort: by status, open before closed', sortFriends(lrowsF, 'status').map((r) => r.id).join() === 'a,z,p');
+check('sort: does not touch the input', lrowsF.map((r) => r.id).join() === 'p,a,z');
+check('sort: by last change, newest first', sortFriends([{ id: '1', name: 'a', raised: 1, updatedAt: 5 }, { id: '2', name: 'b', raised: 1, updatedAt: 9 }, { id: '3', name: 'c', raised: 1 }], 'modified').map((f) => f.id).join() === '2,1,3');
+check('sort: by last change, oldest first (descending flips it)', sortFriends([{ id: '1', name: 'a', raised: 1, updatedAt: 5 }, { id: '2', name: 'b', raised: 1, updatedAt: 9 }], 'modified', true).map((f) => f.id).join() === '1,2');
+
+const saved1 = rowsToFriends(lrows, [], T0);
+check('stored: closed + jar link are kept', saved1[0].closed === true && saved1[0].jarId === 'A'.repeat(16) && saved1[1].closed === undefined);
+check('stored: new rows are stamped with now', saved1.every((f) => f.updatedAt === T0));
+const edited = lrows.map((r) => (r.id === 'a' ? { ...r, raised: '1300' } : r));
+const saved2 = rowsToFriends(edited, saved1, T0 + 5000);
+check('updatedAt: only the changed helper moves', saved2.find((f) => f.id === 'a')!.updatedAt === T0 + 5000 && saved2.find((f) => f.id === 'z')!.updatedAt === T0);
+const synced = rowsToFriends(lrows.map((r) => ({ ...r, syncedAt: T0 + 9000 })), saved1, T0 + 9000);
+check('updatedAt: reading a jar that changed nothing is not a modification', synced.every((f) => f.updatedAt === T0));
+check('updatedAt: closing a jar is a modification', rowsToFriends(lrows.map((r) => (r.id === 'z' ? { ...r, closed: true } : r)), saved1, T0 + 7)[2].updatedAt === T0 + 7);
+const manualRows = friendsToRows([{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }]);
+const closedByHand = manualRows.map((r) => ({ ...r, closed: true }));
+check('closed by hand: an unlinked helper can be closed, and it is an edit', friendsDiffer(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }]));
+check('closed by hand: stored, and counts as a modification', rowsToFriends(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }], T0 + 3)[0].closed === true && rowsToFriends(closedByHand, [{ id: 'm', name: 'Ручна', raised: 10, updatedAt: T0 }], T0 + 3)[0].updatedAt === T0 + 3);
+check('closed by hand: can be reopened', rowsToFriends(closedByHand.map((r) => ({ ...r, closed: false })), rowsToFriends(closedByHand, [], T0), T0 + 4)[0].closed === undefined);
+check('closed: a closed helper stays editable (amount change is stored)', rowsToFriends(closedByHand.map((r) => ({ ...r, raised: '99' })), rowsToFriends(closedByHand, [], T0), T0 + 5)[0].raised === 99);
+check('diff: order alone is not an edit', !friendsDiffer([...friendsToRows(saved1)].reverse(), saved1));
+check('diff: linking a jar is an edit', friendsDiffer(friendsToRows(saved1).map((r) => (r.id === 'z' ? { ...r, jarId: 'B'.repeat(16) } : r)), saved1));
+check('clean: a linked row without a name yet is kept', cleanFriends([{ id: 'q', name: '', raised: 0, jarId: 'C'.repeat(16) }]).length === 1);
+
+const fl = [
+  { id: '1', name: 'a', raised: 10, updatedAt: 5 },
+  { id: '2', name: 'b', raised: 99 },
+  { id: '3', name: 'c', raised: 20, updatedAt: 9 },
+  { id: '4', name: 'd', raised: 30, updatedAt: 7 },
+  { id: '5', name: 'e', raised: 1, updatedAt: 1 },
+  { id: '6', name: 'f', raised: 2, updatedAt: 8 },
+  { id: '7', name: 'g', raised: 3, updatedAt: 2 },
+];
+const latest = latestModified(fl);
+check('latest: newest change first, never-changed last', latest.map((f) => f.id).join() === '3,6,4,1,7,5,2');
+const pg0 = pageOf(latest, 0);
+const pg1 = pageOf(latest, 1);
+check('page: five at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
+check('page: out of range clamps', pageOf(latest, 9).page === 1 && pageOf([], 3).page === 0);
+
+const row0 = { id: 'r', name: '', raised: '', target: '' };
+const jarInfo = { title: 'Akatsuki Team', ownerName: 'Наталія Б.', raised: 500, goal: 10000, closed: false };
+const filled = applyJarInfo(row0, jarInfo, T0);
+check('jar read: fills an empty row (owner name, amount, goal)', filled.name === 'Наталія Б.' && filled.raised === '500' && filled.target === '10000' && filled.syncedAt === T0);
+const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', target: '2000' }, jarInfo, T0);
+check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
+check('jar read: no owner name → the jar title', applyJarInfo(row0, { ...jarInfo, ownerName: '' }, T0).name === 'Akatsuki Team');
+check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
+
+// ── closed-jars card ──
+const jars = [
+  { id: 'o', name: 'Відкрита', raised: 700, target: 1000 },
+  { id: 'c1', name: 'Закрита Оля', raised: 1500, target: 1000, closed: true },
+  { id: 'c2', name: 'Закритий Тарас', raised: 300, target: 1000, closed: true },
+  { id: 'c3', name: 'Закрита без цілі', raised: 200, closed: true },
+  { id: 'c4', name: 'Закрита порожня', raised: 0, target: 500, closed: true },
+];
+check('closed list: only closed jars that raised something, biggest first', closedFriends(jars).map((f) => f.id).join() === 'c1,c2,c3');
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="story" />);
+check('Closed card: lists closed jars, never the open one', strip(html).includes('Закрита Оля') && strip(html).includes('Закритий Тарас') && !strip(html).includes('Відкрита '));
+check('Closed card: hero total and count of closed jars', /2\s?000\s*₴/.test(strip(html)) && strip(html).includes('Закрито 3 банки'));
+check('Closed card: ✓ only on the jar that reached its target', (html.match(/data-reached/g) ?? []).length === 1 && strip(html).includes('150%'));
+check('Closed card: reached line and thanks', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 2') && strip(html).includes('Дякуємо'));
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} hiddenFriendIds={['c1']} format="story" />);
+check('Closed card: a hidden jar is gone and the totals follow', !strip(html).includes('Закрита Оля') && /500\s*₴/.test(strip(html)) && strip(html).includes('Закрито 2 банки') && !html.includes('data-reached'));
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="post" hidden={new Set(['hero', 'thanks', 'reachedLine'])} />);
+check('Closed card: removable elements', !strip(html).includes('Дякуємо') && !strip(html).includes('Досягли цілі') && !strip(html).includes('Закрито 3'));
+check('Closed card: no closed jars is safe', renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={real} format="story" />).includes('0 ₴'));
+html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={jars} format="story" />);
+check('Leaderboard: closed jars (also one with only a target) are tagged «закрита», the open one is not', (html.match(/data-closed/g) ?? []).length === 4 && strip(html).includes('закрита'));
 
 // ── progress line: only with friends, removable, never touches the headline total ──
 const base = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" />);

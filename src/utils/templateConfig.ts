@@ -143,8 +143,16 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   'friends-leaderboard': [
     { key: 'title' },
     { key: 'targetLabel' },
+    { key: 'closedLabel' },
     { key: 'reachedLabel' },
     { key: 'totalLabel' },
+  ],
+  'friends-closed': [
+    { key: 'title' },
+    { key: 'heroLabel' },
+    { key: 'targetLabel' },
+    { key: 'reachedLabel' },
+    { key: 'thanks', multiline: true },
   ],
   'friends-share': [
     { key: 'title' },
@@ -173,6 +181,7 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   report: false,
   'campaigns-chart': false,
   'friends-leaderboard': false, // helper totals cover the whole campaign
+  'friends-closed': false,
   'friends-share': false,
 };
 
@@ -195,6 +204,7 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   report: false,
   'campaigns-chart': false,
   'friends-leaderboard': false,
+  'friends-closed': false,
   'friends-share': false,
 };
 
@@ -219,6 +229,7 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   report: 'story',
   'campaigns-chart': 'story',
   'friends-leaderboard': 'story',
+  'friends-closed': 'story',
   'friends-share': 'story',
 };
 
@@ -378,6 +389,15 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
     UA_FLAG,
     GLOW,
   ],
+  'friends-closed': [
+    HEADER,
+    el('hero', 'layout.friendsClosedHero'),
+    el('list', 'layout.friendsList'),
+    el('reachedLine', 'layout.friendsReached'),
+    el('thanks', 'layout.thanksLine'),
+    UA_FLAG,
+    GLOW,
+  ],
   'friends-share': [
     HEADER,
     el('hero', 'layout.hero'),
@@ -401,6 +421,6 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
-  { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-share'] },
+  { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-closed', 'friends-share'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
 ];

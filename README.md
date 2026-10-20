@@ -4,7 +4,7 @@
 
 **[Open the app → yuliana7.github.io/zbory](https://yuliana7.github.io/zbory/)** · **[Посібник для волонтерів (українською) →](docs/USER_GUIDE.uk.md)**
 
-> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 19 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
+> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 20 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
 
 <p align="center">
   <img src="docs/screenshots/20-export-with-photo.jpg" alt="Editing a friends leaderboard card with your own photo, on a phone" width="260">
@@ -77,7 +77,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - **Refund detection** — Monobank doesn't list refunds in the statement; the app infers them from balance vs. donations vs. withdrawals.
 
 ### Templates & editing
-- **19 templates** in five groups: progress, activity, people, friendly jars and reports.
+- **20 templates** in five groups: progress, activity, people, friendly jars and reports.
 - **Three formats:** 1080×1080 post, 1080×1350 (4:5) post, 1080×1920 Story.
 - **Everything is removable** — tap an element in edit mode to hide it; edit any label or text.
 - **Your own background** with a full-screen, gesture-isolated editor: drag, pinch-to-zoom, two-finger rotate, brightness and opacity. The page doesn't scroll or move the photo by accident while you edit. Large phone photos are scaled down to 3000 px on upload (about 1:1 at maximum zoom), which keeps exports and saved projects light.
@@ -97,11 +97,30 @@ Skip the CSV: paste your personal API token and the app pulls a jar's donations 
 ### Friendly jars (дружні збори)
 Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals. Helper names are unique (case and extra spaces are ignored). Edits are explicit: **Зберегти друзів** writes them to the project (to the library too, once the project is saved), and leaving the page with unsaved edits asks first.
 
-Each helper can also have a **target**. The bar then shows that jar's own progress (`raised / target`), not how it compares with the biggest helper. Going past the target is fine: the bar fills up, the real percentage (e.g. `142%`) is shown, and the helper gets a green ✓. On the leaderboard template, a *Показувати на картці* checklist picks which helpers appear, and a removable "reached the target: 2 of 3" line summarises it. Helpers without a target keep the old relative bars until any helper gets one.
+Each helper can also have a **target**. The bar then shows that jar's own progress (`raised / target`), not how it compares with the biggest helper. Going past the target is fine: the bar fills up, the real percentage (e.g. `142%`) is shown, and the helper gets a green ✓. On the leaderboard template, a *Показувати на картці* checklist picks which helpers appear, and a removable "reached the target: 2 of 3" line summarises it; closed jars carry a small «закрита» tag there. A separate template, **«Завершені банки друзів»**, wraps up the closed jars only: the combined total, each jar's final amount and target percentage, a ✓ for the ones that reached it, and a thanks line. It is offered once at least one closed helper has raised something. Helpers without a target keep the old relative bars until any helper gets one.
+
+**The helper list** is a table (stacked on a phone): name, collected, target, % of target and status, a refresh button and a delete button at the end of each row, with rows clearly separated.
+
+**Linking a helper's jar (optional).** Paste a helper jar's *long id* once and it stays with that helper: **Оновити** reads its current amount, goal and **status** from Monobank, **Оновити всі** does it for every linked open jar (one request per second, stopping politely on a 429), and **Додати за ID** creates helpers from several pasted ids at once. A refresh only overwrites the amount and status — a name or target you typed is kept (an empty target takes the jar's goal, an empty name takes the jar owner's name). **Status is a switch on every helper** — click *Відкрита / Закрита* to close a jar by hand (a linked jar the API reports as closed switches by itself, and you can reopen it). A closed helper is skipped by the refreshes and stays editable by hand; the analytics view marks it «закрита». Each row is one line; the jar link's details (id, when it was last read, unlink) open from the link icon. This uses one community-documented, unofficial public endpoint (`GET api.monobank.ua/bank/jar/{id}`, no token); it is throttled, so use it sparingly, and manual entry always works. The long id has to be [looked up by hand](#finding-a-helper-jars-long-id).
+
+On the analytics page the helpers are **read-only**, five at a time, most recently changed first, and can be **sorted** there by last change, name, amount or status (open first; pick the same sort again to flip it); **Редагувати** opens the same friends screen as step 1 and brings you back. The block says when the linked jars' data is from, has an **Оновити** button, and — with **«Оновлювати при відкритті»** on (default, remembered on the device) — reads the linked open jars whose data is older than 15 minutes when the page opens (at most once every 5 minutes, one request a second, with a spinner on the block and on the jar being read). A bar on top sets everything the helpers raised against everything they set out to raise (a helper without a target counts at its own amount; the bar is hidden until some helper has a real target; it caps at full width and the real percentage, even above 100%, is shown). **Завантажити CSV** exports the helper list from both the analytics and the editor.
+
+#### Finding a helper jar's long id
+
+Monobank doesn't show the long id anywhere in its app or on a jar's page, so it has to be read from the page's own network traffic. It takes a minute, **once per helper jar**, on a computer (the browser developer tools are awkward on a phone):
+
+1. Open the helper's public jar link in a desktop browser — the `https://send.monobank.ua/jar/…` link they share.
+2. Open the developer tools (**F12**, or **Ctrl+Shift+I** / **⌥⌘I** on a Mac; in Safari first enable *Develop* in *Settings → Advanced*) and go to the **Network** tab.
+3. **Reload the page** while the Network tab is open, and type `handler` into the filter box.
+4. Click the **`handler`** request (a `POST` to `send.monobank.ua/api/handler`; if there are two, either works) and open its **Response** (or **Preview**) tab.
+5. Find **`extJarId`** in the JSON — a long string of letters and digits, about 32 characters, like `3xpbdqzsr7At11TZ9UPtsXneijoi61K2` — and copy only that value.
+6. Paste it into the helper's row (link icon → *Прив'язати банку за ID*) or into **Додати за ID**. The id is also accepted inside the full link `https://api.monobank.ua/bank/jar/<id>`.
+
+The same response also names the jar's owner (`ownerName`) and shows the jar it belongs to (`mainJar`), which is a handy way to check you picked the right jar. The id is the helper jar's public identifier, not a secret credential, but there is no reason to post it either. If the request isn't there, the page may have changed: manual entry keeps working.
 
 ### Everything else
 - Installable **PWA**, works offline after the first visit, with an update prompt. The installed app paints the status-bar area in the app's indigo on both iOS and Android.
-- **Private by design:** no backend, no accounts, no analytics. Your statement is parsed in the browser and stays there (localStorage for the last session, IndexedDB for saved fundraisers). The only network requests are for the app's own files.
+- **Private by design:** no backend, no accounts, no analytics. Your statement is parsed in the browser and stays there (localStorage for the last session, IndexedDB for saved fundraisers). The app makes no network requests on its own beyond its own files; the only calls to Monobank are the ones you start yourself (API import, and refreshing a helper jar by its long id).
 - Self-hosted Inter font (Cyrillic included), so exported PNGs look the same on every device.
 
 ## How to use it
@@ -173,7 +192,7 @@ A few design decisions worth knowing about:
 
 - **Cards are plain React components at 1080 px wide**, scaled down for preview with CSS `zoom` and captured at native size for export — what you see is what you download.
 - **Removable elements** are declared per template (`TEMPLATE_REMOVABLE_ELEMENTS`) and marked with `data-element` in the markup, so every template gets edit mode for free.
-- **Friendly jars are attribution only.** A helper is `{ name, raised, target? }` and is never added to any total — those donations are already in the main jar's statement.
+- **Friendly jars are attribution only.** A helper is `{ name, raised, target?, jarId?, closed?, updatedAt?, syncedAt? }` and is never added to any total — those donations are already in the main jar's statement.
 - **Downloads go through one helper** (`src/utils/download.ts`): the share sheet on iOS, an in-document anchor with a delayed `revokeObjectURL` everywhere else.
 
 ### Project layout
@@ -183,7 +202,7 @@ src/
   pages/            Upload, Insights, Gallery, Export (the four steps)
     ExportPage/       editor: canvas, panels, background gestures, ZIP export
   components/
-    templates/        the 19 card templates + shared card shell
+    templates/        the 20 card templates + shared card shell
     insights/         charts and analytics panels
     upload/           new-project options, the one-page preview (collapsible sections), manual
                       entry, Monobank import, saved-project list and its Редагувати menu;
@@ -224,7 +243,7 @@ Pushes to `main` build and deploy to GitHub Pages via `.github/workflows/deploy.
 ## Roadmap
 
 - **Custom template builder** — compose your own card from the available elements.
-- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual. Unofficial, community-documented endpoints can read a helper jar's amount from its public link, but they are undocumented, rate-limited and not callable from a browser (no CORS), so the app deliberately doesn't depend on them.
+- **Friendly-jar attribution from the API** — the personal API exposes nothing about friendly jars (`client-info` lists only your own jars, and statement items don't say which helper a donation came through), so helper amounts stay manual. Unofficial, community-documented endpoints can read a helper jar's amount, goal and status by its long id; the app uses only `GET /bank/jar/{id}` (CORS-enabled, no token) and only when you press a button. The call that turns a share link into a long id has no CORS, so the id is pasted by hand; being unofficial and throttled, none of it is relied on.
 
 ## Contributing
 

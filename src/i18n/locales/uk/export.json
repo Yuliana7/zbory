@@ -78,7 +78,8 @@
     "friendsReached": "Рядок «досягли цілі»",
     "friendsAmounts": "Суми (друзі з усього)",
     "friendsShareBar": "Смуга внеску друзів",
-    "friendsCount": "Кількість друзів"
+    "friendsCount": "Кількість друзів",
+    "friendsClosedHero": "Підсумок (сума й кількість)"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -148,7 +149,8 @@
     "report": "Загальний звіт",
     "campaigns-chart": "Динаміка зборів",
     "friends-leaderboard": "Друзі збору",
-    "friends-share": "Внесок друзів"
+    "friends-share": "Внесок друзів",
+    "friends-closed": "Завершені банки друзів"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -298,13 +300,21 @@
       "title": "Заголовок",
       "targetLabel": "Підпис цілі (під смугою)",
       "reachedLabel": "Підпис «досягли цілі»",
-      "totalLabel": "Підпис суми друзів"
+      "totalLabel": "Підпис суми друзів",
+      "closedLabel": "Позначка закритої банки"
     },
     "friends-share": {
       "title": "Заголовок",
       "heroLabel": "Підпис під відсотком",
       "ofLabel": "Слово між сумами («з»)",
       "countLabel": "Підпис кількості друзів"
+    },
+    "friends-closed": {
+      "title": "Заголовок",
+      "heroLabel": "Підпис під сумою",
+      "targetLabel": "Підпис цілі (під смугою)",
+      "reachedLabel": "Підпис «досягли цілі»",
+      "thanks": "Рядок подяки"
     }
   },
   "friends": {
@@ -340,7 +350,63 @@
     },
     "duplicate": "Друг із таким іменем уже є — імена мають бути різними.",
     "savedSession": "Друзі додано. Щоб вони лишилися в бібліотеці, збережіть збір кнопкою «Зберегти».",
-    "unsavedShort": "Є незбережені зміни"
+    "unsavedShort": "Є незбережені зміни",
+    "columns": {
+      "name": "Ім'я",
+      "raised": "Зібрано, ₴",
+      "target": "Ціль, ₴",
+      "progress": "% цілі",
+      "status": "Статус"
+    },
+    "status": {
+      "open": "Відкрита",
+      "closed": "Закрита",
+      "close": "Позначити банку закритою",
+      "reopen": "Відкрити банку знову"
+    },
+    "link": "Прив'язати банку за ID",
+    "idPlaceholder": "Довгий ID банки (з Monobank)",
+    "linkConfirm": "Прив'язати",
+    "unlink": "Відв'язати",
+    "linkedId": "ID банки: {{id}}",
+    "synced": "оновлено {{when}}",
+    "refresh": "Оновити з Monobank",
+    "refreshClosed": "Банка закрита — під час оновлення пропускається. Відкрийте її, щоб оновлювати.",
+    "refreshAll": "Оновити всі ({{count}})",
+    "refreshAllNone": "Немає відкритих банок із прив'язаним ID",
+    "refreshProgress": "Оновлено {{done}} з {{total}}…",
+    "refreshDone": "Оновлено: {{updated}}. Не вдалося: {{failed}}.",
+    "refreshRateLimited": "Оновлено: {{updated}}. Monobank просить зачекати — решту банок оновіть за хвилину-дві.",
+    "jarErrors": {
+      "rate-limit": "Monobank просить зачекати. Спробуйте за хвилину.",
+      "network": "Не вдалося зв'язатися з Monobank. Перевірте інтернет.",
+      "not-found": "Банку з таким ID не знайдено.",
+      "currency": "Підтримуються лише банки в гривні.",
+      "unexpected": "Неочікувана відповідь Monobank.",
+      "invalid": "Це не схоже на ID банки.",
+      "duplicate": "Цю банку вже додано."
+    },
+    "addById": {
+      "toggle": "Додати за ID",
+      "hint": "Вставте довгі ID банок друзів — по одному в рядку. Ім'я власника банки, суму, ціль і статус ми візьмемо з Monobank.",
+      "placeholder": "3xpbdqzsr7At11TZ9UPtsXneijoi61K2",
+      "submit": "Додати банки",
+      "close": "Закрити",
+      "added_one": "Додано банку: {{count}}",
+      "added_few": "Додано банки: {{count}}",
+      "added_many": "Додано банок: {{count}}",
+      "added_other": "Додано банок: {{count}}",
+      "invalid_one": "{{count}} запис не схожий на ID",
+      "invalid_few": "{{count}} записи не схожі на ID",
+      "invalid_many": "{{count}} записів не схожі на ID",
+      "invalid_other": "{{count}} записів не схожі на ID",
+      "duplicate_one": "{{count}} банка вже є в списку",
+      "duplicate_few": "{{count}} банки вже є в списку",
+      "duplicate_many": "{{count}} банок уже є в списку",
+      "duplicate_other": "{{count}} банок уже є в списку"
+    },
+    "csv": "CSV",
+    "linkedTitle": "Прив'язано до банки {{id}} — натисніть, щоб побачити деталі"
   },
   "themes": {
     "label": "Теми",

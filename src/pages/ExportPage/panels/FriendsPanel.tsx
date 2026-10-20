@@ -8,18 +8,21 @@ interface FriendsPanelProps {
   open: boolean;
   onToggle: () => void;
   count: number;
-  /** the leaderboard card lets you pick which helpers it lists */
+  /** the leaderboard and closed-jars cards let you pick which helpers they list */
   pickable: boolean;
+  /** the closed-jars card lists closed helpers only, so only those can be picked */
+  closedOnly?: boolean;
   hiddenFriendIds: string[];
   onHiddenFriendIdsChange: (ids: string[]) => void;
 }
 
 const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-export function FriendsPanel({ open, onToggle, count, pickable, hiddenFriendIds, onHiddenFriendIdsChange }: FriendsPanelProps) {
+export function FriendsPanel({ open, onToggle, count, pickable, closedOnly = false, hiddenFriendIds, onHiddenFriendIdsChange }: FriendsPanelProps) {
   const { t } = useTranslation('export');
   const { state } = useAppContext();
-  const { ranked } = computeFriendStats(state.app.friends, state.app.aggregates?.totalAmount ?? 0);
+  const stats = computeFriendStats(state.app.friends, state.app.aggregates?.totalAmount ?? 0);
+  const ranked = closedOnly ? stats.ranked.filter((f) => f.closed && f.raised > 0) : stats.ranked;
   const hidden = new Set(hiddenFriendIds);
   const toggle = (id: string) => onHiddenFriendIdsChange(hidden.has(id) ? hiddenFriendIds.filter((x) => x !== id) : [...hiddenFriendIds, id]);
 
@@ -71,7 +74,7 @@ export function FriendsPanel({ open, onToggle, count, pickable, hiddenFriendIds,
           <p className="mt-2 text-xs text-gray-400">{t('friends.display.hint')}</p>
         </div>
       )}
-      <FriendsEditor />
+      <FriendsEditor compact />
     </Collapsible>
   );
 }
