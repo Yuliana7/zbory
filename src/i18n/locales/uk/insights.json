@@ -63,7 +63,11 @@
       "raised": "Сума",
       "status": "Статус"
     },
-    "targetsBar": "Усі друзі разом: {{raised}} з {{target}} ₴ цілей"
+    "targetsBar": "Усі друзі разом: {{raised}} з {{target}} ₴",
+    "targetsBarNote_one": "Банку без цілі враховано за її поточною сумою.",
+    "targetsBarNote_few": "{{count}} банки без цілі враховано за їхніми поточними сумами.",
+    "targetsBarNote_many": "{{count}} банок без цілі враховано за їхніми поточними сумами.",
+    "targetsBarNote_other": "{{count}} банок без цілі враховано за їхніми поточними сумами."
   },
   "charts": {
     "raised": "Зібрано",

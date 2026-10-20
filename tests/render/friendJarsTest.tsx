@@ -66,9 +66,10 @@ check('progress: no target → null', friendProgress(tg[2]).pct === null && !fri
 const ts = computeFriendStats(tg, 10000);
 check('stats: zero-raised jar with a target is listed', ts.ranked.some((f) => f.id === 'd'));
 check('stats: total ignores zero jars, counts raised only', ts.total === 2220);
-check('stats: targets total sums every target, progress is total ÷ targets (may pass 100%)', ts.targetsTotal === 2800 && Math.abs((ts.targetsProgress ?? 0) - 2220 / 2800) < 1e-9);
-check('stats: progress over targets can exceed 1', (computeFriendStats([{ id: 'x', name: 'x', raised: 5000, target: 1000 }], 10000).targetsProgress ?? 0) === 5);
-check('stats: no targets → no progress', computeFriendStats(friends, 4000).targetsProgress === null && computeFriendStats(friends, 4000).targetsTotal === 0);
+check('stats: a helper without a target counts at its own amount (c: 500) in the combined target', ts.targetsTotal === 3300 && Math.abs((ts.targetsProgress ?? 0) - 2220 / 3300) < 1e-9 && ts.withoutTarget === 1);
+check('stats: combined progress can exceed 1', (computeFriendStats([{ id: 'x', name: 'x', raised: 5000, target: 1000 }], 10000).targetsProgress ?? 0) === 5);
+check('stats: no real target anywhere → no combined progress (everyone would trivially be at 100%)', computeFriendStats(friends, 4000).targetsProgress === null);
+check('stats: an untargeted helper is neutral — progress sits between like-for-like and the literal sum', (() => { const f = computeFriendStats([{ id: 'a', name: 'a', raised: 100, target: 1000 }, { id: 'b', name: 'b', raised: 600 }], 9999); const p = f.targetsProgress ?? 0; return p > 100 / 1000 && p < 700 / 1000 && Math.abs(p - 700 / 1600) < 1e-9; })());
 check('stats: reached/withTarget counts', ts.reached === 1 && ts.withTarget === 3);
 const bo = friendBar(tg[0], ts.ranked);
 check('bar: target mode caps fill at 1', bo.mode === 'target' && bo.fill === 1 && bo.reached);

@@ -20,7 +20,7 @@ const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 /** How much each helper jar brought in, read-only. A helper with a target gets a bar towards that
  * target (full, with a check mark, once reached — the percentage can go past 100); until anyone has a
  * target the bars compare helpers with the best one. The bar on top sets everything the helpers raised
- * against everything they set out to raise. Helpers are listed five at a time, the most recently changed first unless another sort is picked. Editing happens on the
+ * against everything they set out to raise (a helper without a target counts at its own amount). Helpers are listed five at a time, the most recently changed first unless another sort is picked. Editing happens on the
  * friends screen of step 1, not here. */
 export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const { t } = useTranslation('insights');
@@ -28,7 +28,7 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: FriendSortKey; desc: boolean }>({ key: 'modified', desc: false });
   const refresh = useFriendsRefresh(friends);
-  const { ranked, total, share, exceedsTotal, withTarget, reached, targetsTotal, targetsProgress } = computeFriendStats(friends, totalAmount);
+  const { ranked, total, share, exceedsTotal, withTarget, reached, targetsTotal, targetsProgress, withoutTarget } = computeFriendStats(friends, totalAmount);
 
   if (ranked.length === 0) return null;
 
@@ -116,6 +116,7 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
               style={{ width: `${Math.min(1, targetsProgress) * 100}%` }}
             />
           </div>
+          {withoutTarget > 0 && <p className="mt-1.5 text-[11px] text-gray-400">{t('friends.targetsBarNote', { count: withoutTarget })}</p>}
         </div>
       )}
 
