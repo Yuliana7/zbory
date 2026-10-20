@@ -19,8 +19,8 @@ const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
 /** How much each helper jar brought in, read-only. A helper with a target gets a bar towards that
  * target (full, with a check mark, once reached — the percentage can go past 100); until anyone has a
- * target the bars compare helpers with the best one. The top bar shows the helpers' share of the whole
- * jar. Helpers are listed five at a time, the most recently changed first unless another sort is picked. Editing happens on the
+ * target the bars compare helpers with the best one. The bar on top sets everything the helpers raised
+ * against everything they set out to raise. Helpers are listed five at a time, the most recently changed first unless another sort is picked. Editing happens on the
  * friends screen of step 1, not here. */
 export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const { t } = useTranslation('insights');
@@ -28,7 +28,7 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const [page, setPage] = useState(0);
   const [sort, setSort] = useState<{ key: FriendSortKey; desc: boolean }>({ key: 'modified', desc: false });
   const refresh = useFriendsRefresh(friends);
-  const { ranked, total, share, exceedsTotal, withTarget, reached } = computeFriendStats(friends, totalAmount);
+  const { ranked, total, share, exceedsTotal, withTarget, reached, targetsTotal, targetsProgress } = computeFriendStats(friends, totalAmount);
 
   if (ranked.length === 0) return null;
 
@@ -101,10 +101,23 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
         </p>
       )}
 
-      {/* Helpers' share of the whole jar */}
-      <div className="h-3 rounded-full bg-gray-100 overflow-hidden mb-5" title={t('friends.shareBar')}>
-        <div className="h-full rounded-full bg-indigo-400" style={{ width: `${share * 100}%` }} />
-      </div>
+      {/* all helpers together against all their targets (the bar is full at 100%; the number may go past it) */}
+      {targetsProgress !== null && (
+        <div className="mb-5">
+          <div className="mb-1.5 flex items-baseline justify-between gap-3 text-xs text-gray-500">
+            <span>{t('friends.targetsBar', { raised: fmt(total), target: fmt(targetsTotal) })}</span>
+            <span className={`shrink-0 font-semibold ${targetsProgress >= 1 ? 'text-green-600' : 'text-indigo-600'}`}>
+              {Math.round(targetsProgress * 100)}%
+            </span>
+          </div>
+          <div className="h-3 rounded-full bg-gray-100 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${targetsProgress >= 1 ? 'bg-green-500' : 'bg-indigo-400'}`}
+              style={{ width: `${Math.min(1, targetsProgress) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
 
       {ranked.length > 1 && (
         <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label={t('friends.sort.label')}>

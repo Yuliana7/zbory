@@ -66,6 +66,9 @@ check('progress: no target → null', friendProgress(tg[2]).pct === null && !fri
 const ts = computeFriendStats(tg, 10000);
 check('stats: zero-raised jar with a target is listed', ts.ranked.some((f) => f.id === 'd'));
 check('stats: total ignores zero jars, counts raised only', ts.total === 2220);
+check('stats: targets total sums every target, progress is total ÷ targets (may pass 100%)', ts.targetsTotal === 2800 && Math.abs((ts.targetsProgress ?? 0) - 2220 / 2800) < 1e-9);
+check('stats: progress over targets can exceed 1', (computeFriendStats([{ id: 'x', name: 'x', raised: 5000, target: 1000 }], 10000).targetsProgress ?? 0) === 5);
+check('stats: no targets → no progress', computeFriendStats(friends, 4000).targetsProgress === null && computeFriendStats(friends, 4000).targetsTotal === 0);
 check('stats: reached/withTarget counts', ts.reached === 1 && ts.withTarget === 3);
 const bo = friendBar(tg[0], ts.ranked);
 check('bar: target mode caps fill at 1', bo.mode === 'target' && bo.fill === 1 && bo.reached);

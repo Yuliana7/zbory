@@ -14,6 +14,10 @@ export interface FriendStats {
   /** how many helpers have a target, and how many of them reached it */
   withTarget: number;
   reached: number;
+  /** sum of every helper's target — what the helpers together set out to raise */
+  targetsTotal: number;
+  /** total / targetsTotal as a fraction, may pass 1; null when no helper has a target */
+  targetsProgress: number | null;
 }
 
 export function newFriend(): FriendJar {
@@ -32,6 +36,7 @@ export function computeFriendStats(friends: FriendJar[] | undefined, mainTotal: 
   const ranked = all.filter((f) => f.raised > 0 || (f.target ?? 0) > 0).sort((a, b) => b.raised - a.raised);
   const total = all.reduce((sum, f) => sum + (f.raised > 0 ? f.raised : 0), 0);
   const targeted = ranked.filter((f) => friendProgress(f).pct !== null);
+  const targetsTotal = all.reduce((sum, f) => sum + ((f.target ?? 0) > 0 ? f.target! : 0), 0);
   return {
     ranked,
     total,
@@ -39,6 +44,8 @@ export function computeFriendStats(friends: FriendJar[] | undefined, mainTotal: 
     exceedsTotal: mainTotal > 0 && total > mainTotal,
     withTarget: targeted.length,
     reached: targeted.filter((f) => friendProgress(f).reached).length,
+    targetsTotal,
+    targetsProgress: targetsTotal > 0 ? total / targetsTotal : null,
   };
 }
 

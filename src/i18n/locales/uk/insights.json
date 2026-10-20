@@ -35,7 +35,6 @@
   "friends": {
     "title": "Друзі збору",
     "summary": "Друзів: {{n}} · разом {{amount}} ₴ — {{pct}}% збору",
-    "shareBar": "Частка друзів у зборі",
     "edit": "Редагувати",
     "done": "Готово",
     "reachedSummary": "Досягли цілі: {{reached}} з {{total}}",
@@ -63,7 +62,8 @@
       "name": "Ім'я",
       "raised": "Сума",
       "status": "Статус"
-    }
+    },
+    "targetsBar": "Усі друзі разом: {{raised}} з {{target}} ₴ цілей"
   },
   "charts": {
     "raised": "Зібрано",
