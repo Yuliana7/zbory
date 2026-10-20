@@ -2,11 +2,12 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
 import { FriendsShareCard } from '../../src/components/templates/FriendsShareCard';
+import { FriendsClosedCard } from '../../src/components/templates/FriendsClosedCard';
 
 let failures = 0;
 const check = (label: string, ok: boolean, extra = '') => {
@@ -165,6 +166,28 @@ const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', t
 check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
 check('jar read: no owner name → the jar title', applyJarInfo(row0, { ...jarInfo, ownerName: '' }, T0).name === 'Akatsuki Team');
 check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
+
+// ── closed-jars card ──
+const jars = [
+  { id: 'o', name: 'Відкрита', raised: 700, target: 1000 },
+  { id: 'c1', name: 'Закрита Оля', raised: 1500, target: 1000, closed: true },
+  { id: 'c2', name: 'Закритий Тарас', raised: 300, target: 1000, closed: true },
+  { id: 'c3', name: 'Закрита без цілі', raised: 200, closed: true },
+  { id: 'c4', name: 'Закрита порожня', raised: 0, target: 500, closed: true },
+];
+check('closed list: only closed jars that raised something, biggest first', closedFriends(jars).map((f) => f.id).join() === 'c1,c2,c3');
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="story" />);
+check('Closed card: lists closed jars, never the open one', strip(html).includes('Закрита Оля') && strip(html).includes('Закритий Тарас') && !strip(html).includes('Відкрита '));
+check('Closed card: hero total and count of closed jars', /2\s?000\s*₴/.test(strip(html)) && strip(html).includes('Закрито 3 банки'));
+check('Closed card: ✓ only on the jar that reached its target', (html.match(/data-reached/g) ?? []).length === 1 && strip(html).includes('150%'));
+check('Closed card: reached line and thanks', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 2') && strip(html).includes('Дякуємо'));
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} hiddenFriendIds={['c1']} format="story" />);
+check('Closed card: a hidden jar is gone and the totals follow', !strip(html).includes('Закрита Оля') && /500\s*₴/.test(strip(html)) && strip(html).includes('Закрито 2 банки') && !html.includes('data-reached'));
+html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="post" hidden={new Set(['hero', 'thanks', 'reachedLine'])} />);
+check('Closed card: removable elements', !strip(html).includes('Дякуємо') && !strip(html).includes('Досягли цілі') && !strip(html).includes('Закрито 3'));
+check('Closed card: no closed jars is safe', renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={real} format="story" />).includes('0 ₴'));
+html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={jars} format="story" />);
+check('Leaderboard: closed jars (also one with only a target) are tagged «закрита», the open one is not', (html.match(/data-closed/g) ?? []).length === 4 && strip(html).includes('закрита'));
 
 // ── progress line: only with friends, removable, never touches the headline total ──
 const base = renderToStaticMarkup(<ProgressCard aggregates={aggregates} format="post" />);

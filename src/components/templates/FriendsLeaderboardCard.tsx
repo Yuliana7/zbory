@@ -5,6 +5,7 @@ import { DEFAULT_PALETTE, type Palette } from '../../utils/palettes';
 import { rem } from '../../utils/units';
 import { useTranslation } from 'react-i18next';
 import { CardHeader, NoWrap, UAFlagBar, CardShell, GlowBlob } from './shared';
+import { FriendCardRow, REACHED_TEXT } from './FriendCardRow';
 
 interface FriendsLeaderboardCardProps {
   aggregates: Aggregates;
@@ -20,9 +21,6 @@ interface FriendsLeaderboardCardProps {
   hidden?: Set<string>;
 }
 
-// Same greens the progress card uses for a reached goal
-const REACHED_BAR = 'linear-gradient(90deg, #4ade80, #22c55e)';
-const REACHED_TEXT = '#4ade80';
 
 export const FriendsLeaderboardCard = forwardRef<HTMLDivElement, FriendsLeaderboardCardProps>(
   ({ aggregates, friends = [], hiddenFriendIds, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
@@ -56,74 +54,19 @@ export const FriendsLeaderboardCard = forwardRef<HTMLDivElement, FriendsLeaderbo
 
         {!hidden.has('list') && (
           <div data-element="list" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: isStory ? 28 : 20 }}>
-            {rows.map((f, i) => {
-              const bar = friendBar(f, listed);
-              return (
-                <div
-                  key={f.id}
-                  style={{
-                    background: p.cardBg,
-                    border: `1px solid ${bar.reached ? 'rgba(74, 222, 128, 0.55)' : p.cardBorder}`,
-                    borderRadius: 24,
-                    padding: '26px 32px',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
-                    <div style={{ width: 56, textAlign: 'center', fontSize: fz(36), fontWeight: 700, color: p.secondary, flexShrink: 0 }}>
-                      {i + 1}
-                    </div>
-                    <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 14, fontSize: fz(32), fontWeight: 700 }}>
-                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{f.name || '—'}</span>
-                      {bar.reached && (
-                        <span
-                          data-reached
-                          style={{
-                            width: fz(36),
-                            height: fz(36),
-                            borderRadius: '50%',
-                            background: '#22c55e',
-                            color: '#fff',
-                            fontSize: fz(24),
-                            fontWeight: 800,
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            flexShrink: 0,
-                          }}
-                        >
-                          ✓
-                        </span>
-                      )}
-                    </div>
-                    <div style={{ fontSize: fz(32), fontWeight: 800, color: p.accent, flexShrink: 0 }}>
-                      <NoWrap>{fmt(f.raised)} ₴</NoWrap>
-                    </div>
-                  </div>
-                  {bar.mode !== 'none' && (
-                    <div style={{ height: 10, background: p.progressTrack, borderRadius: 5, overflow: 'hidden', marginTop: 18 }}>
-                      <div
-                        style={{
-                          height: '100%',
-                          width: `${bar.fill * 100}%`,
-                          background: bar.reached ? REACHED_BAR : p.chartLine,
-                          borderRadius: 5,
-                        }}
-                      />
-                    </div>
-                  )}
-                  {bar.pct !== null && f.target && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, fontSize: fz(22), color: p.secondary }}>
-                      <span style={{ fontWeight: 700, color: bar.reached ? REACHED_TEXT : p.primary }}>
-                        <NoWrap>{fmt(bar.pct)}%</NoWrap>
-                      </span>
-                      <NoWrap>
-                        {tx('targetLabel')} {fmt(f.target)} ₴
-                      </NoWrap>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
+            {rows.map((f, i) => (
+              <FriendCardRow
+                key={f.id}
+                friend={f}
+                bar={friendBar(f, listed)}
+                palette={p}
+                fz={fz}
+                fmt={fmt}
+                rank={i + 1}
+                targetLabel={tx('targetLabel')}
+                closedLabel={tx('closedLabel')}
+              />
+            ))}
             {rest > 0 && (
               <div style={{ textAlign: 'center', fontSize: fz(24), color: p.secondary }}>
                 {t('friends-leaderboard.more', { n: rest })}

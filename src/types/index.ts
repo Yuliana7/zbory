@@ -176,6 +176,7 @@ export type TemplateType =
   | 'emoji-cloud'
   | 'comments'
   | 'friends-leaderboard'
+  | 'friends-closed'
   | 'friends-share'
   | 'report'
   | 'campaigns-chart';

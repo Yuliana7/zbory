@@ -4,7 +4,7 @@
 
 **[Open the app → yuliana7.github.io/zbory](https://yuliana7.github.io/zbory/)** · **[Посібник для волонтерів (українською) →](docs/USER_GUIDE.uk.md)**
 
-> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 19 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
+> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 20 готових шаблонів для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, дані нікуди не надсилаються. Інтерфейс — українською.
 
 <p align="center">
   <img src="docs/screenshots/20-export-with-photo.jpg" alt="Editing a friends leaderboard card with your own photo, on a phone" width="260">
@@ -77,7 +77,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - **Refund detection** — Monobank doesn't list refunds in the statement; the app infers them from balance vs. donations vs. withdrawals.
 
 ### Templates & editing
-- **19 templates** in five groups: progress, activity, people, friendly jars and reports.
+- **20 templates** in five groups: progress, activity, people, friendly jars and reports.
 - **Three formats:** 1080×1080 post, 1080×1350 (4:5) post, 1080×1920 Story.
 - **Everything is removable** — tap an element in edit mode to hide it; edit any label or text.
 - **Your own background** with a full-screen, gesture-isolated editor: drag, pinch-to-zoom, two-finger rotate, brightness and opacity. The page doesn't scroll or move the photo by accident while you edit. Large phone photos are scaled down to 3000 px on upload (about 1:1 at maximum zoom), which keeps exports and saved projects light.
@@ -189,7 +189,7 @@ src/
   pages/            Upload, Insights, Gallery, Export (the four steps)
     ExportPage/       editor: canvas, panels, background gestures, ZIP export
   components/
-    templates/        the 19 card templates + shared card shell
+    templates/        the 20 card templates + shared card shell
     insights/         charts and analytics panels
     upload/           new-project options, the one-page preview (collapsible sections), manual
                       entry, Monobank import, saved-project list and its Редагувати menu;

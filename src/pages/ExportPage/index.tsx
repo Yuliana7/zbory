@@ -254,18 +254,20 @@ function ExportPageInner() {
 
   // Same categories as the template gallery, with data-gated templates hidden
   const hasFriends = (app.friends ?? []).some((f) => f.raised > 0);
+  const hasClosedFriends = (app.friends ?? []).some((f) => f.closed && f.raised > 0);
   const addableGroups = useMemo(() => {
     const available = (id: TemplateType) => {
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
       if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
+      if (id === 'friends-closed') return hasClosedFriends;
       return true;
     };
     return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments, crossItems, hasFriends]);
+  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends]);
 
   // Ceil, not round: previewClipRef clips the scaled-down card at exactly
   // these pixel dimensions. Rounding down even by a fraction of a pixel made
@@ -575,12 +577,13 @@ function ExportPageInner() {
             />
           )}
 
-          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-share') && (
+          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-closed' || templateId === 'friends-share') && (
             <FriendsPanel
               open={openSections.has('friends')}
               onToggle={() => toggleSection('friends')}
               count={(app.friends ?? []).filter((f) => f.raised > 0).length}
-              pickable={templateId === 'friends-leaderboard'}
+              pickable={templateId === 'friends-leaderboard' || templateId === 'friends-closed'}
+              closedOnly={templateId === 'friends-closed'}
               hiddenFriendIds={card.hiddenFriendIds ?? []}
               onHiddenFriendIdsChange={(ids) => updateCard({ hiddenFriendIds: ids })}
             />

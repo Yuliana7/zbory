@@ -78,7 +78,8 @@
     "friendsReached": "Рядок «досягли цілі»",
     "friendsAmounts": "Суми (друзі з усього)",
     "friendsShareBar": "Смуга внеску друзів",
-    "friendsCount": "Кількість друзів"
+    "friendsCount": "Кількість друзів",
+    "friendsClosedHero": "Підсумок (сума й кількість)"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -148,7 +149,8 @@
     "report": "Загальний звіт",
     "campaigns-chart": "Динаміка зборів",
     "friends-leaderboard": "Друзі збору",
-    "friends-share": "Внесок друзів"
+    "friends-share": "Внесок друзів",
+    "friends-closed": "Завершені банки друзів"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -298,13 +300,21 @@
       "title": "Заголовок",
       "targetLabel": "Підпис цілі (під смугою)",
       "reachedLabel": "Підпис «досягли цілі»",
-      "totalLabel": "Підпис суми друзів"
+      "totalLabel": "Підпис суми друзів",
+      "closedLabel": "Позначка закритої банки"
     },
     "friends-share": {
       "title": "Заголовок",
       "heroLabel": "Підпис під відсотком",
       "ofLabel": "Слово між сумами («з»)",
       "countLabel": "Підпис кількості друзів"
+    },
+    "friends-closed": {
+      "title": "Заголовок",
+      "heroLabel": "Підпис під сумою",
+      "targetLabel": "Підпис цілі (під смугою)",
+      "reachedLabel": "Підпис «досягли цілі»",
+      "thanks": "Рядок подяки"
     }
   },
   "friends": {

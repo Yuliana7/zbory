@@ -173,6 +173,10 @@ export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undef
   return norm(rowsToFriends(rows)) !== norm(cleanFriends(saved ?? []));
 }
 
+/** The helpers whose jar is closed and that raised something, biggest first — the closed-jars card's list. */
+export const closedFriends = (friends: FriendJar[]) =>
+  friends.filter((f) => f.closed && f.raised > 0).sort((a, b) => b.raised - a.raised);
+
 /** Where a helper stands. Only a linked jar can be known to be closed; every other one counts as open. */
 export const isClosed = (f: { closed?: boolean }) => !!f.closed;
 
