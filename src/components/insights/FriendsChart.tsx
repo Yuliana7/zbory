@@ -50,36 +50,8 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
 
   return (
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <div className="flex items-start justify-between gap-3 mb-4">
-        <div>
-          <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('friends.title')}</p>
-          <p className="text-sm text-gray-600 mt-1">
-            {t('friends.summary', { amount: fmt(total), pct: formatSharePct(share), n: ranked.length })}
-          </p>
-          {withTarget > 0 && (
-            <p className="text-sm text-gray-600">{t('friends.reachedSummary', { reached, total: withTarget })}</p>
-          )}
-          {/* where the numbers come from: while jars are being read, how far along; afterwards, how fresh they are */}
-          {refresh.running ? (
-            <p className="mt-1 flex items-center gap-1.5 text-xs text-indigo-600" role="status">
-              <SpinnerIcon className="w-3.5 h-3.5 animate-spin" />
-              {refresh.progress ? t('friends.refreshing', refresh.progress) : t('friends.refreshingShort')}
-            </p>
-          ) : (
-            linked > 0 && (
-              <p className="mt-1 text-xs text-gray-500">
-                🔄 {asOf ? t('friends.asOf', { when: formatWhen(asOf) }) : t('friends.neverSynced')}
-              </p>
-            )
-          )}
-          {!refresh.running && refresh.outcome && (refresh.outcome.rateLimited || refresh.outcome.failed > 0) && (
-            <p className="mt-1 text-xs text-amber-700">
-              {refresh.outcome.rateLimited
-                ? t('friends.refreshRateLimited', { updated: refresh.outcome.updated })
-                : t('friends.refreshFailed', { updated: refresh.outcome.updated, failed: refresh.outcome.failed })}
-            </p>
-          )}
-        </div>
+      <div className="flex items-center justify-between gap-3 mb-3">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('friends.title')}</p>
         <div className="shrink-0 flex items-center gap-3">
           {linked > 0 && (
             <button
@@ -100,6 +72,34 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
           </button>
         </div>
       </div>
+
+      {/* the headline, across the whole box: how much the helpers brought and how many hit their target */}
+      <p className="mb-3 rounded-xl bg-indigo-50 px-3 py-2 text-sm font-medium text-indigo-700">
+        {t('friends.summary', { amount: fmt(total), pct: formatSharePct(share), n: ranked.length })}
+        {/* the dot stays at the end of the first part, so a wrapped line never starts with it */}
+        {withTarget > 0 && <span className="text-indigo-500">&nbsp;· {t('friends.reachedSummary', { reached, total: withTarget })}</span>}
+      </p>
+
+      {/* where the numbers come from: while jars are being read, how far along; afterwards, how fresh they are */}
+      {refresh.running ? (
+        <p className="mb-3 flex items-center gap-1.5 text-xs text-indigo-600" role="status">
+          <SpinnerIcon className="w-3.5 h-3.5 animate-spin" />
+          {refresh.progress ? t('friends.refreshing', refresh.progress) : t('friends.refreshingShort')}
+        </p>
+      ) : (
+        linked > 0 && (
+          <p className="mb-3 text-xs text-gray-500">
+            🔄 {asOf ? t('friends.asOf', { when: formatWhen(asOf) }) : t('friends.neverSynced')}
+          </p>
+        )
+      )}
+      {!refresh.running && refresh.outcome && (refresh.outcome.rateLimited || refresh.outcome.failed > 0) && (
+        <p className="mb-3 text-xs text-amber-700">
+          {refresh.outcome.rateLimited
+            ? t('friends.refreshRateLimited', { updated: refresh.outcome.updated })
+            : t('friends.refreshFailed', { updated: refresh.outcome.updated, failed: refresh.outcome.failed })}
+        </p>
+      )}
 
       {/* Helpers' share of the whole jar */}
       <div className="h-3 rounded-full bg-gray-100 overflow-hidden mb-5" title={t('friends.shareBar')}>
