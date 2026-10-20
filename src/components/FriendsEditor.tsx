@@ -4,11 +4,9 @@ import { useAppContext } from '../context/AppContext';
 import { useFriendsDraft, type FriendsDraft } from '../hooks/useFriendsDraft';
 import { CheckIcon, PlusIcon, RefreshIcon, SpinnerIcon } from '../icons';
 import { downloadCSV } from '../utils/csvExporter';
-import { computeFriendStats, friendsToCSV, newFriend, rowsToFriends, sortRows, type FriendDraftRow, type FriendSortKey } from '../utils/friendJars';
+import { computeFriendStats, friendsToCSV, newFriend, rowsToFriends, type FriendDraftRow } from '../utils/friendJars';
 import { FRIEND_COLUMNS, FriendRow } from './friends/FriendRow';
 import { AddByIdPanel } from './friends/AddByIdPanel';
-
-const SORT_KEYS: FriendSortKey[] = ['name', 'raised', 'status'];
 
 /** Helper ("friendly") jars of the open campaign: a name, how much each one raised, optionally what
  * it set out to raise (its target — progress can go past 100%), and — for a jar linked by its long id —
@@ -22,7 +20,6 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
   const own = useFriendsDraft();
   const draft = external ?? own;
   const { rows, setRows, dirty, duplicates, save, discard, busyIds, progress, rowErrors, summary } = draft;
-  const [sort, setSort] = useState<{ key: FriendSortKey; desc: boolean } | null>(null);
   const [addingById, setAddingById] = useState(false);
 
   const mainTotal = app.aggregates?.totalAmount ?? (app.donations ?? []).reduce((sum, d) => sum + d.amount, 0);
@@ -35,13 +32,6 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
 
   const remove = (id: string) => setRows((rs) => rs.filter((r) => r.id !== id));
 
-  // Sorting reorders the list once, when picked — rows don't jump around while you type in them
-  const pickSort = (key: FriendSortKey) => {
-    const desc = sort?.key === key ? !sort.desc : false;
-    setSort({ key, desc });
-    setRows((rs) => sortRows(rs, key, desc));
-  };
-
   const stats = computeFriendStats(app.friends, mainTotal); // what is saved, not the draft
 
   return (
@@ -49,24 +39,6 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
       <p className="text-xs text-gray-400">{t('friends.hint')}</p>
 
       <div className="flex flex-wrap items-center gap-2">
-        {rows.length > 1 && (
-          <div className="flex flex-wrap items-center gap-1.5" role="group" aria-label={t('friends.sort.label')}>
-            <span className="text-xs text-gray-500">{t('friends.sort.label')}:</span>
-            {SORT_KEYS.map((key) => (
-              <button
-                key={key}
-                onClick={() => pickSort(key)}
-                aria-pressed={sort?.key === key}
-                className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
-                  sort?.key === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
-              >
-                {t(`friends.sort.${key}`)}
-                {sort?.key === key && <span aria-hidden="true"> {sort.desc ? '↓' : '↑'}</span>}
-              </button>
-            ))}
-          </div>
-        )}
         <div className="ml-auto flex flex-wrap items-center gap-2">
           {rows.length > 0 && (
             <button

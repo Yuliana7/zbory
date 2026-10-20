@@ -352,12 +352,6 @@
       "open": "Відкрита",
       "closed": "Закрита"
     },
-    "sort": {
-      "label": "Сортувати",
-      "name": "Ім'я",
-      "raised": "Сума",
-      "status": "Статус"
-    },
     "link": "Прив'язати банку за ID",
     "idPlaceholder": "Довгий ID банки (з Monobank)",
     "linkConfirm": "Прив'язати",

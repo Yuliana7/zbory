@@ -164,29 +164,29 @@ export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undef
 /** Where a helper stands. Only a linked jar can be known to be closed; every other one counts as open. */
 export const isClosed = (f: { closed?: boolean }) => !!f.closed;
 
-export type FriendSortKey = 'name' | 'raised' | 'status';
+export type FriendSortKey = 'modified' | 'name' | 'raised' | 'status';
 
 /**
- * Sorts typed rows for the editor: by name (А→Я), by amount (biggest first) or by status (open first).
- * Ties fall back to the name so the order is stable; `desc` flips it.
+ * Sorts helpers for the read-only list: by last change (newest first; never-changed ones last), by name
+ * (А→Я), by amount (biggest first) or by status (open first). Ties fall back to the name so the order is
+ * stable; `desc` flips it.
  */
-export function sortRows(rows: FriendDraftRow[], key: FriendSortKey, desc = false): FriendDraftRow[] {
-  const byName = (a: FriendDraftRow, b: FriendDraftRow) => a.name.localeCompare(b.name, 'uk', { sensitivity: 'base' });
-  const cmp: Record<FriendSortKey, (a: FriendDraftRow, b: FriendDraftRow) => number> = {
+export function sortFriends(friends: FriendJar[], key: FriendSortKey, desc = false): FriendJar[] {
+  const byName = (a: FriendJar, b: FriendJar) => a.name.localeCompare(b.name, 'uk', { sensitivity: 'base' });
+  const cmp: Record<FriendSortKey, (a: FriendJar, b: FriendJar) => number> = {
+    modified: (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0) || b.raised - a.raised || byName(a, b),
     name: byName,
-    raised: (a, b) => (parseAmount(b.raised) ?? 0) - (parseAmount(a.raised) ?? 0) || byName(a, b),
+    raised: (a, b) => b.raised - a.raised || byName(a, b),
     status: (a, b) => Number(isClosed(a)) - Number(isClosed(b)) || byName(a, b),
   };
-  const out = [...rows].sort(cmp[key]);
+  const out = [...friends].sort(cmp[key]);
   return desc ? out.reverse() : out;
 }
 
 export const FRIENDS_PAGE_SIZE = 5;
 
-/** Helpers by last change, newest first (never-changed ones last, biggest first), for read-only paging. */
-export function latestModified(friends: FriendJar[]): FriendJar[] {
-  return [...friends].sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0) || b.raised - a.raised);
-}
+/** Helpers by last change, newest first (never-changed ones last, biggest first). */
+export const latestModified = (friends: FriendJar[]) => sortFriends(friends, 'modified');
 
 export function pageOf<T>(list: T[], page: number, size = FRIENDS_PAGE_SIZE): { items: T[]; pages: number; page: number } {
   const pages = Math.max(1, Math.ceil(list.length / size));

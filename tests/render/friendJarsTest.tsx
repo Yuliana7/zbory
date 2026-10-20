@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortRows, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -109,11 +109,14 @@ const lrows = [
   { id: 'a', name: 'Анна', raised: '1200', target: '1000' },
   { id: 'z', name: 'Зоя', raised: '50', target: '' },
 ];
-check('sort: by name (А→Я)', sortRows(lrows, 'name').map((r) => r.id).join() === 'a,z,p');
-check('sort: by name, descending', sortRows(lrows, 'name', true).map((r) => r.id).join() === 'p,z,a');
-check('sort: by amount, biggest first', sortRows(lrows, 'raised').map((r) => r.id).join() === 'a,p,z');
-check('sort: by status, open before closed', sortRows(lrows, 'status').map((r) => r.id).join() === 'a,z,p');
-check('sort: does not touch the input', lrows.map((r) => r.id).join() === 'p,a,z');
+const lrowsF = rowsToFriends(lrows, [], T0);
+check('sort: by name (А→Я)', sortFriends(lrowsF, 'name').map((r) => r.id).join() === 'a,z,p');
+check('sort: by name, descending', sortFriends(lrowsF, 'name', true).map((r) => r.id).join() === 'p,z,a');
+check('sort: by amount, biggest first', sortFriends(lrowsF, 'raised').map((r) => r.id).join() === 'a,p,z');
+check('sort: by status, open before closed', sortFriends(lrowsF, 'status').map((r) => r.id).join() === 'a,z,p');
+check('sort: does not touch the input', lrowsF.map((r) => r.id).join() === 'p,a,z');
+check('sort: by last change, newest first', sortFriends([{ id: '1', name: 'a', raised: 1, updatedAt: 5 }, { id: '2', name: 'b', raised: 1, updatedAt: 9 }, { id: '3', name: 'c', raised: 1 }], 'modified').map((f) => f.id).join() === '2,1,3');
+check('sort: by last change, oldest first (descending flips it)', sortFriends([{ id: '1', name: 'a', raised: 1, updatedAt: 5 }, { id: '2', name: 'b', raised: 1, updatedAt: 9 }], 'modified', true).map((f) => f.id).join() === '1,2');
 
 const saved1 = rowsToFriends(lrows, [], T0);
 check('stored: closed + jar link are kept', saved1[0].closed === true && saved1[0].jarId === 'A'.repeat(16) && saved1[1].closed === undefined);

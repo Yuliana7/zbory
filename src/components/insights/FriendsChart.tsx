@@ -5,7 +5,7 @@ import type { FriendJar } from '../../types';
 import { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
 import { RefreshIcon, SpinnerIcon } from '../../icons';
 import { downloadCSV } from '../../utils/csvExporter';
-import { computeFriendStats, formatSharePct, friendBar, friendsToCSV, latestModified, pageOf, FRIENDS_PAGE_SIZE } from '../../utils/friendJars';
+import { computeFriendStats, formatSharePct, friendBar, friendsToCSV, pageOf, sortFriends, FRIENDS_PAGE_SIZE, type FriendSortKey } from '../../utils/friendJars';
 import { dataAsOf, formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 
 interface FriendsChartProps {
@@ -14,23 +14,30 @@ interface FriendsChartProps {
   totalAmount: number;
 }
 
+const SORT_KEYS: FriendSortKey[] = ['modified', 'name', 'raised', 'status'];
 const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
 /** How much each helper jar brought in, read-only. A helper with a target gets a bar towards that
  * target (full, with a check mark, once reached — the percentage can go past 100); until anyone has a
  * target the bars compare helpers with the best one. The top bar shows the helpers' share of the whole
- * jar. Helpers are listed five at a time, the most recently changed first. Editing happens on the
+ * jar. Helpers are listed five at a time, the most recently changed first unless another sort is picked. Editing happens on the
  * friends screen of step 1, not here. */
 export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
   const { t } = useTranslation('insights');
   const { dispatch } = useAppContext();
   const [page, setPage] = useState(0);
+  const [sort, setSort] = useState<{ key: FriendSortKey; desc: boolean }>({ key: 'modified', desc: false });
   const refresh = useFriendsRefresh(friends);
   const { ranked, total, share, exceedsTotal, withTarget, reached } = computeFriendStats(friends, totalAmount);
 
   if (ranked.length === 0) return null;
 
-  const shown = pageOf(latestModified(ranked), page);
+  const shown = pageOf(sortFriends(ranked, sort.key, sort.desc), page);
+  // picking the active sort again flips it; a new one starts in its natural order, from the first page
+  const pickSort = (key: FriendSortKey) => {
+    setSort((cur) => ({ key, desc: cur.key === key ? !cur.desc : false }));
+    setPage(0);
+  };
   const linked = linkedOpen(friends).length;
   const asOf = dataAsOf(friends);
   const stamp = () => {
@@ -99,6 +106,25 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
         <div className="h-full rounded-full bg-indigo-400" style={{ width: `${share * 100}%` }} />
       </div>
 
+      {ranked.length > 1 && (
+        <div className="mb-4 flex flex-wrap items-center gap-1.5" role="group" aria-label={t('friends.sort.label')}>
+          <span className="text-xs text-gray-500">{t('friends.sort.label')}:</span>
+          {SORT_KEYS.map((key) => (
+            <button
+              key={key}
+              onClick={() => pickSort(key)}
+              aria-pressed={sort.key === key}
+              className={`px-2.5 py-1 rounded-full text-xs font-medium transition-colors ${
+                sort.key === key ? 'bg-indigo-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              }`}
+            >
+              {t(`friends.sort.${key}`)}
+              {sort.key === key && <span aria-hidden="true"> {sort.desc ? '↓' : '↑'}</span>}
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="space-y-3">
         {shown.items.map((f) => {
           const bar = friendBar(f, ranked);
@@ -159,7 +185,6 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
           </button>
         </div>
       )}
-      {shown.pages > 1 && <p className="mt-2 text-[11px] text-gray-400">{t('friends.latestNote')}</p>}
 
       {exceedsTotal && <p className="mt-3 text-xs text-red-500">{t('friends.exceeds')}</p>}
 
