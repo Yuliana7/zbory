@@ -1,4 +1,4 @@
-import { Suspense, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
@@ -12,12 +12,9 @@ import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
 import { rawDonationsToManualRows } from '../utils/csvExporter';
-import { lazyNamed } from '../utils/lazyPage';
-import { PageLoading } from '../components/PageLoading';
+import { FriendsPage } from '../components/insights/FriendsPage';
+import { DailyPage } from '../components/insights/DailyPage';
 import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
-
-const FriendsPage = lazyNamed(() => import('../components/insights/FriendsPage'), 'FriendsPage');
-const DailyPage = lazyNamed(() => import('../components/insights/DailyPage'), 'DailyPage');
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
@@ -75,21 +72,19 @@ export function InsightsPage() {
 
   if (app.insightsView === 'friends') {
     return (
-      <Suspense fallback={<PageLoading />}>
+      <>
         <FriendsPage friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} renew={renew} />
         {tokenSheet}
-      </Suspense>
+      </>
     );
   }
   if (app.insightsView === 'daily') {
     return (
-      <Suspense fallback={<PageLoading />}>
-        <DailyPage
-          aggregates={perJar?.aggregates ?? app.aggregates}
-          donations={perJar?.donations ?? app.donations ?? []}
-          withdrawals={perJar?.withdrawals ?? app.withdrawals ?? []}
-        />
-      </Suspense>
+      <DailyPage
+        aggregates={perJar?.aggregates ?? app.aggregates}
+        donations={perJar?.donations ?? app.donations ?? []}
+        withdrawals={perJar?.withdrawals ?? app.withdrawals ?? []}
+      />
     );
   }
 
