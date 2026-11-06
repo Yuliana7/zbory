@@ -21,3 +21,4 @@ export * from './UsersIcon';
 export * from './WarningIcon';
 export * from './XIcon';
 export * from './UndoIcon';
+export * from './GiftIcon';

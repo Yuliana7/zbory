@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar } from '../types';
+import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar, Donation, Raffle } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -15,6 +15,8 @@ import { TopDonorsCard } from '../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
 import { DonationStatsCard } from '../components/templates/DonationStatsCard';
+import { RaffleCard } from '../components/templates/RaffleCard';
+import { hasRaffle, raffleForCard, raffleKindOf } from '../utils/raffles';
 import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 import { FinalReportCard } from '../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../components/templates/ConcreteAskCard';
@@ -76,6 +78,8 @@ export function GalleryPage() {
       if (id === 'report' || id === 'campaigns-chart') return isMulti;
       if (id === 'friends-leaderboard' || id === 'friends-stats') return hasFriends;
       if (id === 'friends-closed') return hasClosedFriends;
+      const raffleKind = raffleKindOf(id);
+      if (raffleKind) return !isMulti && hasRaffle(app.raffles, raffleKind);
       return true;
     });
 
@@ -164,6 +168,8 @@ export function GalleryPage() {
                             aggregates={app.aggregates!}
                             goal={app.goal}
                             friends={app.friends}
+                            raffles={app.raffles}
+                            donations={app.donations ?? []}
                             commentInsights={app.commentInsights}
                             previewComments={previewComments}
                             campaignDatasets={app.campaignDatasets}
@@ -224,12 +230,14 @@ interface TemplatePreviewProps {
   aggregates: Aggregates;
   goal?: number;
   friends?: FriendJar[];
+  raffles?: Raffle[];
+  donations: Donation[];
   commentInsights: CommentInsights | null;
   previewComments: SelectedComment[];
   campaignDatasets: CampaignDataset[] | null;
 }
 
-function TemplatePreview({ id, aggregates, goal, friends, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
+function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
   const { t: tCamp } = useTranslation('campaigns');
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -289,6 +297,7 @@ function TemplatePreview({ id, aggregates, goal, friends, commentInsights, previ
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
           {id === 'donation-stats' && <DonationStatsCard aggregates={aggregates} format="post" />}
+          {raffleKindOf(id) && <RaffleCard aggregates={aggregates} kind={raffleKindOf(id)!} raffle={raffleForCard(raffles, raffleKindOf(id)!, undefined)} donations={donations} friends={friends} format="post" />}
           {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
           {id === 'report' && previewReport && <ReportCard report={previewReport} periodLabel={tCamp('report.labelAll')} format="post" />}
           {id === 'campaigns-chart' && crossItems && <CampaignsChartCard items={crossItems} format="post" />}

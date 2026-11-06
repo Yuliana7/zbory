@@ -14,7 +14,8 @@
     "goal": "Мета збору",
     "friends": "Друзі збору",
     "rename": "Перейменувати",
-    "download": "Завантажити CSV"
+    "download": "Завантажити CSV",
+    "raffles": "Розіграші"
   },
   "renameLabel": "Назва збору",
   "backup": {

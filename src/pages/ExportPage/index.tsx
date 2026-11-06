@@ -34,6 +34,8 @@ import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
 import { ThemesPanel } from './panels/ThemesPanel';
 import { FriendsPanel } from './panels/FriendsPanel';
+import { RafflePanel } from './panels/RafflePanel';
+import { hasRaffle, raffleKindOf } from '../../utils/raffles';
 import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
@@ -289,12 +291,14 @@ function ExportPageInner() {
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
       if (id === 'friends-leaderboard' || id === 'friends-stats') return hasFriends;
       if (id === 'friends-closed') return hasClosedFriends;
+      const raffleKind = raffleKindOf(id);
+      if (raffleKind) return hasRaffle(app.raffles, raffleKind);
       return true;
     };
     return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends]);
+  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends, app.raffles]);
 
   // Ceil, not round: previewClipRef clips the scaled-down card at exactly
   // these pixel dimensions. Rounding down even by a fraction of a pixel made
@@ -311,6 +315,8 @@ function ExportPageInner() {
   const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report';
 
   const removableElements = TEMPLATE_REMOVABLE_ELEMENTS[templateId];
+  const cardRaffleKind = raffleKindOf(templateId);
+  const cardRaffles = cardRaffleKind ? (app.raffles ?? []).filter((r) => r.kind === cardRaffleKind) : [];
 
   // Renders a card's canvas — shared by the live preview and the offscreen ZIP
   // renderer so a new per-card field only needs wiring into CardCanvas once.
@@ -327,6 +333,8 @@ function ExportPageInner() {
       aggregates={overrides?.aggregates ?? filterAggregates(donations, fullAggregates, c.dateFrom, c.dateTo)}
       goal={goalValue}
       friends={app.friends}
+      raffles={app.raffles}
+      donations={donations}
       commentInsights={commentInsights}
       crossItems={crossItems}
       selectedComments={overrides?.selectedComments ?? commentsFor(c)}
@@ -600,6 +608,16 @@ function ExportPageInner() {
               closedOnly={templateId === 'friends-closed'}
               hiddenFriendIds={card.hiddenFriendIds ?? []}
               onHiddenFriendIdsChange={(ids) => updateCard({ hiddenFriendIds: ids })}
+            />
+          )}
+
+          {cardRaffles.length > 1 && (
+            <RafflePanel
+              open={openSections.has('raffle')}
+              onToggle={() => toggleSection('raffle')}
+              raffles={cardRaffles}
+              selectedId={card.raffleId}
+              onSelect={(raffleId) => updateCard({ raffleId })}
             />
           )}
 

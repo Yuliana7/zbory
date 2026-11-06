@@ -7,6 +7,7 @@ import { GoalScreen } from '../components/upload/screens/GoalScreen';
 import { FriendsScreen } from '../components/upload/screens/FriendsScreen';
 import { AddCsvScreen } from '../components/upload/screens/AddCsvScreen';
 import { RenameScreen } from '../components/upload/screens/RenameScreen';
+import { RafflesScreen } from '../components/upload/screens/RafflesScreen';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { MonobankImport, type MonobankFetchResult } from '../components/upload/MonobankImport';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../utils/csvExporter';
@@ -15,7 +16,7 @@ import type { ManualRow } from '../types';
 import { ArrowLeftIcon } from '../icons';
 
 /** What «Редагувати» opened a saved project for. Each one is a screen of its own. */
-type Focus = 'goal' | 'friends' | 'csv' | 'rows' | 'rename' | 'link';
+type Focus = 'goal' | 'friends' | 'raffles' | 'csv' | 'rows' | 'rename' | 'link';
 
 /** Step 1: the saved projects, the ways to start a new one, and the focused screens «Редагувати»
  * opens. Whatever brings data in saves it and moves on to the analytics, so there is no stop in between. */
@@ -83,6 +84,9 @@ export function UploadPage() {
     if (app.friendsEdit) {
       return <FriendsScreen onDone={() => dispatch({ type: 'FRIENDS_EDIT_DONE' })} backLabel={t('focus.backToAnalytics')} />;
     }
+    if (app.rafflesEdit) {
+      return <RafflesScreen onDone={() => dispatch({ type: 'RAFFLES_EDIT_DONE' })} backLabel={t('focus.backToAnalytics')} />;
+    }
     if (focus === 'link') {
       return (
         <div className="py-8">
@@ -92,6 +96,7 @@ export function UploadPage() {
     }
     if (focus === 'goal') return <GoalScreen onDone={closeFocus} />;
     if (focus === 'friends') return <FriendsScreen onDone={closeFocus} />;
+    if (focus === 'raffles') return <RafflesScreen onDone={closeFocus} />;
     if (focus === 'rename') return <RenameScreen onDone={closeFocus} />;
     if (focus === 'csv') return <AddCsvScreen onFile={handleCsvMerge} onBack={closeFocus} isLoading={isLoading} />;
     return null; // a project is loading into a focused screen

@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar } from '../../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, Raffle } from '../../types';
 import { ProgressCard } from '../../components/templates/ProgressCard';
 import { DailyActivityCard } from '../../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../../components/templates/ThankYouCard';
@@ -19,6 +19,8 @@ import { CommentsCard, type SelectedComment } from '../../components/templates/C
 import { FriendsLeaderboardCard } from '../../components/templates/FriendsLeaderboardCard';
 import { FriendsClosedCard } from '../../components/templates/FriendsClosedCard';
 import { FriendsStatsCard } from '../../components/templates/FriendsStatsCard';
+import { RaffleCard } from '../../components/templates/RaffleCard';
+import { raffleForCard } from '../../utils/raffles';
 import { ReportCard } from '../../components/templates/ReportCard';
 import { CampaignsChartCard } from '../../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems, type ReportPeriod } from '../../utils/campaignAnalytics';
@@ -32,6 +34,9 @@ interface CardCanvasProps {
   aggregates: Aggregates;
   goal?: number;
   friends?: FriendJar[];
+  raffles?: Raffle[];
+  /** every donation of the project, whatever dates the card shows */
+  donations?: Donation[];
   commentInsights: CommentInsights | null;
   crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
@@ -42,7 +47,7 @@ interface CardCanvasProps {
   activeCampaignName?: string | null;
 }
 
-export function CardCanvas({ card, style, aggregates, goal, friends, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
+export function CardCanvas({ card, style, aggregates, goal, friends, raffles, donations, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -85,6 +90,10 @@ export function CardCanvas({ card, style, aggregates, goal, friends, commentInsi
         // helper totals cover the whole campaign — meaningless next to a date-filtered total
         friends={card.dateFrom || card.dateTo ? undefined : friends}
         hiddenFriendIds={card.hiddenFriendIds}
+        allFriends={friends}
+        raffles={raffles}
+        raffleId={card.raffleId}
+        donations={donations}
         format={card.format}
         palette={style.palette}
         textOverrides={card.textOverrides}
@@ -111,6 +120,10 @@ interface RendererProps {
   goal?: number;
   friends?: FriendJar[];
   hiddenFriendIds?: string[];
+  allFriends?: FriendJar[];
+  raffles?: Raffle[];
+  raffleId?: string;
+  donations?: Donation[];
   format: Format;
   palette: SharedStyle['palette'];
   textOverrides: Record<string, string>;
@@ -136,6 +149,10 @@ function TemplateRenderer({
   goal,
   friends,
   hiddenFriendIds,
+  allFriends,
+  raffles,
+  raffleId,
+  donations,
   format,
   palette,
   textOverrides,
@@ -190,6 +207,9 @@ function TemplateRenderer({
     case 'weekly-recap': return <WeeklyRecapCard {...shared} />;
     case 'speed': return <SpeedCard {...shared} />;
     case 'donation-stats': return <DonationStatsCard {...shared} />;
+    case 'raffle-donors': return <RaffleCard {...shared} kind="donors" raffle={raffleForCard(raffles, 'donors', raffleId)} donations={donations} />;
+    case 'raffle-jars': return <RaffleCard {...shared} kind="jars" raffle={raffleForCard(raffles, 'jars', raffleId)} friends={allFriends} />;
+    case 'raffle-biggest': return <RaffleCard {...shared} kind="biggest" raffle={raffleForCard(raffles, 'biggest', raffleId)} donations={donations} />;
     case 'funds-flow': return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
     case 'final-report': return <FinalReportCard {...shared} />;
     case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} />;

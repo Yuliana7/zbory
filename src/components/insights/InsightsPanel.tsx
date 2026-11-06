@@ -6,6 +6,7 @@ import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
 import { CumulativeChart } from './CumulativeChart';
 import { FriendsChart } from './FriendsChart';
+import { RafflesCard } from './RafflesCard';
 import { TotalRaisedCard } from './TotalRaisedCard';
 
 interface InsightsPanelProps {
@@ -50,6 +51,8 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
         <TotalRaisedCard aggregates={aggregates} duration={duration} renew={renew} />
 
         {friends && <FriendsChart friends={friends} totalAmount={aggregates.totalAmount} renew={renew} />}
+
+        {friends && !campaignDatasets && <RafflesCard />}
 
         {/* Comparing jars by campaign day has no place on the calendar of the day-by-day page,
             so it stays here; a single jar's all-time line lives on that page. */}

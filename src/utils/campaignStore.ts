@@ -1,4 +1,4 @@
-import type { FriendJar, MonobankJarRef, RawDonation, SharedStyle } from '../types';
+import type { FriendJar, MonobankJarRef, Raffle, RawDonation, SharedStyle } from '../types';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 import { getBackend } from './db';
@@ -39,6 +39,7 @@ interface CampaignData {
   rawData: RawDonation[];
   style?: SharedStyle;
   friends?: FriendJar[];
+  raffles?: Raffle[];
   monobankJar?: MonobankJarRef;
 }
 
@@ -79,6 +80,8 @@ export interface SaveCampaignInput {
   style?: SharedStyle;
   /** Omit to keep the saved helpers; an empty array clears them */
   friends?: FriendJar[];
+  /** Omit to keep the saved raffles; an empty array clears them */
+  raffles?: Raffle[];
   /** Omit to keep the saved Monobank jar link */
   monobankJar?: MonobankJarRef;
   /** Omit to keep the saved time of the last Monobank read */
@@ -108,6 +111,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     rawData: withTimestamps(input.rawData), // projects saved before rows had a Unix time get it now
     style: input.style ?? existingData?.style,
     friends: input.friends ?? existingData?.friends,
+    raffles: input.raffles ?? existingData?.raffles,
     monobankJar: input.monobankJar ?? existingData?.monobankJar,
   } satisfies CampaignData);
   await kv.put(META_STORE, meta);
@@ -124,10 +128,10 @@ export async function getCampaignMeta(id: string): Promise<CampaignMeta | null> 
   return ((await getBackend().get(META_STORE, id)) as CampaignMeta | undefined) ?? null;
 }
 
-export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null; friends: FriendJar[]; monobankJar: MonobankJarRef | null } | null> {
+export async function loadCampaignData(id: string): Promise<{ rawData: RawDonation[]; style: SharedStyle | null; friends: FriendJar[]; raffles: Raffle[]; monobankJar: MonobankJarRef | null } | null> {
   const data = (await getBackend().get(DATA_STORE, id)) as CampaignData | undefined;
   if (!data) return null;
-  return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [], monobankJar: data.monobankJar ?? null };
+  return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [], raffles: data.raffles ?? [], monobankJar: data.monobankJar ?? null };
 }
 
 export async function deleteCampaign(id: string): Promise<void> {
