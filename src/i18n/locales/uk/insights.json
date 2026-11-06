@@ -18,25 +18,10 @@
   "sections": {
     "comments": "Аудиторія"
   },
-  "moments": {
-    "title": "Готові моменти для допису",
-    "goal_100": "Мету досягнуто!",
-    "goal_75": "Перетнули 75% мети",
-    "goal_50": "Половина мети позаду",
-    "goal_25": "Перша чверть мети",
-    "donations_one": "Вже {{count}} донат",
-    "donations_few": "Вже {{count}} донати",
-    "donations_many": "Вже {{count}} донатів",
-    "donations_other": "Вже {{count}} донатів",
-    "total": "Перетнули {{amount}}",
-    "recordDay": "Рекордний день — {{amount}}",
-    "dismiss": "Сховати"
-  },
   "friends": {
     "title": "Друзі збору",
     "summary": "Друзів: {{n}} · разом {{amount}} ₴ — {{pct}}% збору",
     "edit": "Редагувати",
-    "done": "Готово",
     "reachedSummary": "Досягли цілі: {{reached}} з {{total}}",
     "reachedBadge": "Ціль досягнуто",
     "ofTarget": "{{pct}}% від цілі {{target}} ₴",
@@ -67,7 +52,10 @@
     "targetsBarNote_one": "Банку без цілі враховано за її поточною сумою.",
     "targetsBarNote_few": "{{count}} банки без цілі враховано за їхніми поточними сумами.",
     "targetsBarNote_many": "{{count}} банок без цілі враховано за їхніми поточними сумами.",
-    "targetsBarNote_other": "{{count}} банок без цілі враховано за їхніми поточними сумами."
+    "targetsBarNote_other": "{{count}} банок без цілі враховано за їхніми поточними сумами.",
+    "viewMore": "Детальніше",
+    "viewAll": "Усі банки ({{count}})",
+    "addFirst": "+ Додати дружні банки"
   },
   "charts": {
     "raised": "Зібрано",
@@ -83,7 +71,8 @@
     "dailyLabelShort_one": "Донати за {{count}} день",
     "dailyLabelShort_few": "Донати за {{count}} дні",
     "dailyLabelShort_many": "Донати за {{count}} днів",
-    "dailyLabelShort_other": "Донати за {{count}} днів"
+    "dailyLabelShort_other": "Донати за {{count}} днів",
+    "showMore": "Детальніше"
   },
   "comments": {
     "topEmojis": "🎭 Найпопулярніші емоджі",
@@ -168,5 +157,92 @@
     "repeat_few": "{{count}} постійні донатери дали {{pct}}% усієї суми",
     "repeat_many": "{{count}} постійних донатерів дали {{pct}}% усієї суми",
     "repeat_other": "{{count}} постійних донатерів дали {{pct}}% усієї суми"
+  },
+  "subpage": {
+    "back": "До аналітики"
+  },
+  "renew": {
+    "button": "Оновити",
+    "stop": "Зупинити",
+    "running": "Отримуємо нові донати…",
+    "waiting": "Monobank дозволяє один запит на хвилину. Продовжимо за {{seconds}} с.",
+    "syncedAt": "Оновлено {{when}}",
+    "lastDonation": "Останній донат у зборі: {{when}}",
+    "forget": "Забути токен"
+  },
+  "friendsPage": {
+    "jars": "Банок",
+    "jarsNote": "відкриті: {{open}} · закриті: {{closed}}",
+    "raised": "Зібрали друзі",
+    "shareNote": "{{pct}}% усього збору",
+    "direct": "Напряму в банку",
+    "directNote": "все, що не через друзів",
+    "reached": "Досягли цілі",
+    "reachedNote": "з банок, що мають ціль",
+    "search": "Пошук за іменем",
+    "filterLabel": "Показати",
+    "nothing": "Таких банок немає.",
+    "filter": {
+      "all": "Усі",
+      "active": "Відкриті",
+      "reached": "Досягли цілі",
+      "closed": "Закриті",
+      "stalled": "Застигли",
+      "unlinked": "Без ID"
+    },
+    "stalled_one": "без змін {{count}} день",
+    "stalled_few": "без змін {{count}} дні",
+    "stalled_many": "без змін {{count}} днів",
+    "stalled_other": "без змін {{count}} днів",
+    "left": "лишилось {{amount}} ₴",
+    "eta": "у такому темпі до {{date}}",
+    "growth": "+{{amount}} ₴ з {{when}}",
+    "changed": "змінено {{when}}",
+    "neverChanged": "змін ще не було",
+    "manual": "вручну"
+  },
+  "daily": {
+    "title": "День за днем",
+    "from": "З",
+    "to": "По",
+    "allTime": "Весь час",
+    "lastDays_one": "{{count}} день",
+    "lastDays_few": "{{count}} дні",
+    "lastDays_many": "{{count}} днів",
+    "lastDays_other": "{{count}} днів",
+    "raised": "Зібрано",
+    "count": "Донатів",
+    "avg": "Середній донат",
+    "biggest": "Найбільший",
+    "donors": "Донатерів з іменем",
+    "activeHours": "Активних годин",
+    "span": "Перший і останній",
+    "peak": "Пікова година",
+    "activeDays": "Днів із донатами",
+    "avgNote": "у середньому {{amount}} ₴ за донат",
+    "vsPrevious": "{{pct}}% до попереднього періоду",
+    "perWeek": "Донати за тиждень",
+    "mode": {
+      "bars": "По днях",
+      "total": "Наростаючий підсумок"
+    },
+    "prevDay": "Попередній день",
+    "nextDay": "Наступний день",
+    "emptyDay": "Цього дня донатів не було.",
+    "byHour": "По годинах",
+    "comments": "Коментарі",
+    "withdrawn": "Знято",
+    "mapTitle": "Коли донатять",
+    "mapHint": "За обраний період: темніше — більше грошей. Підказує, коли краще публікувати.",
+    "weekdays": [
+      "Пн",
+      "Вт",
+      "Ср",
+      "Чт",
+      "Пт",
+      "Сб",
+      "Нд"
+    ],
+    "makeCard": "Створити картку за цей період"
   }
 }

@@ -27,6 +27,8 @@ export interface CampaignMeta {
   goal?: number;
   /** where the data came from, if it was imported from Monobank — shown in the list, never the token */
   monobankJar?: MonobankJarRef;
+  /** when the statement was last read from Monobank (ms) */
+  monobankSyncedAt?: number;
   createdAt: number;
   updatedAt: number;
   summary: CampaignSummary;
@@ -79,6 +81,8 @@ export interface SaveCampaignInput {
   friends?: FriendJar[];
   /** Omit to keep the saved Monobank jar link */
   monobankJar?: MonobankJarRef;
+  /** Omit to keep the saved time of the last Monobank read */
+  monobankSyncedAt?: number;
 }
 
 export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMeta> {
@@ -93,6 +97,7 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     fileName: input.fileName,
     goal: input.goal,
     monobankJar: input.monobankJar ?? existingData?.monobankJar,
+    monobankSyncedAt: input.monobankSyncedAt ?? existingMeta?.monobankSyncedAt,
     createdAt: existingMeta?.createdAt ?? now,
     updatedAt: now,
     summary: computeCampaignSummary(input.rawData),

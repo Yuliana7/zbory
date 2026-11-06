@@ -18,7 +18,9 @@ import {
   type MonoJar,
 } from '../../utils/monobankApi';
 import { SpinnerIcon } from '../../icons';
+import { forgetToken, loadToken, saveToken } from '../../utils/monobankToken';
 import { DateField } from '../DateField';
+import { RememberToken } from './RememberToken';
 import { CountdownRing } from './CountdownRing';
 
 export interface MonobankFetchResult {
@@ -29,12 +31,6 @@ export interface MonobankFetchResult {
 }
 
 interface MonobankImportProps {
-  /** import: pick a jar first. update: refresh a known jar (no jar list request). */
-  mode: 'import' | 'update';
-  /** update mode: the jar to refresh */
-  jar?: MonobankJarRef;
-  /** update mode: first day to fetch (the newest saved row's day) */
-  fromDate?: string;
   onFetched: (result: MonobankFetchResult) => void;
   onCancel: () => void;
 }
@@ -48,16 +44,17 @@ const INPUT =
 
 const fmtUah = (kopecks: number) => new Intl.NumberFormat('uk-UA').format(Math.round(kopecks / 100));
 
-/** Pulls a jar's statement from the Monobank API. The token lives in this
- * component's state only: it is never written to storage or logged, goes only
- * to api.monobank.ua, and is gone as soon as the screen closes. */
-export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCancel }: MonobankImportProps) {
+/** First read of a jar: token, which jar, which period. (A jar that is already linked is renewed in
+ * one go from the analytics.) The token goes only to api.monobank.ua and is gone with this screen,
+ * unless the user chooses to keep it on this device. */
+export function MonobankImport({ onFetched, onCancel }: MonobankImportProps) {
   const { t } = useTranslation('upload');
   const [stage, setStage] = useState<Stage>('token');
-  const [token, setToken] = useState('');
+  const [token, setToken] = useState(() => loadToken() ?? '');
+  const [remember, setRemember] = useState(() => !!loadToken());
   const [jars, setJars] = useState<MonoJar[]>([]);
   const [jarId, setJarId] = useState<string | null>(null);
-  const [range, setRange] = useState(() => ({ ...defaultRange(), ...(fromDate ? { from: fromDate } : null) }));
+  const [range, setRange] = useState(() => defaultRange());
   const [progress, setProgress] = useState<FetchProgress | null>(null);
   const [error, setError] = useState<string | null>(null);
   // seconds the jar-list request is waiting out Monobank's rate limit (0 = not waiting)
@@ -68,7 +65,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const today = toIsoDate(new Date());
-  const selectedJar = mode === 'update' ? null : jars.find((j) => j.id === jarId) ?? null;
+  const selectedJar = jars.find((j) => j.id === jarId) ?? null;
   const rangeValid = range.from !== '' && range.to !== '' && range.from <= range.to && range.to <= today;
   const requests = rangeValid ? estimateRequests(dayStartSec(range.from), dayEndSec(range.to, Math.floor(Date.now() / 1000))) : 1;
 
@@ -80,22 +77,20 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
   const handleToken = async () => {
     if (!token.trim()) return;
     setError(null);
-    if (mode === 'update') {
-      // The statement request itself tells us whether the token is good
-      setStage('range');
-      return;
-    }
     setStage('loadingJars');
     setJarsWait(0);
     const abort = new AbortController();
     abortRef.current = abort;
     try {
       const all = await fetchJars(token, { signal: abort.signal, onWait: setJarsWait });
+      if (remember) saveToken(token);
+      else forgetToken();
       setJars(all);
       setJarId(all.find(isUahJar)?.id ?? null);
       setStage('jars');
     } catch (err) {
       if (abort.signal.aborted) return;
+      if (err instanceof MonobankError && err.kind === 'invalid-token') forgetToken();
       setError(describe(err));
       setStage('token');
     } finally {
@@ -104,7 +99,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
   };
 
   const handleFetch = async () => {
-    const target: MonobankJarRef | null = mode === 'update' ? (knownJar ?? null) : selectedJar && { id: selectedJar.id, title: selectedJar.title };
+    const target: MonobankJarRef | null = selectedJar && { id: selectedJar.id, title: selectedJar.title };
     if (!target || !rangeValid) return;
     setError(null);
     setProgress(null);
@@ -140,13 +135,10 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
     setStage('range');
   };
 
-  const titleKey = mode === 'update' ? 'monobank.updateTitle' : 'monobank.title';
-
   return (
     <div className="max-w-xl mx-auto animate-fade-in">
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2 text-center">
-        {t(titleKey)}
-        {mode === 'update' && knownJar ? ` · ${knownJar.title}` : ''}
+        {t('monobank.title')}
       </h2>
 
       {error && (
@@ -188,6 +180,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
               className={INPUT}
             />
           </label>
+          <RememberToken checked={remember} onChange={setRemember} />
 
           {stage === 'loadingJars' && jarsWait > 0 && (
             <p className="flex items-center gap-2 text-xs text-indigo-600" aria-live="polite">
@@ -205,7 +198,7 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
               className="btn-primary flex-1 flex items-center justify-center gap-2"
             >
               {stage === 'loadingJars' && <SpinnerIcon className="w-4 h-4 animate-spin" />}
-              {mode === 'update' ? t('monobank.continue') : t('monobank.showJars')}
+              {t('monobank.showJars')}
             </button>
             <button onClick={onCancel} className="btn-secondary">
               {t('monobank.cancel')}
@@ -270,7 +263,6 @@ export function MonobankImport({ mode, jar: knownJar, fromDate, onFetched, onCan
       {(stage === 'range' || stage === 'fetching') && (
         <div className="mt-4 space-y-4">
           {selectedJar && <p className="text-sm text-gray-600">{t('monobank.fromJar', { title: selectedJar.title })}</p>}
-          {mode === 'update' && <p className="text-sm text-gray-600">{t('monobank.updateHint')}</p>}
 
           <div className="grid grid-cols-2 gap-4">
             <DateField

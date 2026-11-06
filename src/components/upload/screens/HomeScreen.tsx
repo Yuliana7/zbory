@@ -50,8 +50,8 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
             <p className="text-xs text-indigo-500 mt-0.5">{new Date(savedSession.savedAt).toLocaleString('uk-UA')}</p>
           </div>
           <button
-            onClick={() => {
-              if (!handleRestoreSession()) {
+            onClick={async () => {
+              if (!(await handleRestoreSession())) {
                 clearSession();
                 setSavedSession(null);
               }

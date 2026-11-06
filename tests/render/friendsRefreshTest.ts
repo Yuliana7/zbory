@@ -1,5 +1,5 @@
 import type { FriendJar } from '../../src/types';
-import { friendsToCSV } from '../../src/utils/friendJars';
+import { friendsToCSV, nextHistory } from '../../src/utils/friendJars';
 import { dataAsOf, formatWhen, linkedOpen, refreshSavedFriends, staleFriends } from '../../src/utils/friendsRefresh';
 
 let failures = 0;
@@ -42,35 +42,46 @@ const fetcher = (async (url: string) => {
   calls.push(id);
   return new Response(JSON.stringify(jars[id]), { status: 200 });
 }) as unknown as typeof fetch;
-const progress: Array<[number, number, string | undefined]> = [];
+const progress: Array<[number, number]> = [];
 
 (async () => {
-  const r = await refreshSavedFriends(friends, { fetch: fetcher, sleep, now: () => NOW, onProgress: (p) => progress.push([p.done, p.total, p.current]) });
+  const r = await refreshSavedFriends(friends, { fetch: fetcher, sleep, now: () => NOW, onProgress: (p) => progress.push([p.done, p.total]) });
   const by = (id: string) => r.friends.find((f) => f.id === id)!;
-  check('reads each linked open jar once, one pause between reads', calls.join() === [J('A'), J('B'), J('E')].join() && sleeps.length === 2 && sleeps.every((ms) => ms === 1000));
+  check('reads each linked open jar once, all at once with no pauses', calls.slice().sort().join() === [J('A'), J('B'), J('E')].join() && sleeps.length === 0);
   check('closed and unlinked helpers are not read', !calls.includes(J('C')));
   check('amount and status are updated', by('a').raised === 1500 && by('e').closed === true && by('e').raised === 200);
   check('typed name and target are kept; an empty target takes the jar goal', by('a').name === 'Анна' && by('a').target === 2000 && by('e').target === 1000);
   check('syncedAt is stamped on the ones that were read', by('a').syncedAt === NOW && by('b').syncedAt === NOW && by('c').syncedAt === friends[2].syncedAt);
   check('updatedAt moves only for helpers that changed', by('a').updatedAt === NOW && by('e').updatedAt === NOW && by('b').updatedAt === NOW - 90 * MIN);
   check('summary counts', r.updated === 3 && r.failed === 0 && !r.rateLimited);
-  check('progress: before each read, then total', progress.length === 4 && progress[0][2] === 'a' && progress[3][0] === 3);
+  check('progress: from zero to the total', progress.length === 4 && progress[0][0] === 0 && progress[3][0] === 3);
 
   // only = stale ones
   calls.length = 0;
   const stale = new Set(staleFriends(friends, NOW).map((f) => f.id));
   await refreshSavedFriends(friends, { fetch: fetcher, sleep, now: () => NOW, only: (f) => stale.has(f.id) });
-  check('only: limits what is read', calls.join() === [J('A'), J('E')].join());
+  check('only: limits what is read', calls.slice().sort().join() === [J('A'), J('E')].join());
 
-  // a 429 stops the run and keeps what was read
-  let n = 0;
-  const throttled = (async (url: string) => {
-    n++;
-    if (n === 2) return new Response('{}', { status: 429 });
-    return new Response(JSON.stringify(jars[decodeURIComponent(String(url).split('/').pop()!)]), { status: 200 });
+  // a throttled jar is tried again after a pause; the others are kept
+  const seen: Record<string, number> = {};
+  const once429 = (async (url: string) => {
+    const id = decodeURIComponent(String(url).split('/').pop()!);
+    seen[id] = (seen[id] ?? 0) + 1;
+    if (id === J('B') && seen[id] === 1) return new Response('{}', { status: 429 });
+    return new Response(JSON.stringify(jars[id]), { status: 200 });
   }) as unknown as typeof fetch;
-  const t = await refreshSavedFriends(friends, { fetch: throttled, sleep, now: () => NOW });
-  check('429: stops, flags it, keeps the first result', t.rateLimited && t.updated === 1 && t.failed === 1 && t.friends.find((f) => f.id === 'a')!.raised === 1500 && n === 2);
+  sleeps.length = 0;
+  const retried = await refreshSavedFriends(friends, { fetch: once429, sleep, now: () => NOW });
+  check('429: retried after a pause, then everything is read', retried.updated === 3 && retried.failed === 0 && !retried.rateLimited && seen[J('B')] === 2 && sleeps[0] === 3000);
+
+  // still throttled: what was read stays, the rest is reported
+  const always429 = (async (url: string) => {
+    const id = decodeURIComponent(String(url).split('/').pop()!);
+    if (id !== J('A')) return new Response('{}', { status: 429 });
+    return new Response(JSON.stringify(jars[id]), { status: 200 });
+  }) as unknown as typeof fetch;
+  const t = await refreshSavedFriends(friends, { fetch: always429, sleep, now: () => NOW });
+  check('429 twice: flags it, keeps the result that came', t.rateLimited && t.updated === 1 && t.failed === 2 && t.friends.find((f) => f.id === 'a')!.raised === 1500);
   check('429: error kind is reported', t.firstError === 'rate-limit');
 
   // another failure does not stop the others
@@ -83,16 +94,25 @@ const progress: Array<[number, number, string | undefined]> = [];
   const fl = await refreshSavedFriends(friends, { fetch: flaky, sleep, now: () => NOW });
   check('a not-found jar is skipped, the rest are still read', fl.failed === 1 && fl.updated === 2 && !fl.rateLimited && fl.firstError === 'not-found');
 
-  // abort keeps what is done
+  // abort: nothing in flight is treated as a failure
   const ctl = new AbortController();
-  let k = 0;
-  const aborting = (async (url: string) => {
-    k++;
-    if (k === 1) ctl.abort();
-    return new Response(JSON.stringify(jars[decodeURIComponent(String(url).split('/').pop()!)]), { status: 200 });
+  ctl.abort();
+  const aborting = (async (_url: string, init?: RequestInit) => {
+    if (init?.signal?.aborted) throw new DOMException('stop', 'AbortError');
+    return new Response('{}', { status: 200 });
   }) as unknown as typeof fetch;
   const ab = await refreshSavedFriends(friends, { fetch: aborting, sleep, now: () => NOW, signal: ctl.signal });
-  check('abort: stops after the read in flight, keeps it', ab.updated === 1 && k === 1);
+  check('abort: no failures, the helpers stay as they were', ab.updated === 0 && ab.failed === 0 && ab.friends.find((f) => f.id === 'a')!.raised === 100);
+
+  // ── history ──
+  const DAY = 24 * 60 * MIN;
+  const first = await refreshSavedFriends(friends, { fetch: fetcher, sleep, now: () => NOW });
+  const hA = first.friends.find((f) => f.id === 'a')!.history!;
+  check('history: starts from the known amount, then the new one', hA.length === 2 && hA[0].raised === 100 && hA[0].at === NOW - 60 * MIN && hA[1].raised === 1500 && hA[1].at === NOW);
+  check('history: an unchanged amount adds nothing', first.friends.find((f) => f.id === 'b')!.history!.length === 1);
+  const sameDay = nextHistory(undefined, hA, 1600, NOW + 5 * MIN);
+  check('history: one point a day', sameDay.length === 2 && sameDay[1].raised === 1600);
+  check('history: a new day adds a point', nextHistory(undefined, sameDay, 1700, NOW + DAY).length === 3);
 
   // ── CSV ──
   const csv = friendsToCSV([{ id: 'x', name: 'Ім\'я "з лапками", кома', raised: 1234.5, target: 1000, jarId: J('A'), closed: true }, { id: 'y', name: 'Без цілі', raised: 10 }]);

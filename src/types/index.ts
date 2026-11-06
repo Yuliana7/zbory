@@ -29,6 +29,17 @@ export interface Withdrawal {
   balanceAfter: number; // Залишок after this withdrawal
 }
 
+export type InsightsView = 'main' | 'friends' | 'daily';
+
+export interface LastMerge {
+  added: number;
+  duplicates: number;
+  timeShiftMinutes: number | null;
+  suspectedOverlap: boolean;
+  /** the rows before a doubtful merge, so it can be taken back */
+  previousRows?: RawDonation[];
+}
+
 // The Monobank jar a campaign was imported from through the API. Only the id and
 // title are kept — enough to offer "update from Monobank" later; never the token.
 export interface MonobankJarRef {
@@ -59,6 +70,13 @@ export interface FriendJar {
   updatedAt?: number;
   /** when the jar was last read from Monobank (ms) */
   syncedAt?: number;
+  /** the amount over time, one point per day it changed — the API has no history, so the app keeps its own */
+  history?: FriendSnapshot[];
+}
+
+export interface FriendSnapshot {
+  at: number; // ms
+  raised: number; // UAH
 }
 
 // Aggregated statistics
@@ -212,14 +230,16 @@ export interface AppState {
   friends?: FriendJar[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
-  /** «Редагувати» on the analytics' friends block opened the full friends editor on step 1; done/back returns there */
+  /** when the jar's statement was last read from Monobank (ms) */
+  monobankSyncedAt?: number;
+  /** the friends editor is open from analytics; done/back returns there */
   friendsEdit?: { returnTo: 'insights' };
-  /** analytics was opened straight from the project list — «Назад» returns there, not to the preview */
-  fromLibrary?: boolean;
-  /** the analytics «Готові моменти» block was closed — stays closed while this dataset is open */
-  momentsDismissed?: boolean;
-  /** a saved campaign was changed (rows, helpers) since it was last saved */
-  unsavedChanges?: boolean;
+  /** which page of step 2 is showing */
+  insightsView?: InsightsView;
+  /** what the latest merge did — reported on the analytics until dismissed */
+  lastMerge?: LastMerge;
+  /** a renew from Monobank was asked for from the project list; analytics starts it on arrival */
+  renewRequested?: boolean;
   originalFileName: string | null;
   // Set when the current dataset came from / was saved to the campaign library
   activeCampaignId: string | null;

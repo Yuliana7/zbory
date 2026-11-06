@@ -23,7 +23,7 @@ export type RefreshOutcome = Omit<RefreshResult, 'friends'>;
  *
  * - `refreshNow` reads every linked open jar (the «Оновити» button).
  * - With `auto` on (default; remembered on this device), opening the page reads the linked open jars
- *   whose data is older than 15 minutes — never more often than every 5 minutes, one request a second.
+ *   whose data is older than 15 minutes — never more often than every 5 minutes.
  * Results are saved with the project through the same path as an edit (`handleFriendsChange`).
  */
 export function useFriendsRefresh(friends: FriendJar[]) {
@@ -32,7 +32,7 @@ export function useFriendsRefresh(friends: FriendJar[]) {
   friendsRef.current = friends;
 
   const [running, setRunning] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number; current?: string } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [outcome, setOutcome] = useState<RefreshOutcome | null>(null);
   const [auto, setAutoState] = useState(readAuto);
   const runningRef = useRef(false);
@@ -51,7 +51,7 @@ export function useFriendsRefresh(friends: FriendJar[]) {
         const { friends: next, ...rest } = await refreshSavedFriends(friendsRef.current, {
           only,
           signal: ctl.signal,
-          onProgress: (p) => setProgress(p.current ? p : null),
+          onProgress: setProgress,
         });
         if (rest.updated > 0) handleFriendsChange(next);
         if (!ctl.signal.aborted) setOutcome(rest);

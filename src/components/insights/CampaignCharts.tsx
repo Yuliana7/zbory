@@ -5,6 +5,8 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 
 interface CampaignChartsProps {
   aggregates: Aggregates;
+  /** opens the day-by-day page */
+  onExpand?: () => void;
 }
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -27,7 +29,7 @@ function dateKeyFromDate(d: Date) {
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-export function CampaignCharts({ aggregates }: CampaignChartsProps) {
+export function CampaignCharts({ aggregates, onExpand }: CampaignChartsProps) {
   const { t } = useTranslation(['insights', 'export']);
 
   const {
@@ -125,9 +127,16 @@ export function CampaignCharts({ aggregates }: CampaignChartsProps) {
 
         return (
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
-              {windowDays >= 30 ? t('charts.dailyLabel') : t('charts.dailyLabelShort', { count: windowDays })}
-            </p>
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">
+                {windowDays >= 30 ? t('charts.dailyLabel') : t('charts.dailyLabelShort', { count: windowDays })}
+              </p>
+              {onExpand && (
+                <button onClick={onExpand} className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+                  {t('charts.showMore')}
+                </button>
+              )}
+            </div>
 
             {/* Donation bars — grow upward */}
             <div className="flex items-end gap-px h-32">

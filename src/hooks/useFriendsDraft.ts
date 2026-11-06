@@ -10,9 +10,10 @@ import {
   rowsToFriends,
   type FriendDraftRow,
 } from '../utils/friendJars';
+import { readJars } from '../utils/friendsRefresh';
 import { JarError, fetchPublicJar, parseJarId, type JarErrorKind } from '../utils/monobankJar';
 
-/** Pause between two reads when several jars are refreshed — the endpoint is throttled. */
+/** Pause between two reads when ids are added one by one. */
 const REFRESH_GAP_MS = 1000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const kindOf = (err: unknown): JarErrorKind => (err instanceof JarError ? err.kind : 'unexpected');
@@ -125,40 +126,29 @@ export function useFriendsDraft() {
     [],
   );
 
-  /** Reads every linked, still-open jar one after another; stops at the first "too many requests". */
+  /** Reads every linked, still-open jar at once. */
   const refreshAll = useCallback(async () => {
     const todo = rowsRef.current.filter((r) => r.jarId && !r.closed).map((r) => ({ id: r.id, jarId: r.jarId! }));
     if (todo.length === 0) return;
     const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
-    const result: RefreshSummary = { updated: 0, failed: 0, rateLimited: false };
     setSummary(null);
-    setProgress({ done: 0, total: todo.length });
-    for (let i = 0; i < todo.length && alive.current; i++) {
-      if (i > 0) await sleep(REFRESH_GAP_MS);
-      const { id, jarId } = todo[i];
-      setBusy(id, true);
-      try {
-        applyRead(id, await fetchPublicJar(jarId));
-        result.updated++;
-      } catch (err) {
-        const kind = kindOf(err);
-        setRowError(id, kind);
-        result.failed++;
-        if (kind === 'rate-limit') {
-          result.rateLimited = true;
-          if (alive.current) setBusy(id, false);
-          break;
-        }
-      }
-      if (alive.current) {
+    let done = 0;
+    setProgress({ done, total: todo.length });
+    setBusyIds(todo.map((t) => t.id));
+    const res = await readJars(todo, {
+      onSettled: (id, jar, error) => {
+        if (!alive.current) return;
+        if (jar) applyRead(id, jar);
+        if (error) setRowError(id, error);
         setBusy(id, false);
-        setProgress({ done: i + 1, total: todo.length });
-      }
-    }
+        setProgress({ done: ++done, total: todo.length });
+      },
+    });
     finish(autoSave);
     if (alive.current) {
+      setBusyIds([]);
       setProgress(null);
-      setSummary(result);
+      setSummary({ updated: res.read.size, failed: res.failed.size, rateLimited: res.rateLimited });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

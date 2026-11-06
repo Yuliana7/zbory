@@ -26,6 +26,10 @@ function shortDate(d: Date): string {
 interface CumulativeChartProps {
   aggregates: Aggregates; // single-jar fallback: one line from aggregates.cumulative
   datasets: CampaignDataset[] | null; // 2+ = multi-line, aligned by campaign day
+  /** the single line to draw instead of the whole campaign's */
+  points?: Array<{ date: string; total: number }>;
+  /** no card and title around it: it sits inside someone else's */
+  bare?: boolean;
 }
 
 /**
@@ -33,7 +37,7 @@ interface CumulativeChartProps {
  * for a single jar, one line per jar (aligned by campaign day, filterable)
  * once 2+ statements are loaded together.
  */
-export function CumulativeChart({ aggregates, datasets }: CumulativeChartProps) {
+export function CumulativeChart({ aggregates, datasets, points, bare = false }: CumulativeChartProps) {
   const { t } = useTranslation('campaigns');
   const isMulti = (datasets?.length ?? 0) >= 2;
   const [hidden, setHidden] = useState<Set<string>>(new Set());
@@ -57,7 +61,7 @@ export function CumulativeChart({ aggregates, datasets }: CumulativeChartProps) 
     });
 
   // Single-jar line: aggregates.cumulative is already chronological
-  const singleLine = aggregates.cumulative;
+  const singleLine = points ?? aggregates.cumulative;
   const maxTotal = isMulti
     ? Math.max(...(stats?.campaigns.map((c) => c.totalAmount) ?? [1]), 1)
     : Math.max(...singleLine.map((p) => p.total), 1);
@@ -77,10 +81,8 @@ export function CumulativeChart({ aggregates, datasets }: CumulativeChartProps) 
       : null;
 
   return (
-    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">
-        {t('compare.chartTitle')}
-      </p>
+    <div className={bare ? undefined : 'bg-white rounded-2xl border border-gray-100 shadow-sm p-5'}>
+      {!bare && <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-4">{t('compare.chartTitle')}</p>}
       <svg viewBox={`0 0 ${W} ${H}`} className="w-full" role="img">
         {/* Y-axis: gridlines + sum labels (0 renders as the darker x-axis baseline below) */}
         {yTicks.map((f) => (

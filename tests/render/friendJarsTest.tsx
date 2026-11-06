@@ -156,10 +156,10 @@ const fl = [
 ];
 const latest = latestModified(fl);
 check('latest: newest change first, never-changed last', latest.map((f) => f.id).join() === '3,6,4,1,7,5,2');
-const pg0 = pageOf(latest, 0);
-const pg1 = pageOf(latest, 1);
-check('page: five at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
-check('page: out of range clamps', pageOf(latest, 9).page === 1 && pageOf([], 3).page === 0);
+const pg0 = pageOf(latest, 0, 5);
+const pg1 = pageOf(latest, 1, 5);
+check('page: a given size at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
+check('page: out of range clamps', pageOf(latest, 9, 5).page === 1 && pageOf([], 3).page === 0);
 
 const row0 = { id: 'r', name: '', raised: '', target: '' };
 const jarInfo = { title: 'Akatsuki Team', ownerName: 'Наталія Б.', raised: 500, goal: 10000, closed: false };

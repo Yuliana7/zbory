@@ -87,12 +87,12 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Редагувати** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, delete), and each option opens a focused full screen for just that one thing. The preview of a freshly loaded project is one page: the first rows of data are always open, and the goal, friendly jars and "add more data" sit in collapsed one-line rows (each shows what is currently set) that open on tap.
+- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Редагувати** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, rename, download CSV, delete), and each option opens a focused full screen for just that one thing. Whatever brings data in saves it automatically and opens the analytics.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
 ### Monobank API import
-Skip the CSV: paste your personal API token and the app pulls a jar's donations directly — jar picker, date range, review table, and later **Оновити з Monobank** to fetch only what's new. The token is never stored. See the [step-by-step guide](#importing-from-monobank-step-by-step).
+Skip the CSV: paste your personal API token and the app pulls a jar's donations directly — jar picker and date range the first time, then **Оновити** on the analytics fetches everything new in one go. Remembering the token on the device is opt-in. See the [step-by-step guide](#importing-from-monobank-step-by-step).
 
 ### Friendly jars (дружні збори)
 Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Enter each helper's name and the amount they raised and you get a leaderboard, a "share of the jar" card, a chart on the analytics page, and an optional "of which via friends" line on the progress card. It is **attribution only** — it never changes your totals. Helper names are unique (case and extra spaces are ignored). Edits are explicit: **Зберегти друзів** writes them to the project (to the library too, once the project is saved), and leaving the page with unsaved edits asks first.
@@ -101,7 +101,7 @@ Each helper can also have a **target**. The bar then shows that jar's own progre
 
 **The helper list** is a table (stacked on a phone): name, collected, target, % of target and status, a refresh button and a delete button at the end of each row, with rows clearly separated.
 
-**Linking a helper's jar (optional).** Paste a helper jar's *long id* once and it stays with that helper: **Оновити** reads its current amount, goal and **status** from Monobank, **Оновити всі** does it for every linked open jar (one request per second, stopping politely on a 429), and **Додати за ID** creates helpers from several pasted ids at once. A refresh only overwrites the amount and status — a name or target you typed is kept (an empty target takes the jar's goal, an empty name takes the jar owner's name). **Status is a switch on every helper** — click *Відкрита / Закрита* to close a jar by hand (a linked jar the API reports as closed switches by itself, and you can reopen it). A closed helper is skipped by the refreshes and stays editable by hand; the analytics view marks it «закрита». Each row is one line; the jar link's details (id, when it was last read, unlink) open from the link icon. This uses one community-documented, unofficial public endpoint (`GET api.monobank.ua/bank/jar/{id}`, no token); it is throttled, so use it sparingly, and manual entry always works. The long id has to be [looked up by hand](#finding-a-helper-jars-long-id).
+**Linking a helper's jar (optional).** Paste a helper jar's *long id* once and it stays with that helper: **Оновити** reads its current amount, goal and **status** from Monobank, **Оновити всі** reads every linked open jar at once (throttled jars get one more try after a pause), and **Додати за ID** creates helpers from several pasted ids at once. A refresh only overwrites the amount and status — a name or target you typed is kept (an empty target takes the jar's goal, an empty name takes the jar owner's name). **Status is a switch on every helper** — click *Відкрита / Закрита* to close a jar by hand (a linked jar the API reports as closed switches by itself, and you can reopen it). A closed helper is skipped by the refreshes and stays editable by hand; the analytics view marks it «закрита». Each row is one line; the jar link's details (id, when it was last read, unlink) open from the link icon. This uses one community-documented, unofficial public endpoint (`GET api.monobank.ua/bank/jar/{id}`, no token); it is throttled, so use it sparingly, and manual entry always works. The long id has to be [looked up by hand](#finding-a-helper-jars-long-id).
 
 On the analytics page the helpers are **read-only**, five at a time, most recently changed first, and can be **sorted** there by last change, name, amount or status (open first; pick the same sort again to flip it); **Редагувати** opens the same friends screen as step 1 and brings you back. The block says when the linked jars' data is from, has an **Оновити** button, and — with **«Оновлювати при відкритті»** on (default, remembered on the device) — reads the linked open jars whose data is older than 15 minutes when the page opens (at most once every 5 minutes, one request a second, with a spinner on the block and on the jar being read). A bar on top sets everything the helpers raised against everything they set out to raise (a helper without a target counts at its own amount; the bar is hidden until some helper has a real target; it caps at full width and the real percentage, even above 100%, is shown). **Завантажити CSV** exports the helper list from both the analytics and the editor.
 
@@ -126,11 +126,11 @@ The same response also names the jar's owner (`ownerName`) and shows the jar it 
 ## How to use it
 
 1. **Get your data.** Either export the jar's statement as **CSV** in the monobank app (Monobank support can also send a statement file; the app understands both layouts), or use *З Monobank API* with a personal token — no file needed.
-2. **Start a project** in *Новий збір*: upload the CSV, [import via the Monobank API](#importing-from-monobank-step-by-step), or choose *Створити вручну*. Check the preview, optionally set a goal and add friendly jars, then continue.
+2. **Start a project** in *Новий збір*: upload the CSV, [import via the Monobank API](#importing-from-monobank-step-by-step), or choose *Створити вручну*. It is saved automatically and the analytics opens; the goal and friendly jars can be set from **Редагувати** or the analytics.
 3. **Read the analytics.** Tap a highlighted moment to jump to a matching template, or go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
 5. **Edit and export.** Change the format, add your photo (*Фон та стиль → Редагувати позицію*), hide elements, edit text, save a theme, then **Завантажити PNG** (or the ZIP for a series).
-6. **Save the fundraiser** from the preview or analytics step if you'll be back — next time pick it in *Мої збори* and tap **Аналітика →** (or **Редагувати** to refresh its data first).
+6. **Come back any time:** every fundraiser is saved as it changes — pick it in *Мої збори* and tap **Аналітика →**.
 
 ## Importing from Monobank (step by step)
 
@@ -157,14 +157,14 @@ No CSV needed: the app can read a jar's donations straight from Monobank with a 
 6. **Save** the project. It's named after the jar by default.
 
 ### 3. Update it later
-Open **Мої збори → Редагувати → Оновити з Monobank** on that project (you'll see "Monobank · <jar name>" under its name). Paste a token again, and the app fetches from the day of your newest saved donation and merges the result, skipping anything already there.
+Tap **Оновити** on the total in the analytics (or **Мої збори → Редагувати → Оновити з Monobank**). The app fetches from the day of your newest saved donation until now, merges it, skips anything already there and saves. It asks for the token unless you chose to remember it.
 
 <p align="center">
   <img src="docs/screenshots/05-edit-menu.jpg" alt="The Редагувати menu on a saved project" width="230">
 </p>
 
 ### Good to know
-- **Your token stays on your device.** It lives in memory on that screen only: it is never saved (not in the project, not in the browser's storage), never logged, and is sent only to `api.monobank.ua`. Only the donations it returned, and the jar's id and name, are saved.
+- **Your token stays on your device.** It is never logged and is sent only to `api.monobank.ua`. By default it lives in memory only; tick **Запам'ятати токен на цьому пристрої** to keep it in this browser's storage for one-tap renews (**Забути токен** removes it). Only the donations it returned, and the jar's id and name, are saved.
 - **Times are shown in your own time zone.** Every donation is stored with its exact moment (Unix time): the API gives it directly, and Monobank's CSV exports — which are always in Kyiv time, with no zone written in them — are read as Kyiv time. That is why rows from the API and from a CSV of the same jar line up and are never counted twice, wherever your device is. (CSV files the app writes stay in Kyiv time, so they re-upload cleanly.) The date range you pick means days on your own clock.
 - **Long periods take a few minutes.** Monobank allows one request per minute per endpoint and 31 days per statement request, so a long range is fetched in parts with a visible countdown, and you can stop at any time. A short range is instant.
 - **"Monobank did not accept the token"** — copy it again, completely, with no extra characters.
@@ -203,8 +203,8 @@ src/
     ExportPage/       editor: canvas, panels, background gestures, ZIP export
   components/
     templates/        the 20 card templates + shared card shell
-    insights/         charts and analytics panels
-    upload/           new-project options, the one-page preview (collapsible sections), manual
+    insights/         charts, analytics panels, the friends and day-by-day pages
+    upload/           new-project options, manual
                       entry, Monobank import, saved-project list and its Редагувати menu;
                       screens/ holds the home page and the focused goal / friends / CSV screens
   context/          app state (reducer) and session wiring
