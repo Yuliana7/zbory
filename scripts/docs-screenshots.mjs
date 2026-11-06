@@ -69,9 +69,27 @@ const seed = async (page) => page.evaluate(async () => {
   localStorage.setItem('zbory.friendsAutoRefresh', '0');
   localStorage.setItem('zbory.lastBackupAt', String(NOW - 2 * DAY));
 });
-const newPage = async (opts) => { const ctx = await browser.newContext(opts); await stub(ctx); const page = await ctx.newPage(); page.on('pageerror', (e) => { pageErrors++; console.error('page error:', e.message); }); return { ctx, page }; };
+// WebKit reserves room for scrollbars here, and that room comes out as a black band along the right and
+// bottom edges of a screenshot.
+const hideScrollbars = () => {
+  const add = () => {
+    const style = document.createElement('style');
+    style.textContent = '::-webkit-scrollbar { display: none; width: 0; height: 0; }';
+    document.documentElement.append(style);
+  };
+  if (document.documentElement) add();
+  else document.addEventListener('DOMContentLoaded', add);
+};
+const newPage = async (opts) => { const ctx = await browser.newContext(opts); await ctx.addInitScript(hideScrollbars); await stub(ctx); const page = await ctx.newPage(); page.on('pageerror', (e) => { pageErrors++; console.error('page error:', e.message); }); return { ctx, page }; };
 const later = async (page) => { const b = page.getByRole('button', { name: 'Пізніше' }); if (await b.count()) await b.first().click().catch(() => {}); };
-const shot = async (page, name, opts = {}) => { await page.waitForTimeout(250); await page.screenshot({ path: `${OUT}/${name}.jpg`, type: 'jpeg', quality: 78, ...opts }); console.log('shot', name); };
+const shot = async (page, name, opts = {}) => {
+  await page.waitForTimeout(250);
+  // the page must fill the whole image, or the gap shows up as a band along an edge
+  const fit = await page.evaluate(() => ({ page: [document.documentElement.clientWidth, document.documentElement.clientHeight], window: [innerWidth, innerHeight] }));
+  if (fit.page.join() !== fit.window.join()) throw new Error(`${name}: the page is ${fit.page} in a ${fit.window} window`);
+  await page.screenshot({ path: `${OUT}/${name}.jpg`, type: 'jpeg', quality: 78, ...opts });
+  console.log('shot', name);
+};
 const home = async (page) => { await page.locator('header button').first().click(); await page.waitForTimeout(700); await later(page); };
 const openProject = async (page, name = 'На тепловізор') => { await page.locator('li', { hasText: name }).getByRole('button', { name: 'Аналітика' }).click(); await page.waitForTimeout(900); };
 const toY = async (page, text) => { await page.evaluate((t) => { const e = [...document.querySelectorAll('main p, main button, main h2, main h3')].find((x) => x.textContent.trim().startsWith(t)); if (e) window.scrollTo(0, Math.max(0, e.getBoundingClientRect().top + scrollY - 90)); }, text); await page.waitForTimeout(300); };
