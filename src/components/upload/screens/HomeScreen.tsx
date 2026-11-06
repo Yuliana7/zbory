@@ -5,6 +5,7 @@ import { NewProjectOptions } from '../NewProjectOptions';
 import type { CampaignAction } from '../CampaignActionsSheet';
 import { CampaignList } from '../CampaignList';
 import { EmptyState } from '../EmptyState';
+import { BackupControls } from '../BackupControls';
 import { loadSession, clearSession } from '../../../utils/session';
 import { listCampaigns, type CampaignMeta } from '../../../utils/campaignStore';
 import { SaveIcon, XIcon } from '../../../icons';
@@ -110,6 +111,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           isLoading={isLoading}
         />
       )}
+      {campaigns !== null && <BackupControls hasProjects={campaigns.length > 0} onRestored={setCampaigns} />}
     </div>
   );
 }

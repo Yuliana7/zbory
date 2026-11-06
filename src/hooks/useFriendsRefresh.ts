@@ -25,8 +25,9 @@ export type RefreshOutcome = Omit<RefreshResult, 'friends'>;
  * - With `auto` on (default; remembered on this device), opening the page reads the linked open jars
  *   whose data is older than 15 minutes — never more often than every 5 minutes.
  * Results are saved with the project through the same path as an edit (`handleFriendsChange`).
+ * `readOnOpen: false` leaves the arrival read to another instance on the page.
  */
-export function useFriendsRefresh(friends: FriendJar[]) {
+export function useFriendsRefresh(friends: FriendJar[], { readOnOpen = true }: { readOnOpen?: boolean } = {}) {
   const { handleFriendsChange } = useAppContext();
   const friendsRef = useRef(friends);
   friendsRef.current = friends;
@@ -53,7 +54,7 @@ export function useFriendsRefresh(friends: FriendJar[]) {
           signal: ctl.signal,
           onProgress: setProgress,
         });
-        if (rest.updated > 0) handleFriendsChange(next);
+        if (rest.updated > 0) await handleFriendsChange(next);
         if (!ctl.signal.aborted) setOutcome(rest);
         return !ctl.signal.aborted;
       } finally {
@@ -67,6 +68,8 @@ export function useFriendsRefresh(friends: FriendJar[]) {
   );
 
   const refreshNow = useCallback(() => void run(), [run]);
+  const refreshAll = useCallback(() => run(), [run]);
+  const stop = useCallback(() => controller.current?.abort(), []);
 
   const setAuto = useCallback((on: boolean) => {
     setAutoState(on);
@@ -81,7 +84,7 @@ export function useFriendsRefresh(friends: FriendJar[]) {
   useEffect(() => {
     clearTimeout(abortTimer.current); // StrictMode's fake unmount/remount: carry on with the run that is going
     const now = Date.now();
-    if (!auto || now - lastAutoAttempt < AUTO_COOLDOWN_MS) return;
+    if (!readOnOpen || !auto || now - lastAutoAttempt < AUTO_COOLDOWN_MS) return;
     const stale = new Set(staleFriends(friendsRef.current, now).map((f) => f.id));
     if (stale.size === 0) return;
     void run((f) => stale.has(f.id)).then((completed) => {
@@ -101,5 +104,5 @@ export function useFriendsRefresh(friends: FriendJar[]) {
     [],
   );
 
-  return { running, progress, outcome, auto, setAuto, refreshNow };
+  return { running, progress, outcome, auto, setAuto, refreshNow, refreshAll, stop };
 }

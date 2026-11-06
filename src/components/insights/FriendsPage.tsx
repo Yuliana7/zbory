@@ -8,6 +8,7 @@ import { computeFriendStats, fmtUah, formatSharePct, friendBar, friendsToCSV, pa
 import { FRIEND_FILTERS, FRIEND_SORT_KEYS, forecast, growth, leftToTarget, matchesFilter, matchesSearch, stalledDays, type FriendFilter } from '../../utils/friendInsights';
 import { formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 import { FriendsFreshness, RefreshButton, TargetsBar } from './friendsShared';
+import { ReminderCard } from './ReminderCard';
 import { StatTile, SubPage } from './SubPage';
 
 const GROWTH_DAYS = 7;
@@ -226,6 +227,8 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
           {t('friends.csv')}
         </button>
       </div>
+
+      {linked > 0 && <ReminderCard />}
     </SubPage>
   );
 }

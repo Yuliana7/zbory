@@ -1,10 +1,11 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Aggregates } from '../../types';
 import { useAppContext } from '../../context/AppContext';
+import { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
 import { useMonobankRenew } from '../../hooks/useMonobankRenew';
 import { REQUEST_GAP_SECONDS } from '../../utils/monobankApi';
-import { formatWhen } from '../../utils/friendsRefresh';
+import { formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 import { RefreshIcon, SpinnerIcon } from '../../icons';
 import { CountdownRing } from '../upload/CountdownRing';
 import { RenewTokenSheet } from './RenewTokenSheet';
@@ -16,7 +17,8 @@ interface TotalRaisedCardProps {
   wholeProject: boolean;
 }
 
-/** The headline total, and — for a project linked to a Monobank jar — renewing it in place. */
+/** The headline total, and the one button that renews everything the project has linked: the helper
+ * jars first (they answer at once), then the main jar's statement, which can take a token and a wait. */
 export function TotalRaisedCard({ aggregates, duration, wholeProject }: TotalRaisedCardProps) {
   const { t } = useTranslation('insights');
   const { t: tUpload } = useTranslation('upload');
@@ -24,7 +26,23 @@ export function TotalRaisedCard({ aggregates, duration, wholeProject }: TotalRai
   const { app } = state;
   const renewal = useMonobankRenew();
   const { renew } = renewal;
+  const friends = app.friends ?? [];
+  const refresh = useFriendsRefresh(friends, { readOnOpen: false }); // the friends block reads on arrival
   const canRenew = wholeProject && !!app.monobankJar && !app.campaignDatasets;
+  const linkedJars = wholeProject ? linkedOpen(friends).length : 0;
+  const running = renewal.running || refresh.running;
+  const stopped = useRef(false);
+
+  const renewAll = async () => {
+    stopped.current = false;
+    if (linkedJars > 0) await refresh.refreshAll();
+    if (canRenew && !stopped.current) renew();
+  };
+  const stopAll = () => {
+    stopped.current = true;
+    refresh.stop();
+    renewal.stop();
+  };
 
   // «Оновити з Monobank» in the project list lands here and starts right away. In a timer so that
   // StrictMode's trial unmount cancels it instead of sending the rate-limited request twice.
@@ -44,13 +62,13 @@ export function TotalRaisedCard({ aggregates, duration, wholeProject }: TotalRai
     <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
       <div className="flex items-start justify-between gap-3 mb-1">
         <p className="text-indigo-200 text-sm font-medium">{t('totalAmount')}</p>
-        {canRenew && (
+        {(canRenew || linkedJars > 0) && (
           <button
-            onClick={renewal.running ? renewal.stop : renew}
+            onClick={running ? stopAll : renewAll}
             className="-mt-1 shrink-0 flex items-center gap-1.5 rounded-full bg-white/15 hover:bg-white/25 px-3 py-1.5 text-xs font-semibold transition-colors"
           >
-            {renewal.running ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
-            {renewal.running ? t('renew.stop') : t('renew.button')}
+            {running ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
+            {running ? t('renew.stop') : t(canRenew && linkedJars > 0 ? 'renew.buttonAll' : 'renew.button')}
           </button>
         )}
       </div>
@@ -61,9 +79,11 @@ export function TotalRaisedCard({ aggregates, duration, wholeProject }: TotalRai
         {t('donationsCount', { count: aggregates.donationCount })} {t('duration', { count: duration })} 💙💛
       </p>
 
-      {canRenew && (
+      {(canRenew || refresh.running) && (
         <div className="mt-3 pt-3 border-t border-white/15 text-xs text-indigo-100" aria-live="polite">
-          {renewal.running ? (
+          {refresh.running ? (
+            refresh.progress ? t('friends.refreshing', refresh.progress) : t('friends.refreshingShort')
+          ) : renewal.running ? (
             waiting > 0 ? (
               <span className="flex items-center gap-2">
                 <CountdownRing secondsLeft={waiting} totalSeconds={REQUEST_GAP_SECONDS} className="w-4 h-4 shrink-0" />

@@ -135,3 +135,73 @@ export async function deleteCampaign(id: string): Promise<void> {
   await kv.remove(DATA_STORE, id);
   await kv.remove(META_STORE, id);
 }
+
+// ─── Backup ───────────────────────────────────────────────────────────────────
+
+const BACKUP_FORMAT = 'zbory-backup';
+const BACKUP_VERSION = 1;
+
+/** Every project with everything saved for it. The Monobank token is not part of a project, so it never gets in here. */
+export interface ProjectBackup {
+  format: typeof BACKUP_FORMAT;
+  version: number;
+  exportedAt: number;
+  projects: Array<{ meta: CampaignMeta; data: CampaignData }>;
+}
+
+export async function buildBackup(now: number = Date.now()): Promise<ProjectBackup> {
+  const kv = getBackend();
+  const metas = await listCampaigns();
+  const projects: ProjectBackup['projects'] = [];
+  for (const meta of metas) {
+    const data = (await kv.get(DATA_STORE, meta.id)) as CampaignData | undefined;
+    if (data) projects.push({ meta, data });
+  }
+  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: now, projects };
+}
+
+const isRow = (r: unknown) => {
+  const row = r as RawDonation | null;
+  return typeof row?.date === 'string' && typeof row.amount === 'string';
+};
+
+/** Reads a backup file's text; null if it is not a backup this version of the app can use. */
+export function parseBackup(text: string): ProjectBackup | null {
+  let body: Partial<ProjectBackup> | null;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    return null;
+  }
+  if (body?.format !== BACKUP_FORMAT || body.version !== BACKUP_VERSION || !Array.isArray(body.projects)) return null;
+  const valid = body.projects.every(
+    (p) => typeof p?.meta?.id === 'string' && typeof p.meta.name === 'string' && typeof p.meta.updatedAt === 'number' && Array.isArray(p.data?.rawData) && p.data.rawData.every(isRow),
+  );
+  return valid ? (body as ProjectBackup) : null;
+}
+
+export interface RestoreResult {
+  added: number;
+  updated: number;
+  /** already here, in the same or a newer state */
+  kept: number;
+}
+
+/** Brings a backup in without losing anything newer: a project the device doesn't have is added, and one
+ * it has is replaced only if the backup's copy was saved later. */
+export async function restoreBackup(backup: ProjectBackup): Promise<RestoreResult> {
+  const kv = getBackend();
+  const result: RestoreResult = { added: 0, updated: 0, kept: 0 };
+  for (const { meta, data } of backup.projects) {
+    const existing = (await kv.get(META_STORE, meta.id)) as CampaignMeta | undefined;
+    if (existing && existing.updatedAt >= meta.updatedAt) {
+      result.kept += 1;
+      continue;
+    }
+    await kv.put(DATA_STORE, { ...data, id: meta.id });
+    // the list's numbers are worked out from the rows, not taken from the file
+    await kv.put(META_STORE, { ...meta, summary: computeCampaignSummary(data.rawData) });
+    result[existing ? 'updated' : 'added'] += 1;
+  }
+  return result;
+}
