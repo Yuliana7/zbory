@@ -150,6 +150,9 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'rangeLabel' },
     { key: 'sizesLabel' },
   ],
+  'raffle-donors': [{ key: 'title' }, { key: 'prizeLabel' }, { key: 'heroLabel' }],
+  'raffle-jars': [{ key: 'title' }, { key: 'prizeLabel' }, { key: 'heroLabel' }],
+  'raffle-biggest': [{ key: 'title' }, { key: 'prizeLabel' }, { key: 'heroLabel' }, { key: 'tiedLabel' }, { key: 'randomLabel' }, { key: 'soloLabel' }],
   'friends-leaderboard': [
     { key: 'title' },
     { key: 'targetLabel' },
@@ -191,6 +194,9 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   report: false,
   'campaigns-chart': false,
   'donation-stats': true,
+  'raffle-donors': false, // a raffle has its own period
+  'raffle-jars': false,
+  'raffle-biggest': false,
   'friends-leaderboard': false, // helper totals cover the whole campaign
   'friends-closed': false,
   'friends-stats': false,
@@ -215,6 +221,9 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   report: false,
   'campaigns-chart': false,
   'donation-stats': false,
+  'raffle-donors': false,
+  'raffle-jars': false,
+  'raffle-biggest': false,
   'friends-leaderboard': false,
   'friends-closed': false,
   'friends-stats': false,
@@ -241,6 +250,9 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   report: 'story',
   'campaigns-chart': 'story',
   'donation-stats': 'story',
+  'raffle-donors': 'story',
+  'raffle-jars': 'story',
+  'raffle-biggest': 'story',
   'friends-leaderboard': 'story',
   'friends-closed': 'story',
   'friends-stats': 'story',
@@ -394,6 +406,9 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
     UA_FLAG,
     GLOW,
   ],
+  'raffle-donors': [HEADER, el('prize', 'layout.rafflePrize'), el('hero', 'layout.hero'), el('condition', 'layout.raffleCondition'), UA_FLAG, GLOW],
+  'raffle-jars': [HEADER, el('prize', 'layout.rafflePrize'), el('hero', 'layout.hero'), el('condition', 'layout.raffleCondition'), UA_FLAG, GLOW],
+  'raffle-biggest': [HEADER, el('prize', 'layout.rafflePrize'), el('hero', 'layout.hero'), el('competition', 'layout.raffleCompetition'), el('condition', 'layout.raffleCondition'), UA_FLAG, GLOW],
   'donation-stats': [
     HEADER,
     el('hero', 'layout.hero'),
@@ -443,5 +458,6 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed', 'donation-stats'] },
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
   { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-closed', 'friends-stats'] },
+  { id: 'raffles',  labelKey: 'groups.raffles',  icon: '🎁', ids: ['raffle-donors', 'raffle-jars', 'raffle-biggest'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
 ];

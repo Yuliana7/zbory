@@ -108,6 +108,16 @@ const raw: RawDonation[] = [
   assertEq('delete: meta gone', await getCampaignMeta(created.id), null);
   assertEq('delete: data gone', await loadCampaignData(created.id), null);
 
+  // ── raffles ──
+  const raffleProject = await saveCampaign({ name: 'Розіграш', rawData: raw, fileName: null, raffles: [{ id: 'r', kind: 'donors', prize: 'iPhone', min: 200 }] });
+  await saveCampaign({ id: raffleProject.id, name: 'Розіграш', rawData: raw, fileName: null });
+  assertEq('raffles: a save without them keeps them', (await loadCampaignData(raffleProject.id))?.raffles[0]?.prize, 'iPhone');
+  await saveCampaign({ id: raffleProject.id, name: 'Розіграш', rawData: raw, fileName: null, raffles: [] });
+  assertEq('raffles: an empty list clears them', (await loadCampaignData(raffleProject.id))?.raffles.length, 0);
+  await saveCampaign({ id: raffleProject.id, name: 'Розіграш', rawData: raw, fileName: null, raffles: [{ id: 'r', kind: 'jars', prize: 'Книга' }] });
+  assertEq('raffles: in the backup', (await buildBackup()).projects.find((p) => p.meta.id === raffleProject.id)?.data.raffles?.[0]?.prize, 'Книга');
+  await deleteCampaign(raffleProject.id);
+
   // ── backup ──
   const friend = { id: 'f', name: 'Оля', raised: 100, history: [{ at: 1, raised: 50 }, { at: 2, raised: 100 }] };
   const kept = await saveCampaign({ name: 'З друзями', rawData: raw, fileName: null, goal: 500, friends: [friend], monobankJar: { id: 'j', title: 'Банка' }, monobankSyncedAt: 123 });

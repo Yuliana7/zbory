@@ -78,6 +78,20 @@ export interface FriendJar {
   history?: FriendSnapshot[];
 }
 
+export type RaffleKind = 'donors' | 'jars' | 'biggest';
+
+/** A prize raffled off by whoever runs the fundraiser. The app only shows who is in the running; the draw happens elsewhere. */
+export interface Raffle {
+  id: string;
+  kind: RaffleKind;
+  prize: string;
+  /** the smallest single donation (donors) or amount raised (jars) that counts, UAH; none = anything counts */
+  min?: number;
+  /** the days counted, YYYY-MM-DD on the user's clock; none = the whole fundraiser. Jar amounts are totals, so jar raffles have no period. */
+  from?: string;
+  to?: string;
+}
+
 export interface FriendSnapshot {
   at: number; // ms
   raised: number; // UAH
@@ -161,6 +175,8 @@ export interface CardState {
   hiddenElements: string[];
   /** friendly jars left off the leaderboard card (everything else shows; new jars show by default) */
   hiddenFriendIds?: string[];
+  /** which raffle a raffle card shows, when the project has several of a kind */
+  raffleId?: string;
   showRefunds: boolean;
   dateFrom: string;
   dateTo: string;
@@ -193,6 +209,9 @@ export type TemplateType =
   | 'weekly-recap'
   | 'speed'
   | 'donation-stats'
+  | 'raffle-donors'
+  | 'raffle-jars'
+  | 'raffle-biggest'
   | 'funds-flow'
   | 'final-report'
   | 'concrete-ask'
@@ -233,12 +252,16 @@ export interface AppState {
   goal?: number;
   /** helper jars of the open campaign — attribution only, already inside the totals */
   friends?: FriendJar[];
+  /** the project's raffles */
+  raffles?: Raffle[];
   /** set when the data came from the Monobank API — lets the campaign be refreshed from the same jar */
   monobankJar?: MonobankJarRef;
   /** when the jar's statement was last read from Monobank (ms) */
   monobankSyncedAt?: number;
   /** the friends editor is open from analytics; done/back returns there */
   friendsEdit?: { returnTo: 'insights' };
+  /** the raffles screen is open from analytics; done/back returns there */
+  rafflesEdit?: boolean;
   /** which page of step 2 is showing */
   insightsView?: InsightsView;
   /** what the latest merge did — reported on the analytics until dismissed */

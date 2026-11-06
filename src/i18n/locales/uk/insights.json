@@ -283,5 +283,43 @@
     "raised": "Зібрано",
     "target": "Ціль {{amount}} ₴",
     "days": "По днях"
+  },
+  "raffles": {
+    "title": "Розіграші",
+    "add": "Додати розіграш",
+    "addFirst": "+ Додати розіграш",
+    "manage": "Керувати",
+    "remove": "Видалити розіграш",
+    "hint": "Застосунок лише показує, хто бере участь. Сам розіграш проводиться окремо.",
+    "empty": "Розіграшів поки немає.",
+    "needsPrize": "Вкажіть приз, щоб зберегти розіграш.",
+    "prizePlaceholder": "Приз, наприклад iPhone",
+    "kindLabel": "Хто бере участь",
+    "noMin": "Без мінімальної суми",
+    "kind": {
+      "donors": "Донатери",
+      "jars": "Банки друзів",
+      "biggest": "Найбільший донат"
+    },
+    "min": {
+      "donors": "Мінімальний донат, ₴",
+      "jars": "Скільки має зібрати банка, ₴"
+    },
+    "wholePeriod": "Весь збір",
+    "datePeriod": "Період",
+    "noDonations": "У цей період донатів не було.",
+    "biggest": "Найбільший донат: {{amount}} ₴",
+    "participants_one": "{{count}} учасник",
+    "participants_few": "{{count}} учасники",
+    "participants_many": "{{count}} учасників",
+    "participants_other": "{{count}} учасників",
+    "tied_one": "рівних за сумою: {{count}}",
+    "tied_few": "рівних за сумою: {{count}}",
+    "tied_many": "рівних за сумою: {{count}}",
+    "tied_other": "рівних за сумою: {{count}}",
+    "jars_one": "{{count}} банка в змаганні",
+    "jars_few": "{{count}} банки в змаганні",
+    "jars_many": "{{count}} банок у змаганні",
+    "jars_other": "{{count}} банок у змаганні"
   }
 }

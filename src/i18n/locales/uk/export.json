@@ -80,7 +80,10 @@
     "friendsClosedHero": "Підсумок (сума й кількість)",
     "donationStats": "Показники донатів",
     "donationRange": "Половина всіх донатів",
-    "donationSizes": "Розподіл за сумою"
+    "donationSizes": "Розподіл за сумою",
+    "rafflePrize": "Приз",
+    "raffleCondition": "Умова",
+    "raffleCompetition": "Хто змагається"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -152,7 +155,10 @@
     "friends-leaderboard": "Друзі збору",
     "friends-stats": "Банки друзів",
     "friends-closed": "Завершені банки друзів",
-    "donation-stats": "Який донат типовий"
+    "donation-stats": "Який донат типовий",
+    "raffle-donors": "Учасники розіграшу",
+    "raffle-jars": "Банки в розіграші",
+    "raffle-biggest": "Найбільший донат"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -327,6 +333,24 @@
       "minLabel": "Підпис найменшого",
       "rangeLabel": "Підпис діапазону",
       "sizesLabel": "Підпис розподілу"
+    },
+    "raffle-donors": {
+      "title": "Заголовок",
+      "prizeLabel": "Підпис призу",
+      "heroLabel": "Підпис числа"
+    },
+    "raffle-jars": {
+      "title": "Заголовок",
+      "prizeLabel": "Підпис призу",
+      "heroLabel": "Підпис числа"
+    },
+    "raffle-biggest": {
+      "title": "Заголовок",
+      "prizeLabel": "Підпис призу",
+      "heroLabel": "Підпис числа",
+      "tiedLabel": "Підпис рівних донатерів",
+      "randomLabel": "Підпис про випадковий вибір",
+      "soloLabel": "Підпис, коли лідер один"
     }
   },
   "friends": {
@@ -443,5 +467,8 @@
     "updateCurrent": "Оновити тему «{{name}}»",
     "updateHint": "Зміни стилю запишуться в цю тему. Картки, що вже її застосували, лишаться як є.",
     "updateNothing": "Змініть стиль — і тему можна буде оновити."
+  },
+  "raffle": {
+    "label": "Розіграш"
   }
 }

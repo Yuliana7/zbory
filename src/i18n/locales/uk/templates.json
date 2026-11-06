@@ -95,6 +95,30 @@
             "Сб"
         ]
     },
+    "raffle-common": {
+        "fromDonation": "Донат від {{amount}} ₴",
+        "fromRaised": "Зібрано від {{amount}} ₴",
+        "allJars": "Усі банки друзів",
+        "noRaffle": "Розіграш ще не додано"
+    },
+    "raffle-donors": {
+        "title": "Розіграш",
+        "prizeLabel": "Приз",
+        "heroLabel": "Учасників уже"
+    },
+    "raffle-jars": {
+        "title": "Розіграш серед банок друзів",
+        "prizeLabel": "Приз",
+        "heroLabel": "Банок змагаються"
+    },
+    "raffle-biggest": {
+        "title": "Приз за найбільший донат",
+        "prizeLabel": "Приз",
+        "heroLabel": "Найбільший донат зараз",
+        "tiedLabel": "Рівних за сумою донатерів",
+        "randomLabel": "Переможця оберемо випадково",
+        "soloLabel": "Поки що лідер один. Хто більше?"
+    },
     "donation-stats": {
         "title": "Який донат типовий",
         "heroLabel": "Типовий донат (медіана)",

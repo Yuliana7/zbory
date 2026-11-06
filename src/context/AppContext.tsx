@@ -25,6 +25,7 @@ import type {
   MonobankJarRef,
   LoadedCampaign,
   LastMerge,
+  Raffle,
   InsightsView,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
@@ -46,6 +47,7 @@ interface ProjectSource {
   goal?: number;
   style?: SharedStyle;
   friends?: FriendJar[];
+  raffles?: Raffle[];
   monobankJar?: MonobankJarRef;
   monobankSyncedAt?: number;
 }
@@ -111,10 +113,13 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; monobankSyncedAt?: number } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; raffles?: Raffle[]; monobankJar?: MonobankJarRef; monobankSyncedAt?: number } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
   | { type: 'FRIENDS_EDIT_OPENED' }
   | { type: 'FRIENDS_EDIT_DONE' }
+  | { type: 'RAFFLES_UPDATED'; payload: Raffle[] }
+  | { type: 'RAFFLES_EDIT_OPENED' }
+  | { type: 'RAFFLES_EDIT_DONE' }
   | { type: 'MERGE_REPORTED'; payload: LastMerge | undefined }
   | { type: 'RENEW_REQUESTED'; payload: boolean }
   | { type: 'INSIGHTS_VIEW'; payload: InsightsView }
@@ -168,6 +173,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
           goal: action.payload.goal,
           stackStyle: action.payload.style ?? null,
           friends: action.payload.friends,
+          raffles: action.payload.raffles,
           monobankJar: action.payload.monobankJar,
           monobankSyncedAt: action.payload.monobankSyncedAt,
         },
@@ -178,6 +184,15 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     case 'FRIENDS_EDIT_DONE':
       return { ...state, app: { ...state.app, friendsEdit: undefined, step: 'insights' } };
+
+    case 'RAFFLES_UPDATED':
+      return { ...state, app: { ...state.app, raffles: action.payload } };
+
+    case 'RAFFLES_EDIT_OPENED':
+      return { ...state, app: { ...state.app, rafflesEdit: true, step: 'upload' } };
+
+    case 'RAFFLES_EDIT_DONE':
+      return { ...state, app: { ...state.app, rafflesEdit: false, step: 'insights' } };
 
     case 'MERGE_REPORTED':
       return { ...state, app: { ...state.app, lastMerge: action.payload } };
@@ -266,6 +281,7 @@ interface AppContextValue {
   handleMonobankProject: (rows: RawDonation[], jar: MonobankJarRef, goal?: number) => Promise<void>;
   handleUndoMerge: () => Promise<void>;
   handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
+  handleRafflesChange: (raffles: Raffle[]) => Promise<void>;
   goToStep: (step: AppState['step']) => void;
 }
 
@@ -315,6 +331,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           goal: src.goal,
           style: src.style,
           friends: src.friends,
+          raffles: src.raffles,
           monobankJar: src.monobankJar,
           monobankSyncedAt: src.monobankSyncedAt,
         });
@@ -338,6 +355,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignName: saveFailed ? undefined : name,
           style: src.style,
           friends: src.friends,
+          raffles: src.raffles,
           monobankJar: src.monobankJar,
           monobankSyncedAt: src.monobankSyncedAt,
         },
@@ -359,6 +377,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       goal: app.goal,
       style: app.stackStyle ?? undefined,
       friends: app.friends,
+      raffles: app.raffles,
       monobankJar: app.monobankJar,
       monobankSyncedAt: app.monobankSyncedAt,
     };
@@ -500,7 +519,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     try {
       const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
       if (!meta || !data) throw new Error();
-      const { rawData, style, friends, monobankJar } = data;
+      const { rawData, style, friends, raffles, monobankJar } = data;
       const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
       if (donations.length === 0) throw new Error();
       dispatch({
@@ -516,6 +535,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           activeCampaignName: meta.name,
           style: style ?? undefined,
           friends,
+          raffles,
           monobankJar: monobankJar ?? undefined,
           monobankSyncedAt: meta.monobankSyncedAt,
         },
@@ -635,6 +655,27 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
+  const handleRafflesChange = useCallback(async (raffles: Raffle[]) => {
+    dispatch({ type: 'RAFFLES_UPDATED', payload: raffles });
+    const { app } = stateRef.current;
+    if (!app.activeCampaignId || !app.activeCampaignName || !app.rawData) return;
+    try {
+      await saveCampaign({
+        id: app.activeCampaignId,
+        name: app.activeCampaignName,
+        rawData: app.rawData,
+        fileName: app.originalFileName,
+        goal: app.goal,
+        style: app.stackStyle ?? undefined,
+        friends: app.friends,
+        raffles,
+        monobankJar: app.monobankJar,
+      });
+    } catch {
+      dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
+    }
+  }, [t]);
+
   const goToStep = useCallback(
     (step: AppState['step']) => {
       const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
@@ -648,7 +689,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, handleRafflesChange, goToStep }}
     >
       {children}
     </AppContext.Provider>
