@@ -174,11 +174,11 @@
         "more": "+ ще {{n}}",
         "closedLabel": "закрита"
     },
-    "friends-share": {
-        "title": "Друзі збору",
-        "heroLabel": "збору принесли друзі",
-        "ofLabel": "з",
-        "countLabel": "Друзів долучилось"
+    "friends-stats": {
+        "title": "Банки друзів",
+        "heroLabel": "Зібрали друзі",
+        "jarsLabel": "Банок друзів",
+        "targetLabel": "Спільна ціль"
     },
     "friends-closed": {
         "title": "Банки друзів завершено",

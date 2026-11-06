@@ -177,7 +177,7 @@ export type TemplateType =
   | 'comments'
   | 'friends-leaderboard'
   | 'friends-closed'
-  | 'friends-share'
+  | 'friends-stats'
   | 'report'
   | 'campaigns-chart';
 

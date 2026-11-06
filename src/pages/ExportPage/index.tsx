@@ -260,7 +260,7 @@ function ExportPageInner() {
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
-      if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
+      if (id === 'friends-leaderboard' || id === 'friends-stats') return hasFriends;
       if (id === 'friends-closed') return hasClosedFriends;
       return true;
     };
@@ -577,7 +577,7 @@ function ExportPageInner() {
             />
           )}
 
-          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-closed' || templateId === 'friends-share') && (
+          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-closed' || templateId === 'friends-stats') && (
             <FriendsPanel
               open={openSections.has('friends')}
               onToggle={() => toggleSection('friends')}

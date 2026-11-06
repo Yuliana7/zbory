@@ -33,7 +33,6 @@ import { analyzeComments } from '../utils/commentAnalyzer';
 import { saveSession, updateSessionGoal, updateSessionFriends, updateSessionMonobankJar, clearSession, loadSession } from '../utils/session';
 import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
-import { TEMPLATE_GROUPS } from '../utils/templateConfig';
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -54,8 +53,7 @@ const INITIAL_APP_STATE: AppState = {
   commentInsights: null,
   selectedTemplates: null,
   gallerySelection: [],
-  // First category open by default
-  galleryOpenGroups: [TEMPLATE_GROUPS[0].id],
+  galleryOpenGroups: [],
   stackCards: null,
   stackStyle: null,
   originalFileName: null,

@@ -8,7 +8,7 @@ import { ThankYouCard } from '../components/templates/ThankYouCard';
 import { MilestoneCard } from '../components/templates/MilestoneCard';
 import { FriendsLeaderboardCard } from '../components/templates/FriendsLeaderboardCard';
 import { FriendsClosedCard } from '../components/templates/FriendsClosedCard';
-import { FriendsShareCard } from '../components/templates/FriendsShareCard';
+import { FriendsStatsCard } from '../components/templates/FriendsStatsCard';
 import { DonorsCountCard } from '../components/templates/DonorsCountCard';
 import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
@@ -73,7 +73,7 @@ export function GalleryPage() {
       if (id === 'emoji-cloud') return hasEmojis;
       if (id === 'comments') return previewComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return isMulti;
-      if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
+      if (id === 'friends-leaderboard' || id === 'friends-stats') return hasFriends;
       if (id === 'friends-closed') return hasClosedFriends;
       return true;
     });
@@ -273,7 +273,7 @@ function TemplatePreview({ id, aggregates, goal, friends, commentInsights, previ
           {id === 'progress' && <ProgressCard aggregates={aggregates} goal={goal} friends={friends} format="post" />}
           {id === 'friends-leaderboard' && <FriendsLeaderboardCard aggregates={aggregates} friends={friends} format="post" />}
           {id === 'friends-closed' && <FriendsClosedCard aggregates={aggregates} friends={friends} format="post" />}
-          {id === 'friends-share' && <FriendsShareCard aggregates={aggregates} friends={friends} format="post" />}
+          {id === 'friends-stats' && <FriendsStatsCard aggregates={aggregates} friends={friends} format="post" />}
           {id === 'daily-activity' && <DailyActivityCard aggregates={aggregates} format="post" />}
           {id === 'thank-you' && <ThankYouCard aggregates={aggregates} format="post" />}
           {id === 'milestone' && <MilestoneCard aggregates={aggregates} goal={goal} format="post" />}

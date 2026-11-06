@@ -6,7 +6,7 @@ import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateN
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
-import { FriendsShareCard } from '../../src/components/templates/FriendsShareCard';
+import { FriendsStatsCard } from '../../src/components/templates/FriendsStatsCard';
 import { FriendsClosedCard } from '../../src/components/templates/FriendsClosedCard';
 
 let failures = 0;
@@ -49,10 +49,8 @@ const many = Array.from({ length: 12 }, (_, i) => ({ id: `m${i}`, name: `Дру�
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={many} format="story" />);
 check('Leaderboard: caps rows and says how many more', strip(html).includes('+ ще 5'));
 
-html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={real} format="post" />);
-const expectPct = Math.round((1500 / aggregates.totalAmount) * 100);
-check('Share: shows the share %', strip(html).includes(`${Math.min(100, expectPct)}%`), `(expected ${expectPct}%)`);
-check('Share: counts friends', />2</.test(html));
+html = renderToStaticMarkup(<FriendsStatsCard aggregates={aggregates} friends={real} format="post" />);
+check('Stats: no targets → amount and jar count, no bar', /1\s*500\s*₴/.test(strip(html)) && />2</.test(html) && !html.includes('data-element="targetBar"'));
 
 // ── targets ──
 const tg = [
@@ -104,8 +102,13 @@ html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} frie
 check('Leaderboard: hidden jar gone, total + reached follow', !strip(html).includes('Оля') && !html.includes('data-reached') && /800\s*₴/.test(strip(html)) && strip(html).includes('0 з 2'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={real} format="story" />);
 check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
-html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={tg} format="post" />);
-check('Share: counts only jars that raised something', />3</.test(html));
+const statsJars = [
+  { id: 'a', name: 'А', raised: 600, target: 1000 },
+  { id: 'b', name: 'Б', raised: 200, target: 1000 },
+  { id: 'c', name: 'В', raised: 200 }, // no target: counts at its own amount
+];
+html = renderToStaticMarkup(<FriendsStatsCard aggregates={aggregates} friends={statsJars} format="post" />);
+check('Stats: raised, jars, combined target and the same % as analytics', /1\s*000\s*₴/.test(strip(html)) && />3</.test(html) && /2\s*200\s*₴/.test(strip(html)) && strip(html).includes('45%'));
 
 // ── linked jars, status, sorting, paging ──
 const T0 = 1_000_000;
