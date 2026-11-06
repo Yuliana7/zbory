@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { RenewAll } from '../../hooks/useRenewAll';
+import { formatList } from '../../utils/intlFormat';
 import { WarningIcon, XIcon } from '../../icons';
 
 const NAMES_SHOWN = 3;
@@ -14,8 +15,9 @@ export function RenewReportCard({ renew }: { renew: RenewAll }) {
   if (!report) return null;
   const { jarsUpdated, jarsFailed, rateLimited, manual } = report;
   if (jarsUpdated === 0 && jarsFailed === 0 && manual.length === 0) return null;
-  const names = manual.slice(0, NAMES_SHOWN).map((f) => f.name || '—').join(', ');
+  const shown = manual.slice(0, NAMES_SHOWN).map((f) => f.name || '—');
   const more = manual.length - NAMES_SHOWN;
+  const names = more > 0 ? shown.join(', ') : formatList(shown);
 
   return (
     <div className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-900 animate-fade-in" role="status">

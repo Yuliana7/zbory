@@ -11,6 +11,7 @@ import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { getPersonalComments } from '../../utils/commentAnalyzer';
 import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
 import { useCardStack } from './hooks/useCardStack';
+import { PREVIEW_MIN_SCALE, PREVIEW_PAD, PREVIEW_PAD_MIN, useCollapsingPreview } from './hooks/useCollapsingPreview';
 import { useZipExport } from './hooks/useZipExport';
 import {
   TEMPLATE_TEXT_FIELDS,
@@ -49,10 +50,6 @@ import { AddTemplateModal } from './panels/AddTemplateModal';
 
 // Below the xl breakpoint the page is one column and the preview is pinned to the top
 const SINGLE_COLUMN_MAX = 1280;
-/** the preview never gets smaller than this share of its size, however far the controls are scrolled */
-const PREVIEW_MIN_SCALE = 0.33;
-const PREVIEW_PAD = 24;
-const PREVIEW_PAD_MIN = 8;
 const PREVIEW_GAP = 16;
 
 export function ExportPage() {
@@ -132,6 +129,8 @@ function ExportPageInner() {
   const previewClipRef = useRef<HTMLDivElement>(null);
   const previewTopRef = useRef<HTMLDivElement>(null);
   const previewNavRef = useRef<HTMLDivElement>(null);
+  const previewBgRef = useRef<HTMLDivElement>(null);
+  const previewSpacerRef = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -168,46 +167,19 @@ function ExportPageInner() {
     return () => window.removeEventListener('resize', calculate);
   }, [dims]);
 
-  // On a single column the preview is pinned and gives way to the controls like a reel to its
-  // comments: past the point where it reaches the top, it loses exactly what the page scrolled, so the
-  // controls rise with the finger right under it. Its share `collapse` (0..1) stops at PREVIEW_MIN_SCALE;
-  // from there on the controls slide under the pinned preview.
-  const [collapse, setCollapse] = useState(0);
   const [singleColumn, setSingleColumn] = useState(() => window.innerWidth < SINGLE_COLUMN_MAX);
-  const [navH, setNavH] = useState(0);
-  useLayoutEffect(() => {
-    const measure = () => setNavH(previewNavRef.current?.offsetHeight ?? 0);
-    measure();
-    const observer = new ResizeObserver(measure);
-    if (previewNavRef.current) observer.observe(previewNavRef.current);
-    return () => observer.disconnect();
+  useEffect(() => {
+    const onResize = () => setSingleColumn(window.innerWidth < SINGLE_COLUMN_MAX);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
   }, []);
 
   const fullCardH = Math.ceil(dims.height * scale);
-  const navSpace = navH + PREVIEW_GAP;
-  const collapseRange = fullCardH * (1 - PREVIEW_MIN_SCALE) + navSpace + 2 * (PREVIEW_PAD - PREVIEW_PAD_MIN);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const single = window.innerWidth < SINGLE_COLUMN_MAX;
-      setSingleColumn(single);
-      const top = previewTopRef.current;
-      if (!single || !top || collapseRange <= 0) {
-        setCollapse(0);
-        return;
-      }
-      const pinnedAt = previewContainerRef.current ? parseFloat(getComputedStyle(previewContainerRef.current).top) || 0 : 0;
-      const past = pinnedAt - top.getBoundingClientRect().top;
-      setCollapse(Math.min(1, Math.max(0, past / collapseRange)));
-    };
-    onScroll();
-    window.addEventListener('scroll', onScroll, { passive: true });
-    window.addEventListener('resize', onScroll);
-    return () => {
-      window.removeEventListener('scroll', onScroll);
-      window.removeEventListener('resize', onScroll);
-    };
-  }, [collapseRange]);
+  useCollapsingPreview(
+    { box: previewContainerRef, spacer: previewSpacerRef, marker: previewTopRef, background: previewBgRef, card: previewClipRef, nav: previewNavRef },
+    fullCardH,
+    singleColumn,
+  );
 
   // Any text field focused in the controls must end up below the pinned preview
   // and above the keyboard (see revealInput).
@@ -219,9 +191,6 @@ function ExportPageInner() {
     document.addEventListener('focusin', onFocusIn);
     return () => document.removeEventListener('focusin', onFocusIn);
   }, []);
-
-  const effectiveScale = scale * (1 - (1 - PREVIEW_MIN_SCALE) * collapse);
-  const previewPad = PREVIEW_PAD - (PREVIEW_PAD - PREVIEW_PAD_MIN) * collapse;
 
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
@@ -306,8 +275,7 @@ function ExportPageInner() {
   // live compositor would crop right at the edge (most visible on trailing
   // glyphs like emoji, whose visual ink often extends past their advance box)
   // — exports/screenshots render the native, unscaled card and never hit this.
-  const previewW = Math.ceil(dims.width * effectiveScale);
-  const previewH = Math.ceil(dims.height * effectiveScale);
+  const previewW = Math.ceil(dims.width * scale);
 
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
@@ -376,21 +344,17 @@ function ExportPageInner() {
         {/* Where the preview sits before it pins — marks the start of its collapse */}
         <div ref={previewTopRef} className="xl:hidden -mb-8" style={{ height: 0 }} />
 
-        {/* Preview. Whatever it gives up while collapsing comes back as a margin: the page keeps its
-            height, so the controls below move exactly with the scroll. */}
+        {/* Preview. Collapsing moves nothing else on the page. Only what is visibly there takes touches
+            (pointer-events on the background, card and nav): everything else keeps its full size in the
+            layout and would otherwise sit invisibly over the controls behind it. See useCollapsingPreview. */}
         <div
           ref={previewContainerRef}
-          data-pinned-preview
-          className="bg-gray-100 rounded-2xl flex flex-col items-center justify-center"
-          style={{
-            position: 'sticky',
-            top: 'var(--safe-top)',
-            zIndex: 100,
-            padding: previewPad,
-            marginBottom: singleColumn ? collapseRange * collapse : undefined,
-            // the card's shadow must not fall over the controls below
-            overflow: singleColumn ? 'hidden' : undefined,
-          }}
+          className={`relative flex flex-col items-center pointer-events-none ${singleColumn ? 'preview-collapse' : 'justify-center'}`}
+          style={{ position: 'sticky', top: 'var(--safe-top)', zIndex: 100, padding: PREVIEW_PAD }}
+        >
+          <div ref={previewBgRef} data-pinned-preview className="preview-bg absolute inset-x-0 top-0 h-full bg-gray-100 rounded-2xl pointer-events-auto" />
+          <div
+          className="relative flex flex-col items-center"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0].clientX;
           }}
@@ -405,11 +369,13 @@ function ExportPageInner() {
         >
           <div
             ref={previewClipRef}
+            className="preview-card pointer-events-auto"
             style={{
               width: previewW,
-              height: previewH,
+              height: fullCardH,
               overflow: 'hidden',
               borderRadius: 8,
+              transformOrigin: 'top center',
               boxShadow: '0 20px 60px rgba(0,0,0,0.25)',
               flexShrink: 0,
             }}
@@ -426,7 +392,7 @@ function ExportPageInner() {
                 // Firefox (clipped emoji glyphs) that a forced reflow only
                 // fixed momentarily — zoom sidesteps that bug category
                 // entirely rather than working around it.
-                zoom: effectiveScale,
+                zoom: scale,
                 position: 'relative',
               }}
             >
@@ -443,17 +409,10 @@ function ExportPageInner() {
             </div>
           </div>
 
-          {/* Stack navigation folds away with the collapse. Wraps onto extra lines instead of
+          {/* Stack navigation fades as the collapse starts. Wraps onto extra lines instead of
               overflowing the preview box once enough cards make the dots row too wide. */}
-          <div
-            className="w-full overflow-hidden"
-            style={{
-              height: navSpace * (1 - collapse),
-              opacity: 1 - collapse,
-              pointerEvents: collapse > 0.5 ? 'none' : undefined,
-            }}
-          >
-            <div ref={previewNavRef} className="flex flex-wrap items-center justify-center gap-3 max-w-full" style={{ marginTop: PREVIEW_GAP }}>
+          <div ref={previewNavRef} className="preview-nav w-full pointer-events-auto" style={{ paddingTop: PREVIEW_GAP }}>
+            <div className="flex flex-wrap items-center justify-center gap-3 max-w-full">
               {cards.length > 1 && (
                 <>
                   <button
@@ -505,7 +464,10 @@ function ExportPageInner() {
               </div>
             </div>
           </div>
+          </div>
         </div>
+
+        <div ref={previewSpacerRef} className="xl:hidden -mt-8" aria-hidden="true" />
 
         {/* Sidebar. On a single column it is at least a screen tall minus the collapsed preview, so
             a short list of controls can still scroll the preview all the way down. */}

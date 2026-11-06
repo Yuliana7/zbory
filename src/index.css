@@ -177,6 +177,33 @@
   }
 }
 
+/* The export preview shrinking as the page scrolls (see useCollapsingPreview). The scroll position drives
+   these directly, on the compositor, so nothing runs per scroll. Only the bottom edge of the grey box moves:
+   it slides up rather than scales, which keeps its rounded corners. */
+@keyframes preview-bg-collapse {
+  to { transform: translateY(var(--collapse-bg)); }
+}
+@keyframes preview-card-collapse {
+  to { transform: translateY(var(--collapse-card-y)) scale(var(--collapse-scale)); }
+}
+@keyframes preview-nav-collapse {
+  12%, 100% { opacity: 0; visibility: hidden; }
+}
+@supports (animation-timeline: scroll()) and (animation-range: 10px 20px) {
+  .preview-collapse .preview-bg,
+  .preview-collapse .preview-card,
+  .preview-collapse .preview-nav {
+    animation-duration: 1ms; /* required by Safari; the scroll position sets the real pace */
+    animation-timing-function: linear;
+    animation-fill-mode: both;
+    animation-timeline: scroll(root block);
+    animation-range: var(--collapse-from) var(--collapse-to);
+  }
+  .preview-collapse .preview-bg { animation-name: preview-bg-collapse; }
+  .preview-collapse .preview-card { animation-name: preview-card-collapse; }
+  .preview-collapse .preview-nav { animation-name: preview-nav-collapse; }
+}
+
 /* Date inputs (see DateField): iOS renders them with their own intrinsic size and centred text;
    flatten that so they sit in a grid like any other field. While the floating label is acting as
    the placeholder, hide the native "dd.mm.yyyy" hint. */

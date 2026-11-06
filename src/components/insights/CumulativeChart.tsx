@@ -4,6 +4,7 @@ import type { Aggregates, CampaignDataset } from '../../types';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CAMPAIGN_COLORS } from '../../utils/campaignColors';
+import { formatCompact } from '../../utils/intlFormat';
 
 const W = 640;
 const H = 220;
@@ -11,13 +12,6 @@ const PT = 10; // top
 const PR = 10; // right
 const PB = 22; // bottom — room for x-axis date labels
 const PL = 48; // left — room for y-axis sum labels
-
-/** Short axis label for large sums: "170 тис ₴", "1.2 млн ₴", "500 ₴" */
-function fmtCompact(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(n % 1_000_000 === 0 ? 0 : 1)} млн ₴`;
-  if (n >= 1_000) return `${Math.round(n / 1000)} тис ₴`;
-  return `${Math.round(n)} ₴`;
-}
 
 function shortDate(d: Date): string {
   return `${d.getDate()}.${String(d.getMonth() + 1).padStart(2, '0')}`;
@@ -89,7 +83,7 @@ export function CumulativeChart({ aggregates, datasets, points, bare = false }: 
           <g key={f}>
             {f > 0 && <line x1={PL} x2={W - PR} y1={py(maxTotal * f)} y2={py(maxTotal * f)} stroke="#f3f4f6" strokeWidth={1} />}
             <text x={PL - 6} y={py(maxTotal * f)} textAnchor="end" dominantBaseline="middle" fontSize={9} fill="#9ca3af">
-              {fmtCompact(maxTotal * f)}
+              {formatCompact(maxTotal * f)} ₴
             </text>
           </g>
         ))}
