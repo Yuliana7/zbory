@@ -66,6 +66,8 @@ const spy = (async (u: string) => {
   check('fetch: 500 → unexpected', (await kindOf(500)) === 'unexpected');
   check('fetch: network failure → network', await fetchPublicJar(ID, { fetch: (async () => { throw new TypeError('x'); }) as unknown as typeof fetch }).then(() => false, (e) => e instanceof JarError && e.kind === 'network'));
 
+  check('jar: carries its short id', mapPublicJar({ amount: 100, jarId: 'ShortId123' }).shortId === 'ShortId123' && mapPublicJar({ amount: 100 }).shortId === undefined);
+
   // ── looking a share link up ──
   let asked = '';
   const found = await lookupJar(SHORT, { fetch: (async (u: string) => ((asked = u), new Response(JSON.stringify({ longId: ID, mainJar: 'MainJarId01' })))) as unknown as typeof fetch });

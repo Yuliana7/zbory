@@ -254,6 +254,19 @@ export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): 
   };
 }
 
+export type HelperProblem = 'not-helper' | 'other-main' | null;
+
+/**
+ * Whether a jar can be a helper of this project. Every helper jar names the main jar it feeds, so one
+ * that names none isn't a helper, and one that names another jar belongs to another fundraiser. The
+ * project's main jar is known when it came from Monobank; otherwise the helpers it has stand in for it.
+ */
+export function helperProblem(parentJar: string | undefined, mainShortId: string | undefined, rows: Array<{ parentJar?: string }>): HelperProblem {
+  if (!parentJar) return 'not-helper';
+  const expected = mainShortId ?? usualParentJar(rows);
+  return expected && parentJar !== expected ? 'other-main' : null;
+}
+
 /** The main jar most of the helpers feed: what a newly added jar should match. */
 export function usualParentJar(rows: Array<{ parentJar?: string }>): string | undefined {
   const counts = new Map<string, number>();

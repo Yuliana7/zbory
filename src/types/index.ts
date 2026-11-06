@@ -45,6 +45,8 @@ export interface LastMerge {
 export interface MonobankJarRef {
   id: string;
   title: string;
+  /** the short id of its share link: what a helper jar names as its main jar */
+  shortId?: string;
 }
 
 /** What opening a saved campaign loaded — lets the caller continue straight into an action on it. */

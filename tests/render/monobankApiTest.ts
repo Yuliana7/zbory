@@ -9,6 +9,7 @@ import {
   fetchJars,
   isUahJar,
   jarGoal,
+  jarShortId,
   statementItemsToRawDonations,
   updateRangeStart,
   type MonoJar,
@@ -77,6 +78,7 @@ check(
     { date: '15.03.2026 11:05', category: '', amount: '1', currency: '', additionalInfo: '', comment: '', balance: '', balanceCurrency: '' },
   ]) === '2026-03-15',
 );
+check('short id: from the API\'s sendId', jarShortId(jar({ sendId: 'jar/AbCdEf1234' })) === 'AbCdEf1234');
 check('updateRangeStart: nothing to go on', updateRangeStart([]) === null);
 
 // ── fetching: fetch, sleep and the clock are injected, so waits run on virtual time ──

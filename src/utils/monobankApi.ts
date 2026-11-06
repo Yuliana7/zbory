@@ -177,6 +177,9 @@ export async function fetchJars(token: string, { deps = {}, signal, onWait }: Fe
   return info.jars ?? [];
 }
 
+/** The short id of a jar's share link; the API gives it as "jar/XXXXXXXXXX". */
+export const jarShortId = (jar: MonoJar): string | undefined => jar.sendId?.split('/').filter(Boolean).pop();
+
 /** Jar goal in hryvnias, if the jar has one. */
 export const jarGoal = (jar: MonoJar): number | undefined => (jar.goal > 0 ? jar.goal / 100 : undefined);
 

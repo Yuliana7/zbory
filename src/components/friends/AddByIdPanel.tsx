@@ -18,7 +18,7 @@ export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose:
     const res = await draft.addByIds(ids);
     setBusy(false);
     setResult(res);
-    if (res.added > 0 && res.invalid === 0 && res.duplicate === 0 && res.otherMain === 0 && res.notHelper === 0 && !res.failed) onClose();
+    if (res.added > 0 && res.invalid === 0 && res.duplicate === 0 && res.otherMain === 0 && res.notHelper === 0 && res.unverified === 0 && !res.failed) onClose();
   };
 
   return (
@@ -56,6 +56,7 @@ export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose:
           {result.duplicate > 0 && <li className="text-amber-700">{t('friends.addById.duplicate', { count: result.duplicate })}</li>}
           {result.otherMain > 0 && <li className="text-amber-700">{t('friends.addById.otherMain', { count: result.otherMain })}</li>}
           {result.notHelper > 0 && <li className="text-amber-700">{t('friends.addById.notHelper', { count: result.notHelper })}</li>}
+          {result.unverified > 0 && <li className="text-amber-700">{t('friends.addById.unverified', { count: result.unverified })}</li>}
           {result.failed && <li className="text-red-500">{t(`friends.jarErrors.${result.failed}`)}</li>}
         </ul>
       )}
