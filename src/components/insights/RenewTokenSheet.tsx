@@ -19,7 +19,7 @@ export function RenewTokenSheet({ error, onSubmit, onClose }: RenewTokenSheetPro
 
   return (
     <div
-      className="fixed inset-0 z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in text-left"
+      className="screen-overlay z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in text-left"
       style={{ paddingTop: 'var(--safe-top)' }}
       onClick={onClose}
     >
@@ -27,7 +27,7 @@ export function RenewTokenSheet({ error, onSubmit, onClose }: RenewTokenSheetPro
         role="dialog"
         aria-label={t('monobank.updateTitle')}
         className="sheet-panel w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4 overflow-y-auto overscroll-contain"
-        style={{ paddingBottom: 'calc(var(--safe-bottom) + 1.25rem)' }}
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + var(--toolbar-gap) + 1.25rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div>

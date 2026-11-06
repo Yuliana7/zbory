@@ -146,7 +146,7 @@ export function CampaignCharts({ aggregates, onExpand }: CampaignChartsProps) {
                 return (
                   <div
                     key={col.dateKey}
-                    className={`flex-1 min-w-0 rounded-t transition-colors ${isBest ? 'bg-green-400' : 'bg-indigo-400 hover:bg-indigo-500'}`}
+                    className={`flex-1 min-w-0 rounded-t transition-colors ${isBest ? 'bg-green-500' : 'bg-indigo-400 hover:bg-indigo-500'}`}
                     style={{ height: `${h}%` }}
                     title={`${col.label}: ${fmtFull(col.donations)} ₴`}
                   />
@@ -188,7 +188,7 @@ export function CampaignCharts({ aggregates, onExpand }: CampaignChartsProps) {
 
             <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
               <Legend color="bg-indigo-400" label={t('charts.donationsBar')} />
-              <Legend color="bg-green-400" label={t('charts.bestDay')} />
+              <Legend color="bg-green-500" label={t('charts.bestDay')} />
               {anyWithdrawal && <Legend color="bg-amber-400" label={t('charts.withdrawalDay')} />}
             </div>
           </div>

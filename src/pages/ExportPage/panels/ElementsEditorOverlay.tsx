@@ -43,7 +43,7 @@ export function ElementsEditorOverlay({ card, elements, dims, aggregates, select
       const style = rootRef.current ? getComputedStyle(rootRef.current) : null;
       const insets = style ? (parseFloat(style.paddingTop) || 0) + (parseFloat(style.paddingBottom) || 0) : 0;
       const availW = window.innerWidth - 16;
-      const availH = window.innerHeight - insets - (barRef.current?.offsetHeight ?? 0) - 16;
+      const availH = (rootRef.current?.clientHeight ?? window.innerHeight) - insets - (barRef.current?.offsetHeight ?? 0) - 16;
       setScale(Math.min(availW / dims.width, availH / dims.height, 1));
     };
     calc();
@@ -56,8 +56,8 @@ export function ElementsEditorOverlay({ card, elements, dims, aggregates, select
   return (
     <div
       ref={rootRef}
-      className="fixed inset-0 z-[300] bg-gray-950 flex flex-col"
-      style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'var(--safe-bottom)' }}
+      className="screen-overlay z-[300] bg-gray-950 flex flex-col"
+      style={{ paddingTop: 'var(--safe-top)', paddingBottom: 'calc(var(--safe-bottom) + var(--toolbar-gap))' }}
     >
       <div ref={barRef} className="shrink-0 flex items-center justify-between gap-3 px-3 py-2">
         <button

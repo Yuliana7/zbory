@@ -1,4 +1,5 @@
-import type { FriendJar } from '../types';
+import type { FriendJar, FriendSnapshot } from '../types';
+import { dayKey, daysBetween } from './dailyBreakdown';
 import { friendProgress, type FriendSortKey } from './friendJars';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -52,19 +53,44 @@ export function forecast(f: FriendJar, now: number): number | null {
   return now + (left / (g.delta / spanDays)) * DAY_MS;
 }
 
-export interface BurnPoint {
-  at: number;
-  raised: number;
-  /** what the chart plots: left to the target, or the amount itself for a jar without one */
-  value: number;
-}
-
-/** A helper's history as chart points, ending on its current amount. */
-export function burndown(f: FriendJar, now: number): BurnPoint[] {
+/** A helper's recorded amounts, ending on its current one. */
+export function jarTimeline(f: FriendJar, now: number): FriendSnapshot[] {
   const known = f.history?.length ? f.history : [{ at: f.syncedAt ?? f.updatedAt ?? now, raised: f.raised }];
   const last = known[known.length - 1];
-  const all = last.raised === f.raised ? known : [...known, { at: now, raised: f.raised }];
-  return all.map((p) => ({ ...p, value: f.target ? Math.max(0, f.target - p.raised) : p.raised }));
+  return last.raised === f.raised ? known : [...known, { at: now, raised: f.raised }];
+}
+
+export interface JarDay {
+  /** YYYY-MM-DD on the user's clock */
+  key: string;
+  at: number;
+  /** the amount at the end of that day */
+  raised: number;
+  /** what the jar grew by since the record before; null for the very first record */
+  change: number | null;
+  /** days since that record: more than 1 means the change built up over a gap */
+  span: number;
+}
+
+/** The days a helper's amount was recorded, oldest first. The API has no history, so days without a
+ * record are unknown rather than empty: a change is shown against the record before it. */
+export function jarDays(points: FriendSnapshot[]): JarDay[] {
+  const days: JarDay[] = [];
+  let before: JarDay | null = null;
+  let start: number | null = null;
+  points.forEach((p, i) => {
+    const key = dayKey(new Date(p.at));
+    if (points[i + 1] && dayKey(new Date(points[i + 1].at)) === key) {
+      start ??= p.raised;
+      return;
+    }
+    const from = before?.raised ?? start;
+    const day: JarDay = { key, at: p.at, raised: p.raised, change: from === null ? null : p.raised - from, span: before ? daysBetween(before.key, key) - 1 : 1 };
+    days.push(day);
+    before = day;
+    start = null;
+  });
+  return days;
 }
 
 export function matchesFilter(f: FriendJar, filter: FriendFilter, now: number): boolean {

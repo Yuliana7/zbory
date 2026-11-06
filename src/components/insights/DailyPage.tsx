@@ -22,7 +22,7 @@ interface DailyPageProps {
 
 /** Bars of the range; a tap picks a day (or narrows the range to a week). The whole column is the
  * target, however short its bar. */
-function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected: string | null; onPick: (row: DayRow) => void }) {
+export function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected: string | null; onPick: (row: DayRow) => void }) {
   const { t } = useTranslation('insights');
   const maxAmount = Math.max(...rows.map((r) => r.amount), 1);
   const maxOut = Math.max(...rows.map((r) => r.withdrawn), 1);
@@ -46,7 +46,7 @@ function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected: strin
               <span className="flex h-40 flex-col justify-end">
                 {r.amount > 0 && (
                   <span
-                    className={`block rounded-t transition-colors ${isSelected ? 'bg-indigo-700' : r === best ? 'bg-green-400' : 'bg-indigo-400 group-hover:bg-indigo-500'}`}
+                    className={`block rounded-t transition-colors ${isSelected ? 'bg-indigo-700' : r === best ? 'bg-green-500' : 'bg-indigo-400 group-hover:bg-indigo-500'}`}
                     style={{ height: `${Math.max(2, (r.amount / maxAmount) * 100)}%` }}
                   />
                 )}
@@ -63,11 +63,11 @@ function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected: strin
       </div>
       <div className="flex justify-between mt-1.5 text-xs text-gray-400">
         <span>{shortKey(rows[0].key)}</span>
-        <span>{shortKey(rows[rows.length - 1].endKey ?? rows[rows.length - 1].key)}</span>
+        {rows.length > 1 && <span>{shortKey(rows[rows.length - 1].endKey ?? rows[rows.length - 1].key)}</span>}
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-400" />{t(rows[0].endKey ? 'daily.perWeek' : 'charts.donationsBar')}</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-400" />{t('charts.bestDay')}</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-green-500" />{t('charts.bestDay')}</span>
         {anyOut && <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-amber-400" />{t('charts.withdrawalDay')}</span>}
       </div>
     </>
