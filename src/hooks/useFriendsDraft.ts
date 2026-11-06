@@ -26,7 +26,7 @@ export interface AddResult {
   duplicate: number;
   /** added, but they feed a different main jar than the other helpers */
   otherMain: number;
-  /** added, but Monobank says they aren't helper jars at all */
+  /** left out: Monobank says they don't feed another jar, so they aren't helpers */
   notHelper: number;
   failed: JarErrorKind | null;
 }
@@ -147,13 +147,13 @@ export function useFriendsDraft() {
       try {
         const target = await resolve(input);
         if (!target) return 'invalid';
+        if (target.viaLink && !target.parentJar) return 'not-helper';
         if (rowsRef.current.some((r) => r.jarId === target.jarId && r.id !== id)) return 'duplicate';
         const jar = await fetchPublicJar(target.jarId);
         const expected = usualParentJar(rowsRef.current.filter((r) => r.id !== id));
         setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId: target.jarId }, jar, Date.now()), parentJar: target.parentJar } : r)));
         setRowError(id);
         finish(autoSave);
-        if (target.viaLink && !target.parentJar) return 'not-helper';
         return target.parentJar && expected && target.parentJar !== expected ? 'other-main' : null;
       } catch (err) {
         return kindOf(err);
@@ -173,8 +173,9 @@ export function useFriendsDraft() {
     [setRows],
   );
 
-  /** Adds a new helper for each pasted link or id (skipping jars already there), reading each jar. A jar
-   * that looks like it belongs elsewhere is still added: the warning only asks the user to look. */
+  /** Adds a new helper for each pasted link or id (skipping jars already there), reading each jar. A jar that
+   * feeds no other jar is left out; one feeding a different jar is added with a warning, since the
+   * comparison is only with the other helpers. */
   const addByIds = useCallback(
     async (inputs: string[]): Promise<AddResult> => {
       const out: AddResult = { added: 0, invalid: 0, duplicate: 0, otherMain: 0, notHelper: 0, failed: null };
@@ -185,6 +186,11 @@ export function useFriendsDraft() {
           const target = await resolve(inputs[i]);
           if (!target) {
             out.invalid++;
+            continue;
+          }
+          // the main jar's link, usually: its whole total would count as one helper's share
+          if (target.viaLink && !target.parentJar) {
+            out.notHelper++;
             continue;
           }
           if (rowsRef.current.some((r) => r.jarId === target.jarId)) {
@@ -199,8 +205,7 @@ export function useFriendsDraft() {
           if (taken.has(friendNameKey(name)) && jar.title && jar.title !== owner) name = `${owner} · ${jar.title}`;
           for (let n = 2; taken.has(friendNameKey(name)); n++) name = `${owner} (${n})`;
           const expected = usualParentJar(rowsRef.current);
-          if (target.viaLink && !target.parentJar) out.notHelper++;
-          else if (target.parentJar && expected && target.parentJar !== expected) out.otherMain++;
+          if (target.parentJar && expected && target.parentJar !== expected) out.otherMain++;
           const fresh = applyJarInfo({ id: newFriend().id, name, raised: '', target: '', jarId: target.jarId, parentJar: target.parentJar }, jar, Date.now());
           setRows((rs) => [...rs, fresh]);
           out.added++;
