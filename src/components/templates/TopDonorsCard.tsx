@@ -47,21 +47,6 @@ export const TopDonorsCard = forwardRef<HTMLDivElement, TopDonorsCardProps>(
         {!hidden.has('header') && (
         <div data-element="header" style={{ marginBottom: isStory ? 72 : 56 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 16 }}>
-            <div
-              style={{
-                width: 56,
-                height: 56,
-                background: p.logoGradient,
-                borderRadius: 14,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontSize: fz(28),
-                color: '#fff',
-              }}
-            >
-              ₴
-            </div>
             <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
           </div>
         </div>

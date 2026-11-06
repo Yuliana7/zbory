@@ -77,7 +77,10 @@
     "friendsReached": "Рядок «досягли цілі»",
     "friendsTargetBar": "Смуга прогресу до цілі",
     "friendsStats": "Кількість банок і ціль",
-    "friendsClosedHero": "Підсумок (сума й кількість)"
+    "friendsClosedHero": "Підсумок (сума й кількість)",
+    "donationStats": "Показники донатів",
+    "donationRange": "Половина всіх донатів",
+    "donationSizes": "Розподіл за сумою"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -148,7 +151,8 @@
     "campaigns-chart": "Динаміка зборів",
     "friends-leaderboard": "Друзі збору",
     "friends-stats": "Банки друзів",
-    "friends-closed": "Завершені банки друзів"
+    "friends-closed": "Завершені банки друзів",
+    "donation-stats": "Який донат типовий"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -313,6 +317,16 @@
       "targetLabel": "Підпис цілі (під смугою)",
       "reachedLabel": "Підпис «досягли цілі»",
       "thanks": "Рядок подяки"
+    },
+    "donation-stats": {
+      "title": "Заголовок",
+      "heroLabel": "Підпис медіани",
+      "modeLabel": "Підпис найчастішого",
+      "meanLabel": "Підпис середнього",
+      "maxLabel": "Підпис найбільшого",
+      "minLabel": "Підпис найменшого",
+      "rangeLabel": "Підпис діапазону",
+      "sizesLabel": "Підпис розподілу"
     }
   },
   "friends": {

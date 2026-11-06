@@ -140,6 +140,16 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
   'campaigns-chart': [
     { key: 'title' },
   ],
+  'donation-stats': [
+    { key: 'title' },
+    { key: 'heroLabel' },
+    { key: 'modeLabel' },
+    { key: 'meanLabel' },
+    { key: 'maxLabel' },
+    { key: 'minLabel' },
+    { key: 'rangeLabel' },
+    { key: 'sizesLabel' },
+  ],
   'friends-leaderboard': [
     { key: 'title' },
     { key: 'targetLabel' },
@@ -180,6 +190,7 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   comments: false,
   report: false,
   'campaigns-chart': false,
+  'donation-stats': true,
   'friends-leaderboard': false, // helper totals cover the whole campaign
   'friends-closed': false,
   'friends-stats': false,
@@ -203,6 +214,7 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   comments: false,
   report: false,
   'campaigns-chart': false,
+  'donation-stats': false,
   'friends-leaderboard': false,
   'friends-closed': false,
   'friends-stats': false,
@@ -228,6 +240,7 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   comments: 'story',
   report: 'story',
   'campaigns-chart': 'story',
+  'donation-stats': 'story',
   'friends-leaderboard': 'story',
   'friends-closed': 'story',
   'friends-stats': 'story',
@@ -381,6 +394,15 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
     UA_FLAG,
     GLOW,
   ],
+  'donation-stats': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('stats', 'layout.donationStats'),
+    el('range', 'layout.donationRange'),
+    el('sizes', 'layout.donationSizes'),
+    UA_FLAG,
+    GLOW,
+  ],
   'friends-leaderboard': [
     HEADER,
     el('list', 'layout.friendsList'),
@@ -418,7 +440,7 @@ export interface TemplateGroup {
 
 export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
-  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed'] },
+  { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed', 'donation-stats'] },
   { id: 'people',   labelKey: 'groups.people',   icon: '🫂', ids: ['thank-you', 'donors-count', 'top-donors', 'top-donors-count', 'emoji-cloud', 'comments'] },
   { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-closed', 'friends-stats'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },

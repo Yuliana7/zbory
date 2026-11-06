@@ -14,6 +14,7 @@ import { UrgencyCard } from '../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../components/templates/SpeedCard';
+import { DonationStatsCard } from '../components/templates/DonationStatsCard';
 import { FundsFlowCard } from '../components/templates/FundsFlowCard';
 import { FinalReportCard } from '../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../components/templates/ConcreteAskCard';
@@ -287,6 +288,7 @@ function TemplatePreview({ id, aggregates, goal, friends, commentInsights, previ
           {id === 'comments' && <CommentsCard aggregates={aggregates} selectedComments={previewComments} format="post" />}
           {id === 'weekly-recap' && <WeeklyRecapCard aggregates={aggregates} format="post" />}
           {id === 'speed' && <SpeedCard aggregates={aggregates} format="post" />}
+          {id === 'donation-stats' && <DonationStatsCard aggregates={aggregates} format="post" />}
           {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
           {id === 'report' && previewReport && <ReportCard report={previewReport} periodLabel={tCamp('report.labelAll')} format="post" />}
           {id === 'campaigns-chart' && crossItems && <CampaignsChartCard items={crossItems} format="post" />}

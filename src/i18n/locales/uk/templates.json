@@ -95,6 +95,20 @@
             "Сб"
         ]
     },
+    "donation-stats": {
+        "title": "Який донат типовий",
+        "heroLabel": "Типовий донат (медіана)",
+        "modeLabel": "Найчастіший",
+        "meanLabel": "Середній",
+        "maxLabel": "Найбільший",
+        "minLabel": "Найменший",
+        "rangeLabel": "Половина всіх донатів",
+        "rangeValue": "від {{from}} до {{to}} ₴",
+        "sizesLabel": "За сумою",
+        "small": "до 100 ₴",
+        "medium": "100–1 000 ₴",
+        "large": "понад 1 000 ₴"
+    },
     "speed": {
         "title": "Активність збору",
         "totalLabel": "Зібрано за 7 днів",

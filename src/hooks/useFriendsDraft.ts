@@ -96,6 +96,9 @@ export function useFriendsDraft() {
 
   const discard = useCallback(() => setRows(friendsToRows(savedRef.current)), [setRows]);
 
+  /** A blank row for typing a helper in by hand. */
+  const addRow = useCallback(() => setRows((rs) => [...rs, { id: newFriend().id, name: '', raised: '', target: '' }]), [setRows]);
+
   const setBusy = (id: string, on: boolean) => setBusyIds((ids) => (on ? [...ids, id] : ids.filter((x) => x !== id)));
   const setRowError = (id: string, kind?: JarErrorKind) =>
     setRowErrors((errs) => {
@@ -243,7 +246,7 @@ export function useFriendsDraft() {
     [],
   );
 
-  return { rows, setRows, dirty, duplicates, save, discard, busyIds, rowErrors, refreshOne, linkJar, unlinkJar, addByIds };
+  return { rows, setRows, addRow, dirty, duplicates, save, discard, busyIds, rowErrors, refreshOne, linkJar, unlinkJar, addByIds };
 }
 
 export type FriendsDraft = ReturnType<typeof useFriendsDraft>;

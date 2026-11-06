@@ -192,6 +192,7 @@ export type TemplateType =
   | 'urgency'
   | 'weekly-recap'
   | 'speed'
+  | 'donation-stats'
   | 'funds-flow'
   | 'final-report'
   | 'concrete-ask'
