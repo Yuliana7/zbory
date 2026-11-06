@@ -1,51 +1,39 @@
 import { useTranslation } from 'react-i18next';
 import type { FriendJar } from '../../types';
-import type { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
+import type { RenewAll } from '../../hooks/useRenewAll';
 import { RefreshIcon, SpinnerIcon } from '../../icons';
 import { fmtUah, type FriendStats } from '../../utils/friendJars';
 import { dataAsOf, formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 
-type Refresh = ReturnType<typeof useFriendsRefresh>;
-
-export function RefreshButton({ refresh }: { refresh: Refresh }) {
+/** The page's renew again, for the friends page, which has no main-total block. */
+export function RenewButton({ renew }: { renew: RenewAll }) {
   const { t } = useTranslation('insights');
   return (
     <button
-      onClick={refresh.refreshNow}
-      disabled={refresh.running}
+      onClick={renew.running ? renew.stop : renew.renew}
       title={t('friends.refreshHint')}
-      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 disabled:opacity-50 transition-colors"
+      className="flex items-center gap-1 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
     >
-      {refresh.running ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
-      {t('friends.refresh')}
+      {renew.running ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
+      {renew.running ? t('renew.stop') : t('renew.button')}
     </button>
   );
 }
 
-/** Where the numbers come from: while jars are being read, how far along; afterwards, how fresh they are. */
-export function FriendsFreshness({ friends, refresh }: { friends: FriendJar[]; refresh: Refresh }) {
+/** How fresh the helper numbers are; while a renew reads them, how far along it is. */
+export function FriendsFreshness({ friends, renew }: { friends: FriendJar[]; renew: RenewAll }) {
   const { t } = useTranslation('insights');
-  const linked = linkedOpen(friends).length;
   const asOf = dataAsOf(friends);
-  return (
-    <>
-      {refresh.running ? (
-        <p className="mb-3 flex items-center gap-1.5 text-xs text-indigo-600" role="status">
-          <SpinnerIcon className="w-3.5 h-3.5 animate-spin" />
-          {refresh.progress ? t('friends.refreshing', refresh.progress) : t('friends.refreshingShort')}
-        </p>
-      ) : (
-        linked > 0 && <p className="mb-3 text-xs text-gray-500">🔄 {asOf ? t('friends.asOf', { when: formatWhen(asOf) }) : t('friends.neverSynced')}</p>
-      )}
-      {!refresh.running && refresh.outcome && (refresh.outcome.rateLimited || refresh.outcome.failed > 0) && (
-        <p className="mb-3 text-xs text-amber-700">
-          {refresh.outcome.rateLimited
-            ? t('friends.refreshRateLimited', { updated: refresh.outcome.updated })
-            : t('friends.refreshFailed', { updated: refresh.outcome.updated, failed: refresh.outcome.failed })}
-        </p>
-      )}
-    </>
-  );
+  if (renew.running && renew.linkedJars > 0) {
+    return (
+      <p className="mb-3 flex items-center gap-1.5 text-xs text-indigo-600" role="status">
+        <SpinnerIcon className="w-3.5 h-3.5 animate-spin" />
+        {renew.jarsProgress ? t('friends.refreshing', renew.jarsProgress) : t('friends.refreshingShort')}
+      </p>
+    );
+  }
+  if (linkedOpen(friends).length === 0) return null;
+  return <p className="mb-3 text-xs text-gray-500">🔄 {asOf ? t('friends.asOf', { when: formatWhen(asOf) }) : t('friends.neverSynced')}</p>;
 }
 
 /** All helpers together against all their targets (the bar is full at 100%; the number may go past it). */

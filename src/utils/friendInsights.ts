@@ -52,6 +52,21 @@ export function forecast(f: FriendJar, now: number): number | null {
   return now + (left / (g.delta / spanDays)) * DAY_MS;
 }
 
+export interface BurnPoint {
+  at: number;
+  raised: number;
+  /** what the chart plots: left to the target, or the amount itself for a jar without one */
+  value: number;
+}
+
+/** A helper's history as chart points, ending on its current amount. */
+export function burndown(f: FriendJar, now: number): BurnPoint[] {
+  const known = f.history?.length ? f.history : [{ at: f.syncedAt ?? f.updatedAt ?? now, raised: f.raised }];
+  const last = known[known.length - 1];
+  const all = last.raised === f.raised ? known : [...known, { at: now, raised: f.raised }];
+  return all.map((p) => ({ ...p, value: f.target ? Math.max(0, f.target - p.raised) : p.raised }));
+}
+
 export function matchesFilter(f: FriendJar, filter: FriendFilter, now: number): boolean {
   switch (filter) {
     case 'active': return !f.closed;

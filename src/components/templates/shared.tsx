@@ -104,29 +104,11 @@ interface CardHeaderProps {
   marginBottom?: number;
 }
 
-/** Standard template header: ₴ badge + title, no bordered box */
+/** Standard template header: the title, no bordered box */
 export function CardHeader({ palette: p, fz, title, right, marginBottom = 0 }: CardHeaderProps) {
   return (
     <div data-element="header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            background: p.logoGradient,
-            borderRadius: 14,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: fz(28),
-            color: '#fff',
-            flexShrink: 0,
-          }}
-        >
-          ₴
-        </div>
-        <div style={{ fontSize: fz(28), fontWeight: 700, letterSpacing: '-0.5px' }}>{title}</div>
-      </div>
+      <div style={{ fontSize: fz(28), fontWeight: 700, letterSpacing: '-0.5px' }}>{title}</div>
       {right && (
         <div style={{ textAlign: 'right', color: p.secondary, fontSize: fz(20), maxWidth: 420 }}>
           {right}

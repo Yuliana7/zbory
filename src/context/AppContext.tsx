@@ -50,6 +50,16 @@ interface ProjectSource {
   monobankSyncedAt?: number;
 }
 
+interface MergeOptions {
+  fileName?: string;
+  monobankJar?: MonobankJarRef;
+  syncedAt?: number;
+  /** helpers read at the same time, so everything lands in one save */
+  friends?: FriendJar[];
+  /** an automatic renew: say nothing unless something new came in */
+  quiet?: boolean;
+}
+
 /** A new project's name: the jar's title, then the file's name, then its dates. */
 function projectName(
   fileName: string | null,
@@ -252,7 +262,7 @@ interface AppContextValue {
   handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number | null) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
-  handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef; syncedAt?: number }) => Promise<MergeResult | null>;
+  handleMergeRows: (incoming: RawDonation[], opts?: MergeOptions) => Promise<MergeResult | null>;
   handleMonobankProject: (rows: RawDonation[], jar: MonobankJarRef, goal?: number) => Promise<void>;
   handleUndoMerge: () => Promise<void>;
   handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
@@ -385,7 +395,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // `monobankJar` links the project to a jar at the same time. With `syncedAt` this is a renew from
   // Monobank, where an empty result is a normal answer: nothing new, but the data is fresh as of now.
-  const handleMergeRows = useCallback(async (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef; syncedAt?: number }): Promise<MergeResult | null> => {
+  const handleMergeRows = useCallback(async (incoming: RawDonation[], opts?: MergeOptions): Promise<MergeResult | null> => {
     const rawData = stateRef.current.app.rawData;
     if (!rawData) return null;
     dispatch({ type: 'SET_LOADING', payload: true });
@@ -399,9 +409,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
         fileName: src.fileName ?? opts?.fileName,
         monobankJar: opts?.monobankJar ?? src.monobankJar,
         monobankSyncedAt: opts?.syncedAt ?? src.monobankSyncedAt,
+        friends: opts?.friends ?? src.friends,
       });
       if (!saved) throw new Error(t('errors.csvParseError'));
-      dispatch({
+      if (!opts?.quiet || result.added > 0) dispatch({
         type: 'MERGE_REPORTED',
         payload: {
           added: result.added,

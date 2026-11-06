@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { Insight, Aggregates, CommentInsights, RepeatDonor, CampaignDataset, FriendJar } from '../../types';
 import { useAppContext } from '../../context/AppContext';
+import type { RenewAll } from '../../hooks/useRenewAll';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
 import { CumulativeChart } from './CumulativeChart';
@@ -16,9 +17,10 @@ interface InsightsPanelProps {
   campaignDatasets?: CampaignDataset[] | null;
   // Helper jars of the main campaign — shown under the hero total; omit for a per-jar view
   friends?: FriendJar[];
+  renew: RenewAll;
 }
 
-export function InsightsPanel({ insights, aggregates, commentInsights, campaignDatasets, friends }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, commentInsights, campaignDatasets, friends, renew }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -45,9 +47,9 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
       {/* Left column: hero, charts, insight cards */}
       <div className="space-y-4">
         {/* Hero stat */}
-        <TotalRaisedCard aggregates={aggregates} duration={duration} wholeProject={!!friends} />
+        <TotalRaisedCard aggregates={aggregates} duration={duration} renew={renew} />
 
-        {friends && <FriendsChart friends={friends} totalAmount={aggregates.totalAmount} />}
+        {friends && <FriendsChart friends={friends} totalAmount={aggregates.totalAmount} renew={renew} />}
 
         {/* Comparing jars by campaign day has no place on the calendar of the day-by-day page,
             so it stays here; a single jar's all-time line lives on that page. */}

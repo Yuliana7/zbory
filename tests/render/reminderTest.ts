@@ -1,4 +1,4 @@
-import { buildReminderIcs } from '../../src/utils/reminder';
+import { buildReminderIcs, reminderFile, reminderTimes } from '../../src/utils/reminder';
 
 let failures = 0;
 const check = (label: string, ok: boolean) => {
@@ -20,6 +20,11 @@ check('the link is in the description and the event', unfolded.includes('\\nhttp
 const bytes = new TextEncoder();
 check('no line is over 75 bytes', ics.split('\r\n').every((l) => bytes.encode(l).length <= 75));
 check('the same event when added again', ics.includes('UID:daily-reminder@zbory'));
+
+const times = reminderTimes();
+check('a file for every quarter of an hour', times.length === 96 && times[0] === '00:00' && times[95] === '23:45');
+check('file names', reminderFile('09:15') === 'reminders/0915.ics');
+check('midnight starts the next day', buildReminderIcs({ ...base, time: '00:00', now: new Date(2026, 0, 1) }).includes('DTSTART:20260102T000000'));
 
 console.log(failures === 0 ? '\nAll reminder checks passed.' : `\n${failures} check(s) FAILED`);
 process.exitCode = failures === 0 ? 0 : 1;

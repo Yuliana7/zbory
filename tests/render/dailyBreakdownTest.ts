@@ -1,6 +1,6 @@
 import type { Donation, FriendJar, Withdrawal } from '../../src/types';
 import { addDays, changePct, cumulativePoints, dayDetail, daysBetween, daysInRange, groupWeeks, previousRange, summarize, weekHourGrid } from '../../src/utils/dailyBreakdown';
-import { forecast, growth, leftToTarget, matchesFilter, stalledDays } from '../../src/utils/friendInsights';
+import { burndown, forecast, growth, leftToTarget, matchesFilter, stalledDays } from '../../src/utils/friendInsights';
 
 let failures = 0;
 const check = (label: string, ok: boolean) => {
@@ -62,6 +62,10 @@ check('left to target', leftToTarget(jar({ target: 1500 })) === 500 && leftToTar
 const eta = forecast(jar({ target: 1600, history: h }), NOW);
 check('forecast: 900 ₴ in the last 14 days → 600 more in about 9 days', eta !== null && Math.abs(eta - (NOW + (600 / (900 / 14)) * DAY)) < DAY / 10);
 check('forecast: nothing without pace or target', forecast(jar({ target: 1600 }), NOW) === null && forecast(jar({ history: h }), NOW) === null);
+check('burndown: what is left, stopping at zero', burndown(jar({ target: 900, history: h }), NOW).map((p) => p.value).join() === '800,500,0');
+check('burndown: no target → the amount itself', burndown(jar({ history: h }), NOW).map((p) => p.value).join() === '100,400,1000');
+check('burndown: ends on the current amount', burndown(jar({ raised: 1200, history: h }), NOW).at(-1)?.raised === 1200);
+check('burndown: no history → one point', burndown(jar({ syncedAt: 5 }), NOW).length === 1);
 check('filters', matchesFilter(jar({ closed: true }), 'closed', NOW) && !matchesFilter(jar({ closed: true }), 'active', NOW) && matchesFilter(jar({ jarId: undefined }), 'unlinked', NOW) && matchesFilter(jar({ target: 500 }), 'reached', NOW));
 
 console.log(failures === 0 ? '\nAll breakdown checks passed.' : `\n${failures} check(s) FAILED`);

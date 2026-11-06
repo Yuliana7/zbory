@@ -3,6 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
 import { MergeBanner } from '../components/insights/MergeBanner';
+import { RenewReportCard } from '../components/insights/RenewReportCard';
+import { RenewTokenSheet } from '../components/insights/RenewTokenSheet';
+import { useRenewAll } from '../hooks/useRenewAll';
 import { CrossCampaignSection } from '../components/insights/CrossCampaignSection';
 import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
@@ -22,6 +25,8 @@ export function InsightsPage() {
   const { t: tU } = useTranslation('upload');
   const { state, dispatch, handleReset } = useAppContext();
   const { app } = state;
+  // lives here so a renew carries on, and reports, across the analytics' pages
+  const renew = useRenewAll();
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
   const datasets = app.campaignDatasets;
@@ -60,10 +65,19 @@ export function InsightsPage() {
 
   if (!app.aggregates || !app.insights) return null;
 
+  const tokenSheet = renew.askToken && (
+    <RenewTokenSheet
+      error={renew.error === 'invalid-token' ? tU('monobank.errors.invalid-token') : null}
+      onSubmit={renew.submitToken}
+      onClose={renew.closeTokenSheet}
+    />
+  );
+
   if (app.insightsView === 'friends') {
     return (
       <Suspense fallback={<PageLoading />}>
-        <FriendsPage friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} />
+        <FriendsPage friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} renew={renew} />
+        {tokenSheet}
       </Suspense>
     );
   }
@@ -122,6 +136,7 @@ export function InsightsPage() {
       )}
 
       {app.lastMerge && <MergeBanner merge={app.lastMerge} />}
+      <RenewReportCard renew={renew} />
       {invalidRows > 0 && (
         <p role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
           {tU('preview.invalidRows', { count: invalidRows })}
@@ -141,7 +156,9 @@ export function InsightsPage() {
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
         friends={isMerged ? (app.friends ?? []) : undefined}
+        renew={renew}
       />
+      {tokenSheet}
 
     </div>
   );
