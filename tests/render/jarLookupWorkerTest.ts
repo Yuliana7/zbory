@@ -15,25 +15,25 @@ const answer = (body: unknown, status = 200) => (async () => new Response(JSON.s
 const full = { extJarId: LONG, ownerName: 'Приватне', iban: 'UA00', mainJar: { replenishmentLink: 'MAINJAR123', ownerName: 'Приватне' } };
 
 (async () => {
-  let r = await handle(req('6PMSLXKJrf'), env, answer(full));
+  let r = await handle(req('HelperJar01'), env, answer(full));
   const text = await r.clone().text();
   const body = await r.json();
   check('gives the long id and the main jar', r.status === 200 && body.longId === LONG && body.mainJar === 'MAINJAR123');
   check('passes on nothing else from the answer', !text.includes('Приватне') && !text.includes('UA00'));
   check('says which site may read it', r.headers.get('Access-Control-Allow-Origin') === SITE);
 
-  r = await handle(req('63ZKbQLLG5'), env, answer({ extJarId: LONG }));
+  r = await handle(req('MainJarId01'), env, answer({ extJarId: LONG }));
   check('a main jar has no main jar', !('mainJar' in (await r.json())));
 
   let called = false;
   const spy = (async () => ((called = true), new Response('{}'))) as unknown as typeof fetch;
-  r = await handle(req('6PMSLXKJrf', 'https://other.example'), env, spy);
+  r = await handle(req('HelperJar01', 'https://other.example'), env, spy);
   check('another site is refused, and Monobank is not called', r.status === 403 && !called);
-  r = await handle(req('6PMSLXKJrf', null), env, spy);
+  r = await handle(req('HelperJar01', null), env, spy);
   check('no origin is refused', r.status === 403 && !called);
-  r = await handle(req('6PMSLXKJrf', SITE, 'OPTIONS'), env, spy);
+  r = await handle(req('HelperJar01', SITE, 'OPTIONS'), env, spy);
   check('preflight', r.status === 204 && !called);
-  r = await handle(req('6PMSLXKJrf', SITE, 'POST'), env, spy);
+  r = await handle(req('HelperJar01', SITE, 'POST'), env, spy);
   check('only GET', r.status === 405 && !called);
   r = await handle(req('not-an-id!'), env, spy);
   check('a malformed id never reaches Monobank', r.status === 400 && !called);
