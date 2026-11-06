@@ -27,8 +27,9 @@ export const DEFAULT_SHARED_STYLE: SharedStyle = {
   baseThemeId: null,
 };
 
+/** A date as an <input type="date"> value, on the user's clock: a UTC date is the day before for the first hours of a Kyiv morning. */
 export function toDateInput(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
 
 export function makeCard(templateId: TemplateType, personalComments: Array<{ text: string }>): CardState {

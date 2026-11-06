@@ -4,6 +4,7 @@ import type { FriendJar } from '../../types';
 import { fmtUah } from '../../utils/friendJars';
 import { dayKey, shortKey } from '../../utils/dailyBreakdown';
 import { forecast, jarDays, jarTimeline } from '../../utils/friendInsights';
+import { formatCompact } from '../../utils/intlFormat';
 import { XIcon } from '../../icons';
 import { RangeBars } from './DailyPage';
 
@@ -11,7 +12,6 @@ const W = 560;
 const H = 240;
 const PAD = { top: 12, right: 12, bottom: 24, left: 52 };
 const MAX_BAR = 56;
-const compact = (n: number) => (n >= 1000 ? `${Math.round(n / 100) / 10} тис` : `${Math.round(n)}`);
 
 /** One helper's jar over time, the way the main jar is shown: the amount growing towards its target,
  * where the recent pace would take it, and what each recorded day added. */
@@ -99,7 +99,7 @@ export function JarChartModal({ friend: f, now, onClose }: { friend: FriendJar; 
               {[0, 0.5, 1].map((share) => (
                 <g key={share}>
                   <line x1={PAD.left} x2={W - PAD.right} y1={py(top * share)} y2={py(top * share)} stroke={share === 0 ? '#d1d5db' : '#f3f4f6'} strokeWidth={1} />
-                  <text x={PAD.left - 6} y={py(top * share)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="#6b7280">{compact(top * share)}</text>
+                  <text x={PAD.left - 6} y={py(top * share)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="#6b7280">{formatCompact(top * share)}</text>
                 </g>
               ))}
               <text x={PAD.left} y={H - 6} fontSize={11} fill="#6b7280">{shortKey(firstDay)}</text>

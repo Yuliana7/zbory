@@ -91,7 +91,10 @@
     "from": "Від",
     "to": "До",
     "reset": "Скинути фільтр",
-    "filtered": "Показано {{count}} донатів"
+    "filtered_one": "Показано {{count}} донат",
+    "filtered_few": "Показано {{count}} донати",
+    "filtered_many": "Показано {{count}} донатів",
+    "filtered_other": "Показано {{count}} донатів"
   },
   "goal": {
     "label": "Ціль збору",
