@@ -13,7 +13,7 @@ import { AddByIdPanel } from './friends/AddByIdPanel';
  * its status. Attribution only: those donations are already inside the main jar's totals, so nothing
  * here ever changes a total. Edits stay in a draft until «Зберегти» is pressed; a page that must
  * warn before leaving passes in its own `draft`. */
-export function FriendsEditor({ draft: external, compact = false }: { draft?: FriendsDraft; compact?: boolean }) {
+export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
   const { t } = useTranslation('export');
   const { state } = useAppContext();
   const { app } = state;
@@ -93,7 +93,7 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
       )}
       {addingById && <AddByIdPanel draft={draft} onClose={() => setAddingById(false)} />}
 
-      {rows.length > 0 && !compact && (
+      {rows.length > 0 && (
         <div
           aria-hidden="true"
           className={`hidden sm:grid gap-2 px-3 text-[11px] font-medium uppercase tracking-wide text-gray-400 ${FRIEND_COLUMNS}`}
@@ -119,7 +119,6 @@ export function FriendsEditor({ draft: external, compact = false }: { draft?: Fr
             onRefresh={() => draft.refreshOne(r.id)}
             onLink={(input) => draft.linkJar(r.id, input)}
             onUnlink={() => draft.unlinkJar(r.id)}
-            compact={compact}
           />
         ))}
       </div>

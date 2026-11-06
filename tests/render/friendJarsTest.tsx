@@ -99,7 +99,7 @@ check('Leaderboard: overflow shows 142%', strip(html).includes('142%'));
 check('Leaderboard: ✓ only on reached jars', (html.match(/data-reached/g) ?? []).length === 1);
 check('Leaderboard: reached line', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 3'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} hiddenFriendIds={['a']} format="story" />);
-check('Leaderboard: hidden jar gone, total + reached follow', !strip(html).includes('Оля') && !html.includes('data-reached') && /800\s*₴/.test(strip(html)) && strip(html).includes('0 з 2'));
+check('Leaderboard: hidden jar leaves the list, total + reached stay whole', !strip(html).includes('Оля') && !html.includes('data-reached') && /2\s*220\s*₴/.test(strip(html)) && strip(html).includes('1 з 3'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={real} format="story" />);
 check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
 const statsJars = [
@@ -185,7 +185,7 @@ check('Closed card: hero total and count of closed jars', /2\s?000\s*₴/.test(s
 check('Closed card: ✓ only on the jar that reached its target', (html.match(/data-reached/g) ?? []).length === 1 && strip(html).includes('150%'));
 check('Closed card: reached line and thanks', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 2') && strip(html).includes('Дякуємо'));
 html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} hiddenFriendIds={['c1']} format="story" />);
-check('Closed card: a hidden jar is gone and the totals follow', !strip(html).includes('Закрита Оля') && /500\s*₴/.test(strip(html)) && strip(html).includes('Закрито 2 банки') && !html.includes('data-reached'));
+check('Closed card: a hidden jar leaves the list, the totals stay whole', !strip(html).includes('Закрита Оля') && /2\s?000\s*₴/.test(strip(html)) && strip(html).includes('Закрито 3 банки') && strip(html).includes('1 з 2') && !html.includes('data-reached'));
 html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="post" hidden={new Set(['hero', 'thanks', 'reachedLine'])} />);
 check('Closed card: removable elements', !strip(html).includes('Дякуємо') && !strip(html).includes('Досягли цілі') && !strip(html).includes('Закрито 3'));
 check('Closed card: no closed jars is safe', renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={real} format="story" />).includes('0 ₴'));

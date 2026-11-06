@@ -12,10 +12,8 @@ const INPUT =
 /** Column widths shared by the header and the rows (from the `sm` breakpoint up). */
 export const FRIEND_COLUMNS = 'sm:grid-cols-[minmax(0,1.6fr)_6rem_6rem_4rem_6.5rem_6.5rem]';
 
-/** Class names for the one-line layout. Written out in full (not built from strings) so Tailwind sees them;
- * `compact` — a narrow container such as the export sidebar, where the viewport width says nothing about
- * the room — gets none of them and keeps the stacked phone layout. */
-const WIDE = {
+/** Class names for the one-line layout. Written out in full (not built from strings) so Tailwind sees them. */
+const L = {
   grid: `sm:items-center ${FRIEND_COLUMNS}`,
   contents: 'sm:contents',
   o1: 'sm:order-1',
@@ -25,7 +23,6 @@ const WIDE = {
   o5: 'sm:order-5',
   o6: 'sm:order-6',
 };
-const STACKED = { grid: '', contents: '', o1: '', o2: '', o3: '', o4: '', o5: '', o6: '' };
 
 const ICON_BUTTON = 'p-1.5 rounded-lg transition-colors disabled:opacity-40 disabled:hover:bg-transparent';
 
@@ -40,8 +37,6 @@ interface FriendRowProps {
   onRefresh: () => void;
   onLink: (input: string) => Promise<JarErrorKind | 'invalid' | 'duplicate' | null>;
   onUnlink: () => void;
-  /** keep the stacked layout at any width */
-  compact?: boolean;
 }
 
 const shortId = (id: string) => (id.length > 10 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id);
@@ -51,8 +46,7 @@ const shortId = (id: string) => (id.length > 10 ? `${id.slice(0, 4)}…${id.slic
  * unlink) or its id field open under the row only when asked for, so a list of rows stays calm.
  * A closed helper is skipped by refreshes but can be edited by hand like any other. Phone: three stacked
  * lines; from `sm` up: one line that lines up with the column header. */
-export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onRefresh, onLink, onUnlink, compact = false }: FriendRowProps) {
-  const L = compact ? STACKED : WIDE;
+export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onRefresh, onLink, onUnlink }: FriendRowProps) {
   const { t } = useTranslation('export');
   const [showLink, setShowLink] = useState(false);
   const [idInput, setIdInput] = useState('');

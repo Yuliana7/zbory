@@ -31,14 +31,12 @@ export const FriendsLeaderboardCard = forwardRef<HTMLDivElement, FriendsLeaderbo
     const tx = (key: string) => textOverrides[key] ?? t(`friends-leaderboard.${key}`);
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-    // Everything listed, minus what the user switched off for this card; the total and the
-    // "reached" count describe exactly what is shown, so the card adds up on its own.
-    const listed = visibleFriends(computeFriendStats(friends, aggregates.totalAmount).ranked, hiddenFriendIds);
-    const total = listed.reduce((sum, f) => sum + f.raised, 0);
-    const targeted = listed.filter((f) => friendProgress(f).pct !== null);
-    const reachedCount = targeted.filter((f) => friendProgress(f).reached).length;
+    // The user can switch jars off this card's list, but the total and the "reached" count always
+    // describe every jar: they are the helpers' real result, not a sum of the rows.
+    const { ranked, total, withTarget, reached: reachedCount } = computeFriendStats(friends, aggregates.totalAmount);
+    const listed = visibleFriends(ranked, hiddenFriendIds);
     // A row with a target carries an extra line (percentage + target), so a post fits fewer rows
-    const maxRows = isStory ? 7 : targeted.length > 0 ? 3 : 4;
+    const maxRows = isStory ? 7 : listed.some((f) => friendProgress(f).pct !== null) ? 3 : 4;
     const rows = listed.slice(0, maxRows);
     const rest = listed.length - rows.length;
 
@@ -75,14 +73,14 @@ export const FriendsLeaderboardCard = forwardRef<HTMLDivElement, FriendsLeaderbo
           </div>
         )}
 
-        {!hidden.has('reachedLine') && targeted.length > 0 && (
+        {!hidden.has('reachedLine') && withTarget > 0 && (
           <div
             data-element="reachedLine"
             style={{ marginTop: 28, textAlign: 'center', fontSize: fz(28), fontWeight: 600, color: p.secondary }}
           >
             🎯 {tx('reachedLabel')}:{' '}
             <span style={{ color: reachedCount > 0 ? REACHED_TEXT : p.primary, fontWeight: 800 }}>
-              {t('friends-leaderboard.reachedOf', { reached: reachedCount, total: targeted.length })}
+              {t('friends-leaderboard.reachedOf', { reached: reachedCount, total: withTarget })}
             </span>
           </div>
         )}
