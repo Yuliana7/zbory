@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useLayoutEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, Raffle } from '../../types';
 import { ProgressCard } from '../../components/templates/ProgressCard';
@@ -21,6 +21,7 @@ import { FriendsClosedCard } from '../../components/templates/FriendsClosedCard'
 import { FriendsStatsCard } from '../../components/templates/FriendsStatsCard';
 import { RaffleCard } from '../../components/templates/RaffleCard';
 import { raffleForCard } from '../../utils/raffles';
+import { applyElementScales } from '../../utils/elementScale';
 import { ReportCard } from '../../components/templates/ReportCard';
 import { CampaignsChartCard } from '../../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems, type ReportPeriod } from '../../utils/campaignAnalytics';
@@ -53,6 +54,9 @@ export function CardCanvas({ card, style, aggregates, goal, friends, raffles, do
   // so the template itself gets 'transparent' when an image is active.
   const bgOverride = style.bgTransparent || style.bgImage ? 'transparent' : style.bgColor ?? undefined;
   const hidden = useMemo(() => new Set(card.hiddenElements), [card.hiddenElements]);
+
+  // every render: an element that comes back, or a template that changes, needs its scale set again
+  useLayoutEffect(() => applyElementScales(templateRef.current, card.elementScales));
 
   return (
     <div

@@ -1,4 +1,5 @@
-export const rem = (px: number): string => `${px / 16}rem`;
+/** A text size. --el-scale is an element's own scale, set on the element it applies to (see utils/elementScale). */
+export const rem = (px: number): string => `calc(${px / 16}rem * var(--el-scale, 1))`;
 /**
  * Root padding for a template card. With safeZonePad on (story format), the
  * top/bottom padding grows so header and footer sit inside Instagram's story

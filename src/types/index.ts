@@ -175,6 +175,8 @@ export interface CardState {
   hiddenElements: string[];
   /** friendly jars left off the leaderboard card (everything else shows; new jars show by default) */
   hiddenFriendIds?: string[];
+  /** an element's text size against the rest of the card, by data-element id; 1 isn't stored */
+  elementScales?: Record<string, number>;
   /** which raffle a raffle card shows, when the project has several of a kind */
   raffleId?: string;
   showRefunds: boolean;

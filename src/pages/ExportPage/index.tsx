@@ -723,7 +723,7 @@ function ExportPageInner() {
           aggregates={filteredAggregates}
           selectedComments={selectedComments}
           renderCard={renderCard}
-          onChange={(hiddenElements) => updateCard({ hiddenElements })}
+          onChange={updateCard}
           onClose={() => setElementsEditorOpen(false)}
         />
       )}
