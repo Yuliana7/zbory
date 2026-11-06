@@ -42,7 +42,7 @@ export function CampaignActionsSheet({ campaign, onAction, onDelete, onClose }: 
 
   return (
     <div
-      className="fixed inset-0 z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+      className="screen-overlay z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
       // below the OS status-bar area SafeAreaTopBar paints (0 on desktop)
       style={{ paddingTop: 'var(--safe-top)' }}
       onClick={onClose}
@@ -54,7 +54,7 @@ export function CampaignActionsSheet({ campaign, onAction, onDelete, onClose }: 
         // instead of clipping its last row. The extra bottom padding keeps "Закрити" clear of
         // the home indicator and Safari's bottom bar.
         className="sheet-panel w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-2 overflow-y-auto overscroll-contain"
-        style={{ paddingBottom: 'calc(var(--safe-bottom) + 1rem)' }}
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + var(--toolbar-gap) + 1rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <p className="px-3 pt-3 pb-2 text-sm font-semibold text-gray-900 truncate">{campaign.name}</p>

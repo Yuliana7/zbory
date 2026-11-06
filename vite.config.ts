@@ -1,6 +1,8 @@
-import { defineConfig } from 'vite'
+import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
+import { APP_URL, buildReminderIcs, reminderFile, reminderTimes } from './src/utils/reminder'
+import insights from './src/i18n/locales/uk/insights.json'
 
 // The app is deployed under this subpath — the manifest's start_url/scope/icon
 // paths must be prefixed with it explicitly, since vite-plugin-pwa does not
@@ -8,11 +10,34 @@ import { VitePWA } from 'vite-plugin-pwa'
 // get that treatment). A root-absolute path here 404s once actually deployed.
 const BASE = '/zbory/'
 
+// iPhones only offer «Add to Calendar» for a calendar file at a real https address (a data: link is
+// blocked outright and the share sheet just files it away), and the site has no server to make one,
+// so one file per selectable time is built ahead of time.
+function reminderFiles(): Plugin {
+  const icsFor = (time: string) =>
+    buildReminderIcs({ time, title: insights.reminder.event, details: insights.reminder.details, url: APP_URL, now: new Date(2026, 0, 1) })
+  return {
+    name: 'reminder-files',
+    generateBundle() {
+      for (const time of reminderTimes()) this.emitFile({ type: 'asset', fileName: reminderFile(time), source: icsFor(time) })
+    },
+    configureServer(server) {
+      server.middlewares.use((req, res, next) => {
+        const time = reminderTimes().find((t) => req.url?.endsWith(reminderFile(t)))
+        if (!time) return next()
+        res.setHeader('Content-Type', 'text/calendar; charset=utf-8')
+        res.end(icsFor(time))
+      })
+    },
+  }
+}
+
 // https://vite.dev/config/
 export default defineConfig({
   base: BASE,
   plugins: [
     react(),
+    reminderFiles(),
     VitePWA({
       registerType: 'prompt',
       devOptions: {
@@ -67,6 +92,8 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         navigateFallback: `${BASE}index.html`,
+        // a link to a reminder must reach the file, not the app shell
+        navigateFallbackDenylist: [/\/reminders\//],
         runtimeCaching: [
           // Google Fonts - cache first
           {

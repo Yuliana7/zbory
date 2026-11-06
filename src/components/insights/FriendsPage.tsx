@@ -1,37 +1,21 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar } from '../../types';
-import { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
+import type { RenewAll } from '../../hooks/useRenewAll';
 import { downloadCSV } from '../../utils/csvExporter';
 import { computeFriendStats, fmtUah, formatSharePct, friendBar, friendsToCSV, pageOf, sortFriends, FRIENDS_PAGE_SIZE, type FriendSortKey } from '../../utils/friendJars';
 import { FRIEND_FILTERS, FRIEND_SORT_KEYS, forecast, growth, leftToTarget, matchesFilter, matchesSearch, stalledDays, type FriendFilter } from '../../utils/friendInsights';
-import { formatWhen, linkedOpen } from '../../utils/friendsRefresh';
-import { FriendsFreshness, RefreshButton, TargetsBar } from './friendsShared';
+import { formatWhen } from '../../utils/friendsRefresh';
+import { FriendsFreshness, RenewButton, TargetsBar } from './friendsShared';
+import { JarChartModal } from './JarChartModal';
+import { RenewReportCard } from './RenewReportCard';
 import { ReminderCard } from './ReminderCard';
 import { StatTile, SubPage } from './SubPage';
 
 const GROWTH_DAYS = 7;
 
-/** A helper's amount over time as one small line. Needs two points; the scale is its own, so it shows the shape, not the size. */
-function Trend({ friend }: { friend: FriendJar }) {
-  const points = friend.history ?? [];
-  if (points.length < 2) return null;
-  const W = 72;
-  const H = 24;
-  const first = points[0].at;
-  const span = Math.max(1, points[points.length - 1].at - first);
-  const min = Math.min(...points.map((p) => p.raised));
-  const range = Math.max(1, Math.max(...points.map((p) => p.raised)) - min);
-  const line = points.map((p) => `${((p.at - first) / span) * W},${H - 2 - ((p.raised - min) / range) * (H - 4)}`).join(' ');
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} className="shrink-0 overflow-visible" aria-hidden="true">
-      <polyline points={line} fill="none" stroke="#818cf8" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
-    </svg>
-  );
-}
-
-function JarRow({ friend: f, listed, totalAmount, now }: { friend: FriendJar; listed: FriendJar[]; totalAmount: number; now: number }) {
+function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: FriendJar; listed: FriendJar[]; totalAmount: number; now: number; onOpen: () => void }) {
   const { t } = useTranslation('insights');
   const bar = friendBar(f, listed);
   const g = growth(f, GROWTH_DAYS, now);
@@ -39,7 +23,8 @@ function JarRow({ friend: f, listed, totalAmount, now }: { friend: FriendJar; li
   const left = f.closed ? 0 : leftToTarget(f);
   const eta = forecast(f, now);
   return (
-    <li className="px-4 py-3">
+    <li>
+      <button onClick={onOpen} aria-haspopup="dialog" className="w-full text-left px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="min-w-0 truncate font-medium text-gray-800">
           {f.name || '—'}
@@ -59,7 +44,7 @@ function JarRow({ friend: f, listed, totalAmount, now }: { friend: FriendJar; li
           <div className={`h-full rounded-full ${bar.reached ? 'bg-green-500' : 'bg-indigo-400'}`} style={{ width: `${bar.fill * 100}%` }} />
         </div>
       )}
-      <div className="mt-1.5 flex items-center justify-between gap-3">
+      <div className="mt-1.5">
         <div className="min-w-0 text-xs text-gray-500 space-y-0.5">
           {bar.pct !== null && f.target && (
             <p>
@@ -74,23 +59,23 @@ function JarRow({ friend: f, listed, totalAmount, now }: { friend: FriendJar; li
             {!f.jarId && ` · ${t('friendsPage.manual')}`}
           </p>
         </div>
-        <Trend friend={f} />
       </div>
+      </button>
     </li>
   );
 }
 
 /** Every helper jar: what the owner of the main jar needs to see who is moving, who stalled and who is done.
  * Read-only, like the analytics; «Редагувати» opens the friends screen. */
-export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; totalAmount: number }) {
+export function FriendsPage({ friends, totalAmount, renew }: { friends: FriendJar[]; totalAmount: number; renew: RenewAll }) {
   const { t } = useTranslation('insights');
   const { dispatch } = useAppContext();
-  const refresh = useFriendsRefresh(friends);
   const [now] = useState(() => Date.now());
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<FriendFilter>('all');
   const [sort, setSort] = useState<{ key: FriendSortKey; desc: boolean }>({ key: 'modified', desc: false });
   const [page, setPage] = useState(0);
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const stats = computeFriendStats(friends, totalAmount);
   const { ranked, total, share, exceedsTotal } = stats;
@@ -101,7 +86,8 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
   );
   const shown = pageOf(list, page, FRIENDS_PAGE_SIZE);
   const from = shown.page * FRIENDS_PAGE_SIZE + 1;
-  const linked = linkedOpen(friends).length;
+  const opened = ranked.find((f) => f.id === openId);
+  const closeChart = useCallback(() => setOpenId(null), []);
 
   const pickSort = (key: FriendSortKey) => {
     setSort((cur) => ({ key, desc: cur.key === key ? !cur.desc : false }));
@@ -116,14 +102,15 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
       title={t('friends.title')}
       actions={
         <div className="flex items-center gap-4">
-          {linked > 0 && <RefreshButton refresh={refresh} />}
+          {renew.available && <RenewButton renew={renew} />}
           <button onClick={() => dispatch({ type: 'FRIENDS_EDIT_OPENED' })} className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
             {t('friends.edit')}
           </button>
         </div>
       }
     >
-      <FriendsFreshness friends={friends} refresh={refresh} />
+      <RenewReportCard renew={renew} />
+      <FriendsFreshness friends={friends} renew={renew} />
 
       <div className="mb-4 grid grid-cols-2 lg:grid-cols-4 gap-3">
         <StatTile label={t('friendsPage.jars')} value={fmtUah(ranked.length)} note={t('friendsPage.jarsNote', { open: ranked.length - closedCount, closed: closedCount })} />
@@ -179,7 +166,7 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
         ) : (
           <ul className="divide-y divide-gray-100">
             {shown.items.map((f) => (
-              <JarRow key={f.id} friend={f} listed={ranked} totalAmount={totalAmount} now={now} />
+              <JarRow key={f.id} friend={f} listed={ranked} totalAmount={totalAmount} now={now} onOpen={() => setOpenId(f.id)} />
             ))}
           </ul>
         )}
@@ -208,15 +195,15 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
       {exceedsTotal && <p className="mt-3 text-xs text-red-500">{t('friends.exceeds')}</p>}
 
       <div className="mt-4 flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs text-gray-500">
-        {linked > 0 ? (
+        {renew.linkedJars > 0 ? (
           <button
-            onClick={() => refresh.setAuto(!refresh.auto)}
-            aria-pressed={refresh.auto}
+            onClick={() => renew.setAuto(!renew.auto)}
+            aria-pressed={renew.auto}
             title={t('friends.autoHint')}
             className="flex items-center gap-1.5 hover:text-gray-800 transition-colors"
           >
-            <span className={`inline-block w-7 h-4 rounded-full relative transition-colors ${refresh.auto ? 'bg-indigo-500' : 'bg-gray-300'}`}>
-              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${refresh.auto ? 'left-3.5' : 'left-0.5'}`} />
+            <span className={`inline-block w-7 h-4 rounded-full relative transition-colors ${renew.auto ? 'bg-indigo-500' : 'bg-gray-300'}`}>
+              <span className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-all ${renew.auto ? 'left-3.5' : 'left-0.5'}`} />
             </span>
             {t('friends.auto')}
           </button>
@@ -228,7 +215,8 @@ export function FriendsPage({ friends, totalAmount }: { friends: FriendJar[]; to
         </button>
       </div>
 
-      {linked > 0 && <ReminderCard />}
+      {renew.linkedJars > 0 && <ReminderCard />}
+      {opened && <JarChartModal friend={opened} now={now} onClose={closeChart} />}
     </SubPage>
   );
 }

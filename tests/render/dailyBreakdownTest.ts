@@ -1,6 +1,6 @@
 import type { Donation, FriendJar, Withdrawal } from '../../src/types';
 import { addDays, changePct, cumulativePoints, dayDetail, daysBetween, daysInRange, groupWeeks, previousRange, summarize, weekHourGrid } from '../../src/utils/dailyBreakdown';
-import { forecast, growth, leftToTarget, matchesFilter, stalledDays } from '../../src/utils/friendInsights';
+import { forecast, growth, jarDays, jarTimeline, leftToTarget, matchesFilter, stalledDays } from '../../src/utils/friendInsights';
 
 let failures = 0;
 const check = (label: string, ok: boolean) => {
@@ -62,6 +62,14 @@ check('left to target', leftToTarget(jar({ target: 1500 })) === 500 && leftToTar
 const eta = forecast(jar({ target: 1600, history: h }), NOW);
 check('forecast: 900 ₴ in the last 14 days → 600 more in about 9 days', eta !== null && Math.abs(eta - (NOW + (600 / (900 / 14)) * DAY)) < DAY / 10);
 check('forecast: nothing without pace or target', forecast(jar({ target: 1600 }), NOW) === null && forecast(jar({ history: h }), NOW) === null);
+check('timeline: ends on the current amount', jarTimeline(jar({ raised: 1200, history: h }), NOW).at(-1)?.raised === 1200);
+check('timeline: no history → one point', jarTimeline(jar({ syncedAt: 5 }), NOW).length === 1);
+const days3 = jarDays(h);
+check('days: one per record, the first has no change', days3.length === 3 && days3[0].change === null && days3[1].change === 300 && days3[2].change === 600);
+check('days: a change over a gap says how long', days3[1].span === 10 && days3[2].span === 9);
+const sameDay = jarDays([{ at: NOW - 3000, raised: 12650 }, { at: NOW, raised: 14650 }]);
+check('days: a baseline and a change on one day are one day', sameDay.length === 1 && sameDay[0].change === 2000 && sameDay[0].raised === 14650);
+check('days: the day after follows on', jarDays([{ at: NOW - DAY, raised: 100 }, { at: NOW, raised: 150 }])[1].span === 1);
 check('filters', matchesFilter(jar({ closed: true }), 'closed', NOW) && !matchesFilter(jar({ closed: true }), 'active', NOW) && matchesFilter(jar({ jarId: undefined }), 'unlinked', NOW) && matchesFilter(jar({ target: 500 }), 'reached', NOW));
 
 console.log(failures === 0 ? '\nAll breakdown checks passed.' : `\n${failures} check(s) FAILED`);

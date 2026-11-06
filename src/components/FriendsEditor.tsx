@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { useFriendsDraft, type FriendsDraft } from '../hooks/useFriendsDraft';
-import { CheckIcon, PlusIcon, RefreshIcon, SpinnerIcon } from '../icons';
+import { CheckIcon, PlusIcon } from '../icons';
 import { downloadCSV } from '../utils/csvExporter';
 import { computeFriendStats, friendsToCSV, newFriend, rowsToFriends, type FriendDraftRow } from '../utils/friendJars';
 import { FRIEND_COLUMNS, FriendRow } from './friends/FriendRow';
@@ -19,11 +19,10 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
   const { app } = state;
   const own = useFriendsDraft();
   const draft = external ?? own;
-  const { rows, setRows, dirty, duplicates, save, discard, busyIds, progress, rowErrors, summary } = draft;
+  const { rows, setRows, dirty, duplicates, save, discard, busyIds, rowErrors } = draft;
   const [addingById, setAddingById] = useState(false);
 
   const mainTotal = app.aggregates?.totalAmount ?? (app.donations ?? []).reduce((sum, d) => sum + d.amount, 0);
-  const refreshable = rows.filter((r) => r.jarId && !r.closed).length;
 
   const patch = (id: string, change: Partial<FriendDraftRow>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...change } : r)));
@@ -72,25 +71,8 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
           >
             {t('friends.addById.toggle')}
           </button>
-          <button
-            onClick={draft.refreshAll}
-            disabled={refreshable === 0 || !!progress}
-            title={refreshable === 0 ? t('friends.refreshAllNone') : undefined}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 disabled:opacity-40 disabled:hover:bg-indigo-50 text-indigo-700 text-xs font-medium transition-colors"
-          >
-            {progress ? <SpinnerIcon className="w-3.5 h-3.5 animate-spin" /> : <RefreshIcon className="w-3.5 h-3.5" />}
-            {t('friends.refreshAll', { count: refreshable })}
-          </button>
         </div>
       </div>
-      {progress && <p className="text-xs text-gray-500">{t('friends.refreshProgress', progress)}</p>}
-      {!progress && summary && (
-        <p className={`text-xs ${summary.rateLimited ? 'text-amber-700' : summary.failed > 0 ? 'text-red-500' : 'text-green-700'}`}>
-          {summary.rateLimited
-            ? t('friends.refreshRateLimited', { updated: summary.updated })
-            : t('friends.refreshDone', { updated: summary.updated, failed: summary.failed })}
-        </p>
-      )}
       {addingById && <AddByIdPanel draft={draft} onClose={() => setAddingById(false)} />}
 
       {rows.length > 0 && (

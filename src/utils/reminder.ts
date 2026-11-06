@@ -1,6 +1,8 @@
 // A daily reminder as a calendar event. There is no server to send notifications, but every phone
 // already has a calendar that can. Times are "floating" (no time zone), so it follows the device.
 
+export const REMINDER_MINUTES = ['00', '15', '30', '45'];
+
 const pad = (n: number) => String(n).padStart(2, '0');
 const stamp = (d: Date) => `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
 const escapeText = (s: string) => s.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\n/g, '\\n');
@@ -24,6 +26,18 @@ function fold(line: string): string {
   parts.push(part);
   return parts.join('\r\n');
 }
+
+/** The address the built reminder files point back to. */
+export const APP_URL = 'https://yuliana7.github.io/zbory/';
+
+/** Every time a reminder can be set for: the site is static, so each one is a file built ahead of time. */
+export function reminderTimes(): string[] {
+  const out: string[] = [];
+  for (let h = 0; h < 24; h++) for (const m of REMINDER_MINUTES) out.push(`${pad(h)}:${m}`);
+  return out;
+}
+
+export const reminderFile = (time: string) => `reminders/${time.replace(':', '')}.ics`;
 
 export interface ReminderOptions {
   /** "HH:MM" on the device's clock */

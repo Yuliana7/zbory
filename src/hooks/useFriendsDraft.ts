@@ -10,7 +10,6 @@ import {
   rowsToFriends,
   type FriendDraftRow,
 } from '../utils/friendJars';
-import { readJars } from '../utils/friendsRefresh';
 import { JarError, fetchPublicJar, parseJarId, type JarErrorKind } from '../utils/monobankJar';
 
 /** Pause between two reads when ids are added one by one. */
@@ -18,17 +17,10 @@ const REFRESH_GAP_MS = 1000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const kindOf = (err: unknown): JarErrorKind => (err instanceof JarError ? err.kind : 'unexpected');
 
-export interface RefreshSummary {
-  updated: number;
-  failed: number;
-  /** stopped early because Monobank said "too many requests" */
-  rateLimited: boolean;
-}
-
 /** What is typed into the helper-jar editor, kept apart from what is saved: nothing reaches the
  * app (and the cards) until `save()`, and `dirty` says whether leaving would lose something.
  *
- * Reading a linked jar from Monobank (`refreshOne`, `refreshAll`, `linkJar`, `addByIds`) goes through
+ * Reading a linked jar from Monobank (`refreshOne`, `linkJar`, `addByIds`) goes through
  * the same draft. If the form had no unsaved edits when the read started, the result is saved right
  * away — a plain refresh is one tap and sticks; if there were edits, they and the result wait for «Зберегти». */
 export function useFriendsDraft() {
@@ -50,9 +42,7 @@ export function useFriendsDraft() {
   const duplicates = duplicateNameIds(rows);
 
   const [busyIds, setBusyIds] = useState<string[]>([]);
-  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null);
   const [rowErrors, setRowErrors] = useState<Record<string, JarErrorKind>>({});
-  const [summary, setSummary] = useState<RefreshSummary | null>(null);
   const alive = useRef(true);
   useEffect(() => {
     alive.current = true;
@@ -126,33 +116,6 @@ export function useFriendsDraft() {
     [],
   );
 
-  /** Reads every linked, still-open jar at once. */
-  const refreshAll = useCallback(async () => {
-    const todo = rowsRef.current.filter((r) => r.jarId && !r.closed).map((r) => ({ id: r.id, jarId: r.jarId! }));
-    if (todo.length === 0) return;
-    const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
-    setSummary(null);
-    let done = 0;
-    setProgress({ done, total: todo.length });
-    setBusyIds(todo.map((t) => t.id));
-    const res = await readJars(todo, {
-      onSettled: (id, jar, error) => {
-        if (!alive.current) return;
-        if (jar) applyRead(id, jar);
-        if (error) setRowError(id, error);
-        setBusy(id, false);
-        setProgress({ done: ++done, total: todo.length });
-      },
-    });
-    finish(autoSave);
-    if (alive.current) {
-      setBusyIds([]);
-      setProgress(null);
-      setSummary({ updated: res.read.size, failed: res.failed.size, rateLimited: res.rateLimited });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
   /** Links a row to a helper's jar by its long id and reads it. Resolves to an error kind, or null on success. */
   const linkJar = useCallback(
     async (id: string, input: string): Promise<JarErrorKind | 'invalid' | 'duplicate' | null> => {
@@ -222,7 +185,7 @@ export function useFriendsDraft() {
     [],
   );
 
-  return { rows, setRows, dirty, duplicates, save, discard, busyIds, progress, rowErrors, summary, refreshOne, refreshAll, linkJar, unlinkJar, addByIds };
+  return { rows, setRows, dirty, duplicates, save, discard, busyIds, rowErrors, refreshOne, linkJar, unlinkJar, addByIds };
 }
 
 export type FriendsDraft = ReturnType<typeof useFriendsDraft>;

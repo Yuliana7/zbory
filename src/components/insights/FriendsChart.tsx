@@ -1,24 +1,23 @@
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar } from '../../types';
-import { useFriendsRefresh } from '../../hooks/useFriendsRefresh';
+import type { RenewAll } from '../../hooks/useRenewAll';
 import { computeFriendStats, fmtUah, formatSharePct, friendBar, latestModified, FRIENDS_PREVIEW } from '../../utils/friendJars';
-import { linkedOpen } from '../../utils/friendsRefresh';
-import { FriendsFreshness, RefreshButton, TargetsBar } from './friendsShared';
+import { FriendsFreshness, TargetsBar } from './friendsShared';
 
 interface FriendsChartProps {
   friends: FriendJar[];
   /** the main jar's total — helpers are a share OF it, never added to it */
   totalAmount: number;
+  renew: RenewAll;
 }
 
 /** A preview of the helper jars on the analytics page: the totals and the most recently changed jars.
  * «Детальніше» opens the page with all of them. A helper with a target gets a bar towards it; until
  * anyone has a target the bars compare helpers with the best one. */
-export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
+export function FriendsChart({ friends, totalAmount, renew }: FriendsChartProps) {
   const { t } = useTranslation('insights');
   const { dispatch } = useAppContext();
-  const refresh = useFriendsRefresh(friends);
   const stats = computeFriendStats(friends, totalAmount);
   const { ranked, total, share, exceedsTotal, withTarget, reached } = stats;
 
@@ -38,15 +37,12 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
       <div className="flex items-center justify-between gap-3 mb-3">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('friends.title')}</p>
-        <div className="shrink-0 flex items-center gap-3">
-          {linkedOpen(friends).length > 0 && <RefreshButton refresh={refresh} />}
-          <button
-            onClick={() => dispatch({ type: 'INSIGHTS_VIEW', payload: 'friends' })}
-            className="text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
-          >
-            {t('friends.viewMore')}
-          </button>
-        </div>
+        <button
+          onClick={() => dispatch({ type: 'INSIGHTS_VIEW', payload: 'friends' })}
+          className="shrink-0 text-xs font-medium text-indigo-600 hover:text-indigo-800 transition-colors"
+        >
+          {t('friends.viewMore')}
+        </button>
       </div>
 
       {/* the headline, across the whole box: how much the helpers brought and how many hit their target */}
@@ -56,7 +52,7 @@ export function FriendsChart({ friends, totalAmount }: FriendsChartProps) {
         {withTarget > 0 && <span className="text-indigo-500">&nbsp;· {t('friends.reachedSummary', { reached, total: withTarget })}</span>}
       </p>
 
-      <FriendsFreshness friends={friends} refresh={refresh} />
+      <FriendsFreshness friends={friends} renew={renew} />
       <div className="mb-5 empty:hidden"><TargetsBar stats={stats} /></div>
 
       <div className="space-y-3">

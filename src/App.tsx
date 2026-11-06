@@ -1,19 +1,15 @@
-import { Suspense, useEffect } from 'react'
+import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppContext } from './context/AppContext'
 import type { AppState } from './types'
 import { UploadPage } from './pages/UploadPage'
-import { lazyNamed } from './utils/lazyPage'
-import { PageLoading } from './components/PageLoading'
+import { InsightsPage } from './pages/InsightsPage'
+import { GalleryPage } from './pages/GalleryPage'
+import { ExportPage } from './pages/ExportPage'
 import { SafeAreaTopBar } from './components/SafeAreaTopBar'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
 import { HryvniaIcon } from './icons/HryvniaIcon'
-
-// Step 1 is what everyone sees first; the rest arrive when they are opened
-const InsightsPage = lazyNamed(() => import('./pages/InsightsPage'), 'InsightsPage')
-const GalleryPage = lazyNamed(() => import('./pages/GalleryPage'), 'GalleryPage')
-const ExportPage = lazyNamed(() => import('./pages/ExportPage'), 'ExportPage')
 
 const STEP_INDEX: Record<AppState['step'], number> = {
   upload: 1,
@@ -114,12 +110,10 @@ function App() {
         )}
 
         <div className="animate-fade-in">
-          <Suspense fallback={<PageLoading />}>
-            {app.step === 'upload' && <UploadPage />}
-            {app.step === 'insights' && <InsightsPage />}
-            {app.step === 'gallery' && <GalleryPage />}
-            {app.step === 'export' && <ExportPage />}
-          </Suspense>
+          {app.step === 'upload' && <UploadPage />}
+          {app.step === 'insights' && <InsightsPage />}
+          {app.step === 'gallery' && <GalleryPage />}
+          {app.step === 'export' && <ExportPage />}
         </div>
       </main>
 

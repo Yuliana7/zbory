@@ -15,7 +15,7 @@ export function AddTemplateModal({ groups, openGroupIds, onToggleGroup, onSelect
   const { t } = useTranslation('export');
   return (
     <div
-      className="fixed inset-0 z-[200] bg-black/40 flex items-center justify-center p-4"
+      className="screen-overlay z-[200] bg-black/40 flex items-center justify-center p-4"
       onClick={onClose}
     >
       <div

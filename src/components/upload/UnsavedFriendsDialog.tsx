@@ -19,7 +19,7 @@ export function UnsavedFriendsDialog({ onSave, onDiscard, onCancel }: UnsavedFri
 
   return (
     <div
-      className="fixed inset-0 z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
+      className="screen-overlay z-[300] bg-black/40 flex items-end sm:items-center justify-center sm:p-4 animate-fade-in"
       style={{ paddingTop: 'var(--safe-top)' }}
       onClick={onCancel}
     >
@@ -28,7 +28,7 @@ export function UnsavedFriendsDialog({ onSave, onDiscard, onCancel }: UnsavedFri
         aria-modal="true"
         aria-labelledby="unsaved-friends-title"
         className="w-full sm:max-w-sm bg-white rounded-t-2xl sm:rounded-2xl shadow-xl p-5 space-y-4"
-        style={{ paddingBottom: 'calc(var(--safe-bottom) + 1.25rem)' }}
+        style={{ paddingBottom: 'calc(var(--safe-bottom) + var(--toolbar-gap) + 1.25rem)' }}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="space-y-1">
