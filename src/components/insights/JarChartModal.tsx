@@ -120,13 +120,12 @@ export function JarChartModal({ friend: f, now, onClose }: { friend: FriendJar; 
 
             <p className="mt-5 mb-2 text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('jarChart.days')}</p>
             {/* a few days shouldn't stretch into slabs across the sheet */}
-            <div style={{ maxWidth: days.length * MAX_BAR }}>
-              <RangeBars
-                rows={days.map((d) => ({ key: d.key, amount: Math.max(0, d.change ?? 0), count: 0, withdrawn: 0 }))}
-                selected={selected.key}
-                onPick={(row) => setPicked(row.key)}
-              />
-            </div>
+            <RangeBars
+              rows={days.map((d) => ({ key: d.key, amount: Math.max(0, d.change ?? 0), count: 0, withdrawn: 0 }))}
+              selected={selected.key}
+              onPick={(row) => setPicked(row.key)}
+              maxBarWidth={MAX_BAR}
+            />
             <ul className="mt-3 divide-y divide-gray-100 text-sm max-h-48 overflow-y-auto">
               {[...days].reverse().map((d) => (
                 <li key={d.key}>

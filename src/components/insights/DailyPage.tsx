@@ -22,7 +22,7 @@ interface DailyPageProps {
 
 /** Bars of the range; a tap picks a day (or narrows the range to a week). The whole column is the
  * target, however short its bar. */
-export function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected: string | null; onPick: (row: DayRow) => void }) {
+export function RangeBars({ rows, selected, onPick, maxBarWidth }: { rows: DayRow[]; selected: string | null; onPick: (row: DayRow) => void; maxBarWidth?: number }) {
   const { t } = useTranslation('insights');
   const maxAmount = Math.max(...rows.map((r) => r.amount), 1);
   const maxOut = Math.max(...rows.map((r) => r.withdrawn), 1);
@@ -31,6 +31,8 @@ export function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected
   const label = (r: DayRow) => (r.endKey ? `${shortKey(r.key)}–${shortKey(r.endKey)}` : shortKey(r.key));
   return (
     <>
+      {/* the bars and their dates narrow together; the legend keeps the full width */}
+      <div style={maxBarWidth ? { maxWidth: rows.length * maxBarWidth } : undefined}>
       <div className="flex gap-px">
         {rows.map((r) => {
           const isSelected = r.key === selected;
@@ -64,6 +66,7 @@ export function RangeBars({ rows, selected, onPick }: { rows: DayRow[]; selected
       <div className="flex justify-between mt-1.5 text-xs text-gray-400">
         <span>{shortKey(rows[0].key)}</span>
         {rows.length > 1 && <span>{shortKey(rows[rows.length - 1].endKey ?? rows[rows.length - 1].key)}</span>}
+      </div>
       </div>
       <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-indigo-400" />{t(rows[0].endKey ? 'daily.perWeek' : 'charts.donationsBar')}</span>
