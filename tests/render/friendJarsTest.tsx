@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar, helperProblem } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -174,6 +174,12 @@ check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, cl
 check('parent jar: survives the editor rows', rowsToFriends(friendsToRows([{ id: 'p', name: 'П', raised: 1, parentJar: 'Main1' }]))[0].parentJar === 'Main1');
 check('parent jar: the usual one is the most common', usualParentJar([{ parentJar: 'A' }, { parentJar: 'B' }, { parentJar: 'B' }, {}]) === 'B');
 check('parent jar: none known', usualParentJar([{}]) === undefined);
+check('helper check: feeds the main jar', helperProblem('Main1', 'Main1', []) === null);
+check('helper check: feeds no jar → refused', helperProblem(undefined, 'Main1', []) === 'not-helper' && helperProblem(undefined, undefined, []) === 'not-helper');
+check('helper check: another fundraiser → refused', helperProblem('Other', 'Main1', []) === 'other-main');
+check('helper check: the known main jar beats what the helpers say', helperProblem('Main1', 'Main1', [{ parentJar: 'Other' }]) === null);
+check('helper check: no main jar known → the helpers decide', helperProblem('Other', undefined, [{ parentJar: 'Main1' }]) === 'other-main' && helperProblem('Main1', undefined, [{ parentJar: 'Main1' }]) === null);
+check('helper check: nothing to compare with → any helper jar', helperProblem('Any', undefined, []) === null);
 
 // ── closed-jars card ──
 const jars = [

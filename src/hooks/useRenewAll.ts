@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
 import type { FriendJar } from '../types';
 import { refreshSavedFriends, linkedOpen, staleFriends, STALE_AFTER_MS } from '../utils/friendsRefresh';
-import { MonobankError, dayStartSec, estimateRequests, fetchJarStatement, statementItemsToRawDonations, updateRangeStart, type FetchProgress } from '../utils/monobankApi';
+import { MonobankError, dayStartSec, estimateRequests, fetchJarStatement, fetchJars, jarShortId, statementItemsToRawDonations, updateRangeStart, type FetchProgress } from '../utils/monobankApi';
 import { forgetToken, loadToken, saveToken } from '../utils/monobankToken';
 
 const AUTO_KEY = 'zbory.friendsAutoRefresh';
@@ -76,18 +76,27 @@ export function useRenewAll() {
       setError(null);
       setReport(null);
       try {
-        const [jars, statement] = await Promise.allSettled([
+        const [jars, statement, ownJars] = await Promise.allSettled([
           readJars ? refreshSavedFriends(friends, { signal: ctl.signal, onProgress: setJarsProgress }) : null,
           readMain
             ? fetchJarStatement({ token: token!, jarId: jar!.id, fromSec: dayStartSec(from!), toSec: Math.floor(Date.now() / 1000), onProgress: setStatementProgress, signal: ctl.signal })
             : null,
+          // projects from before the short id was kept get it once, so helpers can be checked against it
+          readMain && !jar!.shortId ? fetchJars(token!, { signal: ctl.signal }) : null,
         ]);
         const jarResult = jars.status === 'fulfilled' ? jars.value : null;
         const nextFriends = jarResult && jarResult.updated > 0 ? jarResult.friends : undefined;
 
         // one write for everything that came back
         if (statement.status === 'fulfilled' && statement.value) {
-          await handleMergeRows(statementItemsToRawDonations(statement.value), { syncedAt: Date.now(), friends: nextFriends, quiet });
+          const own = ownJars.status === 'fulfilled' ? ownJars.value?.find((j) => j.id === jar!.id) : undefined;
+          const shortId = own && jarShortId(own);
+          await handleMergeRows(statementItemsToRawDonations(statement.value), {
+            syncedAt: Date.now(),
+            friends: nextFriends,
+            quiet,
+            monobankJar: shortId ? { ...jar!, shortId } : undefined,
+          });
         } else if (nextFriends) {
           await handleFriendsChange(nextFriends);
         }

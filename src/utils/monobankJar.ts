@@ -17,6 +17,8 @@ export interface PublicJar {
   goal?: number;
   /** the jar was closed by its owner — nothing more will come in */
   closed: boolean;
+  /** the id in the jar's share link */
+  shortId?: string;
 }
 
 export type JarErrorKind = 'rate-limit' | 'network' | 'not-found' | 'currency' | 'unexpected' | 'lookup';
@@ -92,6 +94,7 @@ export function mapPublicJar(body: unknown): PublicJar {
     raised: kopecksToUah(j.amount),
     goal: goal > 0 ? goal : undefined,
     closed: j.closed === true,
+    shortId: typeof j.jarId === 'string' ? j.jarId : undefined,
   };
 }
 

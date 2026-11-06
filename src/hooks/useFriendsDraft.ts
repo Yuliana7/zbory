@@ -7,28 +7,37 @@ import {
   friendsDiffer,
   friendsToRows,
   newFriend,
+  helperProblem,
   rowsToFriends,
-  usualParentJar,
   type FriendDraftRow,
 } from '../utils/friendJars';
-import { JarError, fetchPublicJar, lookupJar, parseJarRef, type JarErrorKind } from '../utils/monobankJar';
+import { JarError, fetchPublicJar, lookupJar, parseJarRef, type JarErrorKind, type PublicJar } from '../utils/monobankJar';
 
 /** Pause between two reads when ids are added one by one. */
 const REFRESH_GAP_MS = 1000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const kindOf = (err: unknown): JarErrorKind => (err instanceof JarError ? err.kind : 'unexpected');
 
-export type LinkResult = JarErrorKind | 'invalid' | 'duplicate' | 'other-main' | 'not-helper' | null;
+export type LinkResult = JarErrorKind | 'invalid' | 'duplicate' | 'other-main' | 'not-helper' | 'unverified' | null;
 
 export interface AddResult {
   added: number;
   invalid: number;
   duplicate: number;
-  /** added, but they feed a different main jar than the other helpers */
+  /** left out: they feed a different main jar */
   otherMain: number;
-  /** added, but Monobank says they aren't helper jars at all */
+  /** left out: they feed no other jar, so they aren't helpers */
   notHelper: number;
+  /** added without the check, because our lookup is unavailable */
+  unverified: number;
   failed: JarErrorKind | null;
+}
+
+interface Resolved {
+  jarId: string;
+  jar: PublicJar;
+  parentJar?: string;
+  checked: boolean;
 }
 
 /** What is typed into the helper-jar editor, kept apart from what is saved: nothing reaches the
@@ -41,6 +50,8 @@ export function useFriendsDraft() {
   const { state, handleFriendsChange } = useAppContext();
   const saved = state.app.friends;
   const savedRef = useRef(saved);
+  const mainShortIdRef = useRef(state.app.monobankJar?.shortId);
+  mainShortIdRef.current = state.app.monobankJar?.shortId;
   savedRef.current = saved;
 
   const [rows, setRowsState] = useState<FriendDraftRow[]>(() => friendsToRows(saved));
@@ -130,16 +141,26 @@ export function useFriendsDraft() {
     [],
   );
 
-  /** A pasted link or id → the long id to read (and the main jar, when a share link was looked up). */
-  const resolve = async (raw: string): Promise<{ jarId: string; parentJar?: string; viaLink: boolean } | null> => {
+  /** Reads what was pasted, a share link or a long id, and finds which main jar it feeds. `checked` is
+   * false only when our lookup is unavailable: a pasted long id must still work then. */
+  const resolve = async (raw: string): Promise<Resolved | null> => {
     const ref = parseJarRef(raw);
     if (!ref) return null;
-    if (ref.kind === 'long') return { jarId: ref.id, viaLink: false };
-    const found = await lookupJar(ref.id);
-    return { jarId: found.longId, parentJar: found.mainJar, viaLink: true };
+    if (ref.kind === 'short') {
+      const found = await lookupJar(ref.id);
+      return { jarId: found.longId, jar: await fetchPublicJar(found.longId), parentJar: found.mainJar, checked: true };
+    }
+    const jar = await fetchPublicJar(ref.id);
+    if (!jar.shortId) return { jarId: ref.id, jar, checked: false };
+    try {
+      return { jarId: ref.id, jar, parentJar: (await lookupJar(jar.shortId)).mainJar, checked: true };
+    } catch (err) {
+      if (err instanceof JarError && err.kind === 'lookup') return { jarId: ref.id, jar, checked: false };
+      throw err;
+    }
   };
 
-  /** Links a row to a helper's jar by its share link or long id and reads it. Resolves to an error kind, or null on success. */
+  /** Links a row to a helper's jar by its share link or long id, if it is a helper of this project. */
   const linkJar = useCallback(
     async (id: string, input: string): Promise<LinkResult> => {
       const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
@@ -148,13 +169,14 @@ export function useFriendsDraft() {
         const target = await resolve(input);
         if (!target) return 'invalid';
         if (rowsRef.current.some((r) => r.jarId === target.jarId && r.id !== id)) return 'duplicate';
-        const jar = await fetchPublicJar(target.jarId);
-        const expected = usualParentJar(rowsRef.current.filter((r) => r.id !== id));
-        setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId: target.jarId }, jar, Date.now()), parentJar: target.parentJar } : r)));
+        if (target.checked) {
+          const problem = helperProblem(target.parentJar, mainShortIdRef.current, rowsRef.current.filter((r) => r.id !== id));
+          if (problem) return problem;
+        }
+        setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId: target.jarId }, target.jar, Date.now()), parentJar: target.parentJar } : r)));
         setRowError(id);
         finish(autoSave);
-        if (target.viaLink && !target.parentJar) return 'not-helper';
-        return target.parentJar && expected && target.parentJar !== expected ? 'other-main' : null;
+        return target.checked ? null : 'unverified';
       } catch (err) {
         return kindOf(err);
       } finally {
@@ -173,11 +195,11 @@ export function useFriendsDraft() {
     [setRows],
   );
 
-  /** Adds a new helper for each pasted link or id (skipping jars already there), reading each jar. A jar
-   * that looks like it belongs elsewhere is still added: the warning only asks the user to look. */
+  /** Adds a new helper for each pasted link or id, reading each jar. Only jars that feed this project's
+   * main jar get in; anything else is counted and left out. */
   const addByIds = useCallback(
     async (inputs: string[]): Promise<AddResult> => {
-      const out: AddResult = { added: 0, invalid: 0, duplicate: 0, otherMain: 0, notHelper: 0, failed: null };
+      const out: AddResult = { added: 0, invalid: 0, duplicate: 0, otherMain: 0, notHelper: 0, unverified: 0, failed: null };
       const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
       for (let i = 0; i < inputs.length && alive.current; i++) {
         if (i > 0) await sleep(REFRESH_GAP_MS);
@@ -191,16 +213,21 @@ export function useFriendsDraft() {
             out.duplicate++;
             continue;
           }
-          const jar = await fetchPublicJar(target.jarId);
+          if (target.checked) {
+            const problem = helperProblem(target.parentJar, mainShortIdRef.current, rowsRef.current);
+            if (problem === 'not-helper') out.notHelper++;
+            if (problem === 'other-main') out.otherMain++;
+            if (problem) continue;
+          } else {
+            out.unverified++;
+          }
+          const { jar } = target;
           const taken = new Set(rowsRef.current.map((r) => friendNameKey(r.name)));
           // the owner's name; two helpers with the same name are told apart by their jar's title, then by a number
           const owner = jar.ownerName || jar.title || '—';
           let name = owner;
           if (taken.has(friendNameKey(name)) && jar.title && jar.title !== owner) name = `${owner} · ${jar.title}`;
           for (let n = 2; taken.has(friendNameKey(name)); n++) name = `${owner} (${n})`;
-          const expected = usualParentJar(rowsRef.current);
-          if (target.viaLink && !target.parentJar) out.notHelper++;
-          else if (target.parentJar && expected && target.parentJar !== expected) out.otherMain++;
           const fresh = applyJarInfo({ id: newFriend().id, name, raised: '', target: '', jarId: target.jarId, parentJar: target.parentJar }, jar, Date.now());
           setRows((rs) => [...rs, fresh]);
           out.added++;

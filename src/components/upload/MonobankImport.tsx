@@ -11,6 +11,7 @@ import {
   fetchJars,
   REQUEST_GAP_SECONDS,
   isUahJar,
+  jarShortId,
   jarGoal,
   statementItemsToRawDonations,
   toIsoDate,
@@ -99,7 +100,7 @@ export function MonobankImport({ onFetched, onCancel }: MonobankImportProps) {
   };
 
   const handleFetch = async () => {
-    const target: MonobankJarRef | null = selectedJar && { id: selectedJar.id, title: selectedJar.title };
+    const target: MonobankJarRef | null = selectedJar && { id: selectedJar.id, title: selectedJar.title, shortId: jarShortId(selectedJar) };
     if (!target || !rangeValid) return;
     setError(null);
     setProgress(null);
