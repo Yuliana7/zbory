@@ -1,58 +1,54 @@
 import { useLayoutEffect, useState } from 'react';
 import type { CardState } from '../../types';
 import type { RemovableElement } from '../../utils/templateConfig';
-import { XIcon } from '../../icons';
-import { placeButtons, type ElementBox, type MeasuredBox } from '../../utils/overlayLayout';
 
-// Constant on-screen sizes (CSS px) for the remove button — see the
-// effectiveScale division below for why these can't just be plain numbers.
-// 44px matches the standard minimum recommended touch-target size.
-const BUTTON_SIZE = 44;
-// Breathing room between two neighbouring buttons (CSS px), so a finger can tell them apart.
-const BUTTON_GAP = 6;
-const ICON_SIZE = 20;
 const BORDER_WIDTH = 2;
+/** smaller on screen than this, an element still gets a tap area of this height */
+const MIN_TAP_HEIGHT = 36;
+/** with no visible height at all (the glow), there's nothing to tap: it is picked from a list under the card */
+const NO_HEIGHT = 4;
+
+interface Box {
+  id: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
 
 interface ElementsOverlayProps {
   templateRef: React.RefObject<HTMLDivElement>;
   elements: RemovableElement[];
   card: CardState;
   effectiveScale: number;
-  onHide: (id: string) => void;
+  selectedId: string | null;
+  onSelect: (id: string) => void;
+  /** which elements are too thin to tap on the card */
+  onThinChange: (ids: string[]) => void;
 }
 
 /**
- * Draws a dashed outline + a remove button over each currently-visible
- * removable element, measured live from the rendered DOM (data-element
- * attributes) rather than assumed positions — templates reflow when header/
- * footer/fontScale/format change, so fixed coordinates would drift.
- * Rendered as a sibling of the exported card node, so it never appears in
- * the PNG (same technique as the Instagram safe-zone overlay).
+ * An outline over each visible element, tapped to select it. Measured live from the rendered DOM
+ * (data-element attributes) rather than assumed positions, because templates reflow when the format, the
+ * text or a size changes. Rendered as a sibling of the exported card node, so it never appears in the PNG.
  */
-export function ElementsOverlay({ templateRef, elements, card, effectiveScale, onHide }: ElementsOverlayProps) {
-  const [boxes, setBoxes] = useState<ElementBox[]>([]);
+export function ElementsOverlay({ templateRef, elements, card, effectiveScale, selectedId, onSelect, onThinChange }: ElementsOverlayProps) {
+  const [boxes, setBoxes] = useState<Box[]>([]);
 
-  // No dependency array — re-measures after every render while this overlay
-  // is mounted (only true while edit mode is on), so any reflow is caught
-  // without having to track every prop that could cause one. Guarded by the
-  // equality check below so it settles instead of looping: setBoxes only
-  // replaces the array when a value actually changed, so once positions
-  // stabilize this effect stops triggering further renders of its own.
-  // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately unbounded; the equality check inside settles it instead of a dep list
+  // No dependency array: it re-measures after every render while the overlay is mounted, so any reflow
+  // is caught. The equality check settles it instead of looping.
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- deliberately unbounded, see above
   useLayoutEffect(() => {
     const root = templateRef.current;
-    if (!root) {
-      setBoxes((prev) => (prev.length === 0 ? prev : []));
-      return;
-    }
+    if (!root) return;
     const rootRect = root.getBoundingClientRect();
-    const measured: MeasuredBox[] = [];
+    const next: Box[] = [];
     for (const el of elements) {
-      if (card.hiddenElements.includes(el.id)) continue; // already hidden — nothing to outline
+      if (card.hiddenElements.includes(el.id)) continue;
       const node = root.querySelector<HTMLElement>(`[data-element="${el.id}"]`);
       if (!node) continue;
       const r = node.getBoundingClientRect();
-      measured.push({
+      next.push({
         id: el.id,
         left: (r.left - rootRect.left) / effectiveScale,
         top: (r.top - rootRect.top) / effectiveScale,
@@ -60,70 +56,45 @@ export function ElementsOverlay({ templateRef, elements, card, effectiveScale, o
         height: r.height / effectiveScale,
       });
     }
-    const next = placeButtons(measured, BUTTON_SIZE / effectiveScale, BUTTON_GAP / effectiveScale);
-    setBoxes((prev) => {
-      const unchanged =
-        prev.length === next.length &&
-        prev.every((p, i) => {
-          const n = next[i];
-          return (
-            n.id === p.id && n.left === p.left && n.top === p.top && n.width === p.width && n.height === p.height &&
-            n.btnX === p.btnX && n.btnY === p.btnY
-          );
-        });
-      return unchanged ? prev : next;
-    });
+    setBoxes((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+    const thin = next.filter((b) => b.height * effectiveScale < NO_HEIGHT).map((b) => b.id);
+    onThinChange(thin);
   });
 
-  // The overlay lives inside the same zoomed wrapper as the card, so a fixed
-  // native-space (1080-design) size shrinks right along with the preview —
-  // on mobile, where the preview is zoomed down a lot to leave room for the
-  // control panel, that made the remove button too small to reliably tap.
-  // Dividing by effectiveScale here keeps the button/icon/border at a
-  // constant size on screen no matter how zoomed-out the preview is.
-  const btnSize = BUTTON_SIZE / effectiveScale;
-  const iconSize = ICON_SIZE / effectiveScale;
-  const borderWidth = BORDER_WIDTH / effectiveScale;
+  const border = BORDER_WIDTH / effectiveScale;
+  // the smaller an element, the higher it sits, so one inside another can still be reached
+  const tappable = boxes.filter((b) => b.height * effectiveScale >= NO_HEIGHT).sort((a, b) => b.width * b.height - a.width * a.height);
+  const minHeight = MIN_TAP_HEIGHT / effectiveScale;
 
   return (
     <>
-      {boxes.map((b) => (
-        <div
-          key={b.id}
-          style={{
-            position: 'absolute',
-            left: b.left,
-            top: b.top,
-            width: b.width,
-            height: b.height,
-            border: `${borderWidth}px dashed rgba(99,102,241,0.9)`,
-            borderRadius: 10,
-            pointerEvents: 'none',
-          }}
-        >
+      {tappable.map((b) => {
+        const selected = b.id === selectedId;
+        return (
           <button
-            onClick={() => onHide(b.id)}
+            key={b.id}
+            data-overlay-element={b.id}
+            aria-pressed={selected}
+            aria-label={elements.find((e) => e.id === b.id)?.id}
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect(b.id);
+            }}
             style={{
               position: 'absolute',
-              top: b.btnY,
-              left: b.btnX,
-              transform: 'translate(-50%, -50%)',
-              width: btnSize,
-              height: btnSize,
-              borderRadius: '50%',
-              boxShadow: '0 2px 8px rgba(0,0,0,0.35)',
-              pointerEvents: 'auto',
+              left: b.left,
+              top: b.top + Math.min(0, (b.height - minHeight) / 2),
+              width: b.width,
+              height: Math.max(b.height, minHeight),
+              border: `${border}px ${selected ? 'solid rgba(129,140,248,1)' : 'dashed rgba(165,180,252,0.55)'}`,
+              borderRadius: 10,
+              background: selected ? 'rgba(99,102,241,0.14)' : 'transparent',
               cursor: 'pointer',
-              border: 'none',
+              padding: 0,
             }}
-            className="flex items-center justify-center bg-gray-600/90 hover:bg-gray-700 text-white transition-colors"
-          >
-            <span style={{ width: iconSize, height: iconSize }}>
-              <XIcon className="w-full h-full" />
-            </span>
-          </button>
-        </div>
-      ))}
+          />
+        );
+      })}
     </>
   );
 }

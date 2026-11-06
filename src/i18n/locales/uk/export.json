@@ -83,7 +83,13 @@
     "donationSizes": "Розподіл за сумою",
     "rafflePrize": "Приз",
     "raffleCondition": "Умова",
-    "raffleCompetition": "Хто змагається"
+    "raffleCompetition": "Хто змагається",
+    "editHint": "Торкніться елемента, щоб змінити розмір тексту або прибрати його",
+    "textSize": "Розмір тексту",
+    "resetSize": "Скинути",
+    "remove": "Прибрати",
+    "noText": "У цьому елементі немає тексту.",
+    "overflow": "Не вміщається: частину картки обрізано."
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
