@@ -19,7 +19,7 @@ export interface PublicJar {
   closed: boolean;
 }
 
-export type JarErrorKind = 'rate-limit' | 'network' | 'not-found' | 'currency' | 'unexpected';
+export type JarErrorKind = 'rate-limit' | 'network' | 'not-found' | 'currency' | 'unexpected' | 'lookup';
 
 export class JarError extends Error {
   constructor(public kind: JarErrorKind) {
@@ -32,6 +32,49 @@ export class JarError extends Error {
 export function parseJarId(input: string): string | null {
   const last = input.trim().split(/[?#]/)[0].split('/').filter(Boolean).pop() ?? '';
   return /^[A-Za-z0-9_-]{12,64}$/.test(last) ? last : null;
+}
+
+const SHORT_ID = /^[A-Za-z0-9]{6,20}$/;
+/** a long id is about 32 characters; the id in a share link is about 10 */
+const LONGEST_SHORT_ID = 20;
+
+/** What a pasted text points at: a long id, or the short id of a share link, which has to be looked up. */
+export function parseJarRef(input: string): { kind: 'long' | 'short'; id: string } | null {
+  const text = input.trim();
+  const last = text.split(/[?#]/)[0].split('/').filter(Boolean).pop() ?? '';
+  const isShareLink = /send\.monobank\.ua/i.test(text);
+  if (SHORT_ID.test(last) && (isShareLink || last.length <= LONGEST_SHORT_ID)) return { kind: 'short', id: last };
+  const long = parseJarId(text);
+  return long ? { kind: 'long', id: long } : null;
+}
+
+/** Our small worker (see worker/): the one thing a browser can't do itself is turn a share link into a long id. */
+export const JAR_LOOKUP_URL = 'https://zbory-jar-lookup.zbory.workers.dev';
+
+export interface JarLookup {
+  longId: string;
+  /** the short id of the main jar this one feeds; a main jar has none */
+  mainJar?: string;
+}
+
+export async function lookupJar(shortId: string, { fetch: doFetch = fetch, signal }: FetchJarOptions = {}): Promise<JarLookup> {
+  let res: Response;
+  try {
+    res = await doFetch(`${JAR_LOOKUP_URL}/${encodeURIComponent(shortId)}`, { signal });
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    throw new JarError('lookup');
+  }
+  if (res.status === 429) throw new JarError('rate-limit');
+  if (res.status === 400 || res.status === 404) throw new JarError('not-found');
+  if (!res.ok) throw new JarError('lookup');
+  try {
+    const body = (await res.json()) as Partial<JarLookup>;
+    if (typeof body.longId !== 'string') throw new Error();
+    return { longId: body.longId, mainJar: typeof body.mainJar === 'string' ? body.mainJar : undefined };
+  } catch {
+    throw new JarError('lookup');
+  }
 }
 
 const UAH_CODE = 980;

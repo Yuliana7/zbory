@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { CheckIcon, LinkIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
 import { friendProgress, parseAmount, type FriendDraftRow } from '../../utils/friendJars';
 import type { JarErrorKind } from '../../utils/monobankJar';
+import type { LinkResult } from '../../hooks/useFriendsDraft';
 
 const INPUT =
   // text-base (16px) on a phone: anything smaller makes iOS zoom the page on focus
@@ -35,7 +36,7 @@ interface FriendRowProps {
   onChange: (change: Partial<FriendDraftRow>) => void;
   onRemove: () => void;
   onRefresh: () => void;
-  onLink: (input: string) => Promise<JarErrorKind | 'invalid' | 'duplicate' | null>;
+  onLink: (input: string) => Promise<LinkResult>;
   onUnlink: () => void;
 }
 
@@ -50,7 +51,7 @@ export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onR
   const { t } = useTranslation('export');
   const [showLink, setShowLink] = useState(false);
   const [idInput, setIdInput] = useState('');
-  const [linkError, setLinkError] = useState<JarErrorKind | 'invalid' | 'duplicate' | null>(null);
+  const [linkError, setLinkError] = useState<LinkResult>(null);
   const closed = !!row.closed;
   const linked = !!row.jarId;
 

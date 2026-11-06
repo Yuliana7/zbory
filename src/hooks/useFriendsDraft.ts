@@ -8,14 +8,28 @@ import {
   friendsToRows,
   newFriend,
   rowsToFriends,
+  usualParentJar,
   type FriendDraftRow,
 } from '../utils/friendJars';
-import { JarError, fetchPublicJar, parseJarId, type JarErrorKind } from '../utils/monobankJar';
+import { JarError, fetchPublicJar, lookupJar, parseJarRef, type JarErrorKind } from '../utils/monobankJar';
 
 /** Pause between two reads when ids are added one by one. */
 const REFRESH_GAP_MS = 1000;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const kindOf = (err: unknown): JarErrorKind => (err instanceof JarError ? err.kind : 'unexpected');
+
+export type LinkResult = JarErrorKind | 'invalid' | 'duplicate' | 'other-main' | 'not-helper' | null;
+
+export interface AddResult {
+  added: number;
+  invalid: number;
+  duplicate: number;
+  /** added, but they feed a different main jar than the other helpers */
+  otherMain: number;
+  /** added, but Monobank says they aren't helper jars at all */
+  notHelper: number;
+  failed: JarErrorKind | null;
+}
 
 /** What is typed into the helper-jar editor, kept apart from what is saved: nothing reaches the
  * app (and the cards) until `save()`, and `dirty` says whether leaving would lose something.
@@ -116,20 +130,31 @@ export function useFriendsDraft() {
     [],
   );
 
-  /** Links a row to a helper's jar by its long id and reads it. Resolves to an error kind, or null on success. */
+  /** A pasted link or id → the long id to read (and the main jar, when a share link was looked up). */
+  const resolve = async (raw: string): Promise<{ jarId: string; parentJar?: string; viaLink: boolean } | null> => {
+    const ref = parseJarRef(raw);
+    if (!ref) return null;
+    if (ref.kind === 'long') return { jarId: ref.id, viaLink: false };
+    const found = await lookupJar(ref.id);
+    return { jarId: found.longId, parentJar: found.mainJar, viaLink: true };
+  };
+
+  /** Links a row to a helper's jar by its share link or long id and reads it. Resolves to an error kind, or null on success. */
   const linkJar = useCallback(
-    async (id: string, input: string): Promise<JarErrorKind | 'invalid' | 'duplicate' | null> => {
-      const jarId = parseJarId(input);
-      if (!jarId) return 'invalid';
-      if (rowsRef.current.some((r) => r.jarId === jarId && r.id !== id)) return 'duplicate';
+    async (id: string, input: string): Promise<LinkResult> => {
       const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
       setBusy(id, true);
       try {
-        const jar = await fetchPublicJar(jarId);
-        setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId }, jar, Date.now()) } : r)));
+        const target = await resolve(input);
+        if (!target) return 'invalid';
+        if (rowsRef.current.some((r) => r.jarId === target.jarId && r.id !== id)) return 'duplicate';
+        const jar = await fetchPublicJar(target.jarId);
+        const expected = usualParentJar(rowsRef.current.filter((r) => r.id !== id));
+        setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId: target.jarId }, jar, Date.now()), parentJar: target.parentJar } : r)));
         setRowError(id);
         finish(autoSave);
-        return null;
+        if (target.viaLink && !target.parentJar) return 'not-helper';
+        return target.parentJar && expected && target.parentJar !== expected ? 'other-main' : null;
       } catch (err) {
         return kindOf(err);
       } finally {
@@ -148,34 +173,40 @@ export function useFriendsDraft() {
     [setRows],
   );
 
-  /** Adds a new helper for each pasted id (skipping ids already linked), reading each jar. */
+  /** Adds a new helper for each pasted link or id (skipping jars already there), reading each jar. A jar
+   * that looks like it belongs elsewhere is still added: the warning only asks the user to look. */
   const addByIds = useCallback(
-    async (inputs: string[]): Promise<{ added: number; invalid: number; duplicate: number; failed: JarErrorKind | null }> => {
-      const out = { added: 0, invalid: 0, duplicate: 0, failed: null as JarErrorKind | null };
+    async (inputs: string[]): Promise<AddResult> => {
+      const out: AddResult = { added: 0, invalid: 0, duplicate: 0, otherMain: 0, notHelper: 0, failed: null };
       const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
-      const ids: string[] = [];
-      for (const raw of inputs) {
-        const jarId = parseJarId(raw);
-        if (!jarId) out.invalid++;
-        else if (ids.includes(jarId) || rowsRef.current.some((r) => r.jarId === jarId)) out.duplicate++;
-        else ids.push(jarId);
-      }
-      for (let i = 0; i < ids.length && alive.current; i++) {
+      for (let i = 0; i < inputs.length && alive.current; i++) {
         if (i > 0) await sleep(REFRESH_GAP_MS);
         try {
-          const jar = await fetchPublicJar(ids[i]);
+          const target = await resolve(inputs[i]);
+          if (!target) {
+            out.invalid++;
+            continue;
+          }
+          if (rowsRef.current.some((r) => r.jarId === target.jarId)) {
+            out.duplicate++;
+            continue;
+          }
+          const jar = await fetchPublicJar(target.jarId);
           const taken = new Set(rowsRef.current.map((r) => friendNameKey(r.name)));
           // the owner's name; two helpers with the same name are told apart by their jar's title, then by a number
           const owner = jar.ownerName || jar.title || '—';
           let name = owner;
           if (taken.has(friendNameKey(name)) && jar.title && jar.title !== owner) name = `${owner} · ${jar.title}`;
           for (let n = 2; taken.has(friendNameKey(name)); n++) name = `${owner} (${n})`;
-          const fresh = applyJarInfo({ id: newFriend().id, name, raised: '', target: '', jarId: ids[i] }, jar, Date.now());
+          const expected = usualParentJar(rowsRef.current);
+          if (target.viaLink && !target.parentJar) out.notHelper++;
+          else if (target.parentJar && expected && target.parentJar !== expected) out.otherMain++;
+          const fresh = applyJarInfo({ id: newFriend().id, name, raised: '', target: '', jarId: target.jarId, parentJar: target.parentJar }, jar, Date.now());
           setRows((rs) => [...rs, fresh]);
           out.added++;
         } catch (err) {
           out.failed = kindOf(err);
-          if (out.failed === 'rate-limit') break;
+          if (out.failed === 'rate-limit' || out.failed === 'lookup') break;
         }
       }
       finish(autoSave);

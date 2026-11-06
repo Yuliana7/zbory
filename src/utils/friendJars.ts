@@ -117,6 +117,7 @@ export interface FriendDraftRow {
   jarId?: string;
   /** the linked jar is closed: the row is read-only */
   closed?: boolean;
+  parentJar?: string;
   updatedAt?: number;
   syncedAt?: number;
   history?: FriendSnapshot[];
@@ -130,6 +131,7 @@ export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[
     target: f.target ? String(f.target) : '',
     jarId: f.jarId,
     closed: f.closed,
+    parentJar: f.parentJar,
     updatedAt: f.updatedAt,
     syncedAt: f.syncedAt,
     history: f.history,
@@ -169,6 +171,7 @@ export function rowsToFriends(rows: FriendDraftRow[], prev: FriendJar[] = [], no
         ...(target ? { target } : null),
         ...(r.jarId ? { jarId: r.jarId } : null),
         ...(r.closed ? { closed: true } : null),
+        ...(r.parentJar ? { parentJar: r.parentJar } : null),
         ...(r.syncedAt ? { syncedAt: r.syncedAt } : null),
       };
       const old = before.get(r.id);
@@ -249,6 +252,13 @@ export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): 
     closed: jar.closed,
     syncedAt: now,
   };
+}
+
+/** The main jar most of the helpers feed: what a newly added jar should match. */
+export function usualParentJar(rows: Array<{ parentJar?: string }>): string | undefined {
+  const counts = new Map<string, number>();
+  for (const r of rows) if (r.parentJar) counts.set(r.parentJar, (counts.get(r.parentJar) ?? 0) + 1);
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 }
 
 /** Names are the helpers' identity: compared ignoring case and extra spaces. */

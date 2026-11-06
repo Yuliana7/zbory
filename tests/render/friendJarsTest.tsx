@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -169,6 +169,11 @@ const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', t
 check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
 check('jar read: no owner name → the jar title', applyJarInfo(row0, { ...jarInfo, ownerName: '' }, T0).name === 'Akatsuki Team');
 check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
+
+// ── which main jar a helper feeds ──
+check('parent jar: survives the editor rows', rowsToFriends(friendsToRows([{ id: 'p', name: 'П', raised: 1, parentJar: 'Main1' }]))[0].parentJar === 'Main1');
+check('parent jar: the usual one is the most common', usualParentJar([{ parentJar: 'A' }, { parentJar: 'B' }, { parentJar: 'B' }, {}]) === 'B');
+check('parent jar: none known', usualParentJar([{}]) === undefined);
 
 // ── closed-jars card ──
 const jars = [

@@ -1,4 +1,4 @@
-import { JarError, fetchPublicJar, mapPublicJar, parseJarId } from '../../src/utils/monobankJar';
+import { JAR_LOOKUP_URL, JarError, fetchPublicJar, lookupJar, mapPublicJar, parseJarId, parseJarRef } from '../../src/utils/monobankJar';
 
 let failures = 0;
 const check = (label: string, ok: boolean) => {
@@ -14,6 +14,14 @@ check('id: surrounded by spaces/newlines', parseJarId(`  ${ID}\n`) === ID);
 check('id: the full API link', parseJarId(`https://api.monobank.ua/bank/jar/${ID}`) === ID);
 check('id: link with a query string', parseJarId(`https://api.monobank.ua/bank/jar/${ID}?x=1`) === ID);
 check('id: too short / garbage / empty → null', parseJarId('abc') === null && parseJarId('не id банки') === null && parseJarId('') === null);
+
+// ── what was pasted ──
+const SHORT = 'AbCdEf1234';
+check('ref: a share link is a short id', JSON.stringify(parseJarRef(`https://send.monobank.ua/jar/${SHORT}`)) === JSON.stringify({ kind: 'short', id: SHORT }));
+check('ref: share link with a query and a slash', parseJarRef(`send.monobank.ua/jar/${SHORT}/?a=1`)?.id === SHORT);
+check('ref: a bare short id', parseJarRef(SHORT)?.kind === 'short');
+check('ref: a long id stays long', parseJarRef(ID)?.kind === 'long' && parseJarRef(`https://api.monobank.ua/bank/jar/${ID}`)?.id === ID);
+check('ref: garbage → null', parseJarRef('не посилання') === null && parseJarRef('') === null);
 
 // ── mapping the response ──
 const body = { amount: 50000, goal: 1000000, title: 'Akatsuki Team', ownerName: 'Наталія Б.', currency: 980, closed: false, jarId: '4q7xM4p43t' };
@@ -57,6 +65,17 @@ const spy = (async (u: string) => {
   check('fetch: 404 → not-found', (await kindOf(404)) === 'not-found');
   check('fetch: 500 → unexpected', (await kindOf(500)) === 'unexpected');
   check('fetch: network failure → network', await fetchPublicJar(ID, { fetch: (async () => { throw new TypeError('x'); }) as unknown as typeof fetch }).then(() => false, (e) => e instanceof JarError && e.kind === 'network'));
+
+  // ── looking a share link up ──
+  let asked = '';
+  const found = await lookupJar(SHORT, { fetch: (async (u: string) => ((asked = u), new Response(JSON.stringify({ longId: ID, mainJar: 'MainJarId01' })))) as unknown as typeof fetch });
+  check('lookup: asks our worker, gives the long id and the main jar', asked === `${JAR_LOOKUP_URL}/${SHORT}` && found.longId === ID && found.mainJar === 'MainJarId01');
+  const failsWith = (fetcher: typeof fetch) => lookupJar(SHORT, { fetch: fetcher }).then(() => null, (e) => (e instanceof JarError ? e.kind : 'other'));
+  check('lookup: unknown jar → not-found', (await failsWith(respond(404))) === 'not-found');
+  check('lookup: throttled → rate-limit', (await failsWith(respond(429))) === 'rate-limit');
+  check('lookup: worker down → lookup', (await failsWith(respond(502))) === 'lookup' && (await failsWith((async () => { throw new TypeError('x'); }) as unknown as typeof fetch)) === 'lookup');
+  check('lookup: a strange answer → lookup', (await failsWith(respond(200, {}))) === 'lookup');
+
   console.log(failures === 0 ? '\nAll jar checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;
 })();

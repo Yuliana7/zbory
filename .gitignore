@@ -32,3 +32,5 @@ dist-ssr
 # PWA
 dev-dist
 *.tsbuildinfo
+# Cloudflare worker
+.wrangler

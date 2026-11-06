@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { SpinnerIcon } from '../../icons';
 import type { FriendsDraft } from '../../hooks/useFriendsDraft';
 
-/** Paste one or several long jar ids (one per line, or separated by spaces/commas): each becomes a
- * helper with its name, amount, goal and status read from Monobank. */
+/** Paste one or several jar links or long ids (one per line, or separated by spaces/commas): each becomes
+ * a helper with its name, amount, goal and status read from Monobank. */
 export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose: () => void }) {
   const { t } = useTranslation('export');
   const [text, setText] = useState('');
@@ -18,7 +18,7 @@ export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose:
     const res = await draft.addByIds(ids);
     setBusy(false);
     setResult(res);
-    if (res.added > 0 && res.invalid === 0 && res.duplicate === 0 && !res.failed) onClose();
+    if (res.added > 0 && res.invalid === 0 && res.duplicate === 0 && res.otherMain === 0 && res.notHelper === 0 && !res.failed) onClose();
   };
 
   return (
@@ -33,7 +33,7 @@ export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose:
         rows={3}
         placeholder={t('friends.addById.placeholder')}
         aria-label={t('friends.addById.placeholder')}
-        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-base text-gray-900 font-mono
+        className="w-full px-3 py-2 rounded-lg border border-gray-200 bg-white text-base text-gray-900
                    focus:outline-none focus:ring-2 focus:ring-indigo-400 focus:border-transparent placeholder:text-gray-400"
       />
       <div className="flex items-center gap-2">
@@ -54,6 +54,8 @@ export function AddByIdPanel({ draft, onClose }: { draft: FriendsDraft; onClose:
           {result.added > 0 && <li className="text-green-700">{t('friends.addById.added', { count: result.added })}</li>}
           {result.invalid > 0 && <li className="text-red-500">{t('friends.addById.invalid', { count: result.invalid })}</li>}
           {result.duplicate > 0 && <li className="text-amber-700">{t('friends.addById.duplicate', { count: result.duplicate })}</li>}
+          {result.otherMain > 0 && <li className="text-amber-700">{t('friends.addById.otherMain', { count: result.otherMain })}</li>}
+          {result.notHelper > 0 && <li className="text-amber-700">{t('friends.addById.notHelper', { count: result.notHelper })}</li>}
           {result.failed && <li className="text-red-500">{t(`friends.jarErrors.${result.failed}`)}</li>}
         </ul>
       )}

@@ -66,6 +66,8 @@ export interface FriendJar {
   jarId?: string;
   /** the jar was closed (known only for linked jars): its numbers are final and the row is read-only */
   closed?: boolean;
+  /** the short id of the main jar this one feeds, when it was added by its link */
+  parentJar?: string;
   /** when the numbers or status last changed (ms) — «latest modified» ordering on the analytics page */
   updatedAt?: number;
   /** when the jar was last read from Monobank (ms) */

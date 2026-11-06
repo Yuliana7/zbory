@@ -1,0 +1,6 @@
+name = "zbory-jar-lookup"
+main = "src/index.ts"
+compatibility_date = "2026-11-01"
+
+[vars]
+ALLOWED_ORIGINS = "https://yuliana7.github.io,http://localhost:5173"
