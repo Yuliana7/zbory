@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint . --report-unused-disable-directives --max-warnings 0",
     "test:render": "node tests/render/run.mjs",
-    "test:tz": "node tests/render/run.mjs --tz-matrix"
+    "test:tz": "node tests/render/run.mjs --tz-matrix",
+    "docs:screenshots": "node scripts/docs-screenshots.mjs"
   },
   "dependencies": {
     "chart.js": "^4.4.6",
@@ -33,6 +34,7 @@
     "eslint-plugin-react-hooks": "^5.1.0",
     "eslint-plugin-react-refresh": "^0.4.16",
     "globals": "^15.14.0",
+    "playwright": "^1.65.0",
     "postcss": "^8.4.49",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.7.2",

@@ -227,6 +227,7 @@ npm run dev          # http://localhost:5173/zbory/
 | `npm run dev` | Vite dev server (the app is served under `/zbory/`) |
 | `npm run build` | Type-check, then production build into `dist/` |
 | `npm run preview` | Serve the production build locally |
+| `npm run docs:screenshots` | Retake the docs screenshots in WebKit, with made-up data (run `npx playwright install webkit` once first) |
 | `npm run lint` | ESLint, zero warnings allowed |
 | `npm run test:render` | Run the test suites |
 
