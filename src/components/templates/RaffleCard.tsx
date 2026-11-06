@@ -22,7 +22,8 @@ interface RaffleCardProps {
   hidden?: Set<string>;
 }
 
-/** Where a raffle stands: the prize, the headline number, and what it takes to be in. */
+/** Where a raffle stands: the prize, the headline number, and what it takes to be in. A known donor's
+ * donations add up towards both the minimum and the biggest amount. */
 export const RaffleCard = forwardRef<HTMLDivElement, RaffleCardProps>(
   ({ kind, raffle, donations = [], friends, format = 'story', palette = DEFAULT_PALETTE, textOverrides = {}, fontScale = 1, bgOverride, safeZonePad, hidden = new Set() }, ref) => {
     const { t } = useTranslation('templates');

@@ -308,7 +308,7 @@
     "wholePeriod": "Весь збір",
     "datePeriod": "Період",
     "noDonations": "У цей період донатів не було.",
-    "biggest": "Найбільший донат: {{amount}} ₴",
+    "biggest": "Найбільша сума: {{amount}} ₴",
     "participants_one": "{{count}} учасник",
     "participants_few": "{{count}} учасники",
     "participants_many": "{{count}} учасників",

@@ -4,7 +4,7 @@ import type { Donation, FriendJar, Raffle } from '../../src/types';
 import { RaffleCard } from '../../src/components/templates/RaffleCard';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { biggestDonation, cleanRaffles, countPeople, eligibleJars, periodText, raffleForCard, raffleKindOf, raffleParticipants } from '../../src/utils/raffles';
+import { biggestDonation, cleanRaffles, eligibleJars, periodText, raffleForCard, raffleKindOf, raffleParticipants } from '../../src/utils/raffles';
 import { loadRawDonations } from './testFixture';
 
 let failures = 0;
@@ -19,21 +19,26 @@ const list = [...ivan, don(1, 500, 'Оля'), don(2, 100, 'Тарас'), don(3, 
 const raffle = (over: Partial<Raffle> = {}): Raffle => ({ id: 'r', kind: 'donors', prize: 'iPhone', ...over });
 
 // ── who takes part ──
-check('Ivan with three donations is one person', countPeople(ivan) === 1);
-check('every anonymous donation counts on its own', countPeople([don(1, 300), don(1, 300), don(1, 300, '🐈')]) === 3);
+check('Ivan with three donations is one person', raffleParticipants(ivan, raffle()) === 1);
+check('every anonymous donation counts on its own', raffleParticipants([don(1, 300), don(1, 300), don(1, 300, '🐈')], raffle()) === 3);
 check('threshold: named once + each anonymous', raffleParticipants(list, raffle({ min: 200 })) === 5, String(raffleParticipants(list, raffle({ min: 200 }))));
 check('the threshold is inclusive', raffleParticipants([don(1, 200, 'А')], raffle({ min: 200 })) === 1);
-check('smaller donations do not add up to the threshold', raffleParticipants([don(1, 150, 'А'), don(2, 150, 'А')], raffle({ min: 200 })) === 0);
+check('a known donor\'s donations add up to the threshold', raffleParticipants([don(1, 150, 'А'), don(2, 150, 'а')], raffle({ min: 200 })) === 1);
+check('anonymous donations do not add up', raffleParticipants([don(1, 150), don(2, 150, '🐈')], raffle({ min: 200 })) === 0);
+check('only donations in the period add up', raffleParticipants([don(1, 150, 'А'), don(5, 150, 'А')], raffle({ min: 200, from: '2026-11-01', to: '2026-11-02' })) === 0);
+check('kopecks add up exactly', raffleParticipants([don(1, 100.1, 'А'), don(2, 99.9, 'А')], raffle({ min: 200 })) === 1);
 check('no minimum: everyone', raffleParticipants(list, raffle()) === 6);
 check('a period counts only its days', raffleParticipants(list, raffle({ min: 200, from: '2026-11-03', to: '2026-11-04' })) === 4);
 check('a single day', raffleParticipants(list, raffle({ from: '2026-11-02', to: '2026-11-02' })) === 2);
-check('a donation counts only if it qualifies inside the period', raffleParticipants(ivan, raffle({ min: 200, from: '2026-11-02', to: '2026-11-02' })) === 0);
+check('what is outside the period does not help', raffleParticipants(ivan, raffle({ min: 200, from: '2026-11-02', to: '2026-11-02' })) === 0);
 check('a day ends at midnight on the user\'s clock', raffleParticipants([{ ...don(2, 500, 'А'), timestamp: new Date(2026, 10, 2, 23, 59) }], raffle({ from: '2026-11-02', to: '2026-11-02' })) === 1);
 
 // ── biggest donation ──
-check('biggest: the amount, one leader', JSON.stringify(biggestDonation(list, raffle())) === JSON.stringify({ amount: 1000, people: 1 }));
+check('biggest: a known donor\'s total, one leader', JSON.stringify(biggestDonation(list, raffle())) === JSON.stringify({ amount: 1350, people: 1 }));
 check('biggest: ties are counted', biggestDonation([don(1, 500, 'А'), don(2, 500, 'Б'), don(3, 500)], raffle())?.people === 3);
-check('biggest: one person twice is one competitor', biggestDonation([don(1, 500, 'А'), don(2, 500, 'а')], raffle())?.people === 1);
+check('biggest: one person twice adds up', JSON.stringify(biggestDonation([don(1, 500, 'А'), don(2, 500, 'а')], raffle())) === JSON.stringify({ amount: 1000, people: 1 }));
+check('biggest: a total ties with a single donation', biggestDonation([don(1, 300, 'А'), don(2, 300, 'А'), don(3, 600, 'Б'), don(3, 600)], raffle())?.people === 3);
+check('biggest: anonymous donations stay separate', biggestDonation([don(1, 300), don(2, 300)], raffle())?.amount === 300);
 check('biggest: within the period', biggestDonation(list, raffle({ from: '2026-11-01', to: '2026-11-02' }))?.amount === 500);
 check('biggest: nothing in the period', biggestDonation(list, raffle({ from: '2026-12-01', to: '2026-12-02' })) === null);
 

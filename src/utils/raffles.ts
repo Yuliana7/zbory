@@ -26,21 +26,28 @@ const inPeriod = (d: Donation, r: Raffle) => {
   return (!r.from || key >= r.from) && (!r.to || key <= r.to);
 };
 
-/** People behind a list of donations: a named donor once, however many donations they made; every
- * anonymous donation on its own, since there is no telling who is behind it. */
-export function countPeople(donations: Donation[]): number {
-  const named = new Set<string>();
-  let anonymous = 0;
+/** What each person gave within the raffle's period: a named donor's donations add up, because they can
+ * be told apart; every anonymous donation stands alone, since there is no telling who is behind it.
+ * In kopecks, so that sums of decimal amounts compare exactly. */
+function contributions(donations: Donation[], raffle: Raffle): number[] {
+  const named = new Map<string, number>();
+  const anonymous: number[] = [];
   for (const d of donations) {
-    if (isAnonymousDonor(d.donor)) anonymous++;
-    else named.add(normalizeDonorKey(d.donor!));
+    if (!inPeriod(d, raffle)) continue;
+    const kopecks = Math.round(d.amount * 100);
+    if (isAnonymousDonor(d.donor)) anonymous.push(kopecks);
+    else {
+      const key = normalizeDonorKey(d.donor!);
+      named.set(key, (named.get(key) ?? 0) + kopecks);
+    }
   }
-  return named.size + anonymous;
+  return [...named.values(), ...anonymous];
 }
 
-/** Who qualifies: one donation of at least the minimum within the period. Smaller donations don't add up. */
+/** Who qualifies: everyone whose contribution in the period reaches the minimum. */
 export function raffleParticipants(donations: Donation[], raffle: Raffle): number {
-  return countPeople(donations.filter((d) => inPeriod(d, raffle) && d.amount >= (raffle.min ?? 0)));
+  const min = Math.round((raffle.min ?? 0) * 100);
+  return contributions(donations, raffle).filter((amount) => amount >= min).length;
 }
 
 export interface BiggestDonation {
@@ -49,12 +56,12 @@ export interface BiggestDonation {
   people: number;
 }
 
-/** The largest donation of the period and how many people match it. Null if nobody donated. */
+/** The largest contribution of the period and how many people match it. Null if nobody donated. */
 export function biggestDonation(donations: Donation[], raffle: Raffle): BiggestDonation | null {
-  const list = donations.filter((d) => inPeriod(d, raffle));
-  if (list.length === 0) return null;
-  const amount = Math.max(...list.map((d) => d.amount));
-  return { amount, people: countPeople(list.filter((d) => d.amount === amount)) };
+  const all = contributions(donations, raffle);
+  if (all.length === 0) return null;
+  const top = Math.max(...all);
+  return { amount: top / 100, people: all.filter((amount) => amount === top).length };
 }
 
 /** The helper jars in the running, biggest first: all that raised anything, or those that reached the minimum. */
