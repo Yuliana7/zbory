@@ -13,6 +13,7 @@ import { SpeedCard } from '../../src/components/templates/SpeedCard';
 import { TopDonorsCard } from '../../src/components/templates/TopDonorsCard';
 import { DonorsCountCard } from '../../src/components/templates/DonorsCountCard';
 import { ThankYouCard } from '../../src/components/templates/ThankYouCard';
+import { DonationStatsCard } from '../../src/components/templates/DonationStatsCard';
 
 const rawData = loadRawDonations('tests/data/Zbir_short.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
@@ -25,6 +26,18 @@ const check = (label: string, ok: boolean, extra = '') => {
 };
 
 const strip = (html: string) => html.replace(/<[^>]+>/g, ' ');
+
+// ── Donation stats card ──
+{
+  const stats = renderToStaticMarkup(<DonationStatsCard aggregates={aggregates} format="story" />);
+  const text = strip(stats).replace(/\u00A0/g, ' ');
+  check('Stats: median, mode, mean, largest, smallest', text.includes('Типовий донат') && text.includes('Найчастіший') && text.includes('Середній') && text.includes('Найбільший') && text.includes('Найменший'));
+  check('Stats: the middle half', text.includes('Половина всіх донатів') && !text.includes('{{'));
+  const shares = [...text.matchAll(/(\d+)\s*%/g)].map((m) => Number(m[1]));
+  check('Stats: size shares add up', shares.length === 3 && Math.abs(shares.reduce((a2, b) => a2 + b, 0) - 100) <= 1, shares.join());
+  const none = renderToStaticMarkup(<DonationStatsCard aggregates={aggregates} format="post" hidden={new Set(['stats', 'range', 'sizes'])} />);
+  check('Stats: parts can be removed', !none.includes('Найчастіший') && !none.includes('Половина') && !none.includes('За сумою'));
+}
 
 // ── Progress card ──
 let html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} goal={10000} format="post" />);

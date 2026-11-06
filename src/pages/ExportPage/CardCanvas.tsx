@@ -10,6 +10,7 @@ import { UrgencyCard } from '../../components/templates/UrgencyCard';
 import { TopDonorsCard } from '../../components/templates/TopDonorsCard';
 import { WeeklyRecapCard } from '../../components/templates/WeeklyRecapCard';
 import { SpeedCard } from '../../components/templates/SpeedCard';
+import { DonationStatsCard } from '../../components/templates/DonationStatsCard';
 import { FundsFlowCard } from '../../components/templates/FundsFlowCard';
 import { FinalReportCard } from '../../components/templates/FinalReportCard';
 import { ConcreteAskCard } from '../../components/templates/ConcreteAskCard';
@@ -188,6 +189,7 @@ function TemplateRenderer({
     case 'top-donors-count': return <TopDonorsCard {...shared} mode="count" />;
     case 'weekly-recap': return <WeeklyRecapCard {...shared} />;
     case 'speed': return <SpeedCard {...shared} />;
+    case 'donation-stats': return <DonationStatsCard {...shared} />;
     case 'funds-flow': return <FundsFlowCard {...shared} showRefunds={showRefunds} />;
     case 'final-report': return <FinalReportCard {...shared} />;
     case 'concrete-ask': return <ConcreteAskCard {...shared} goal={goal} />;

@@ -202,7 +202,7 @@ src/
   pages/            Upload, Insights, Gallery, Export (the four steps)
     ExportPage/       editor: canvas, panels, background gestures, ZIP export
   components/
-    templates/        the 20 card templates + shared card shell
+    templates/        the card templates + shared card shell
     insights/         charts, analytics panels, the friends and day-by-day pages
     upload/           new-project options, manual
                       entry, Monobank import, saved-project list and its Редагувати menu;

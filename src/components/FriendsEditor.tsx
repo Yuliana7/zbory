@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { useFriendsDraft, type FriendsDraft } from '../hooks/useFriendsDraft';
-import { CheckIcon, PlusIcon } from '../icons';
+import { CheckIcon } from '../icons';
 import { downloadCSV } from '../utils/csvExporter';
-import { computeFriendStats, friendsToCSV, newFriend, rowsToFriends, type FriendDraftRow } from '../utils/friendJars';
+import { computeFriendStats, friendsToCSV, rowsToFriends, type FriendDraftRow } from '../utils/friendJars';
 import { FRIEND_COLUMNS, FriendRow } from './friends/FriendRow';
 import { AddByIdPanel } from './friends/AddByIdPanel';
 
@@ -26,8 +26,6 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
 
   const patch = (id: string, change: Partial<FriendDraftRow>) =>
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, ...change } : r)));
-
-  const add = () => setRows((rs) => [...rs, { id: newFriend().id, name: '', raised: '', target: '' }]);
 
   const remove = (id: string) => setRows((rs) => rs.filter((r) => r.id !== id));
 
@@ -73,46 +71,6 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
           </button>
         </div>
       </div>
-      {addingById && <AddByIdPanel draft={draft} onClose={() => setAddingById(false)} />}
-
-      {rows.length > 0 && (
-        <div
-          aria-hidden="true"
-          className={`hidden sm:grid gap-2 px-3 text-[11px] font-medium uppercase tracking-wide text-gray-400 ${FRIEND_COLUMNS}`}
-        >
-          <span>{t('friends.columns.name')}</span>
-          <span>{t('friends.columns.raised')}</span>
-          <span>{t('friends.columns.target')}</span>
-          <span className="text-center">{t('friends.columns.progress')}</span>
-          <span>{t('friends.columns.status')}</span>
-          <span />
-        </div>
-      )}
-      <div className="space-y-2">
-        {rows.map((r) => (
-          <FriendRow
-            key={r.id}
-            row={r}
-            duplicate={duplicates.has(r.id)}
-            busy={busyIds.includes(r.id)}
-            error={rowErrors[r.id]}
-            onChange={(change) => patch(r.id, change)}
-            onRemove={() => remove(r.id)}
-            onRefresh={() => draft.refreshOne(r.id)}
-            onLink={(input) => draft.linkJar(r.id, input)}
-            onUnlink={() => draft.unlinkJar(r.id)}
-          />
-        ))}
-      </div>
-      <button
-        onClick={add}
-        className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-dashed
-                   border-indigo-200 hover:border-indigo-400 hover:bg-indigo-50/50 text-indigo-600 text-sm font-medium transition-colors"
-      >
-        <PlusIcon className="w-3.5 h-3.5" />
-        {t('friends.add')}
-      </button>
-      {stats.exceedsTotal && <p className="text-xs text-red-500">{t('friends.exceeds')}</p>}
       {dirty ? (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
           <p className="text-sm text-amber-800">{t('friends.unsaved')}</p>
@@ -145,6 +103,39 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
           <p className="text-xs text-gray-500">{t('friends.savedSession')}</p>
         ))
       )}
+      {addingById && <AddByIdPanel draft={draft} onClose={() => setAddingById(false)} />}
+
+      {rows.length > 0 && (
+        <div
+          aria-hidden="true"
+          className={`hidden sm:grid gap-2 px-3 text-[11px] font-medium uppercase tracking-wide text-gray-400 ${FRIEND_COLUMNS}`}
+        >
+          <span>{t('friends.columns.name')}</span>
+          <span>{t('friends.columns.raised')}</span>
+          <span>{t('friends.columns.target')}</span>
+          <span className="text-center">{t('friends.columns.progress')}</span>
+          <span>{t('friends.columns.status')}</span>
+          <span />
+        </div>
+      )}
+      <div className="space-y-2">
+        {/* the list is kept in the order helpers were added; the newest shows first */}
+        {[...rows].reverse().map((r) => (
+          <FriendRow
+            key={r.id}
+            row={r}
+            duplicate={duplicates.has(r.id)}
+            busy={busyIds.includes(r.id)}
+            error={rowErrors[r.id]}
+            onChange={(change) => patch(r.id, change)}
+            onRemove={() => remove(r.id)}
+            onRefresh={() => draft.refreshOne(r.id)}
+            onLink={(input) => draft.linkJar(r.id, input)}
+            onUnlink={() => draft.unlinkJar(r.id)}
+          />
+        ))}
+      </div>
+      {stats.exceedsTotal && <p className="text-xs text-red-500">{t('friends.exceeds')}</p>}
     </div>
   );
 }

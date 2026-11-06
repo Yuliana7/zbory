@@ -42,21 +42,6 @@ export const DonorsCountCard = forwardRef<HTMLDivElement, DonorsCountCardProps>(
         {/* Header */}
         {!hidden.has('header') && (
         <div data-element="header" style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: isStory ? 80 : 60 }}>
-          <div
-            style={{
-              width: 56,
-              height: 56,
-              background: p.logoGradient,
-              borderRadius: 14,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: fz(28),
-              color: '#fff',
-            }}
-          >
-            ₴
-          </div>
           <div style={{ fontSize: fz(28), fontWeight: 700 }}>{tx('title')}</div>
         </div>
         )}
