@@ -1,10 +1,11 @@
 import type { FriendJar } from '../types';
 import { applyJarInfo, friendsToRows, rowsToFriends } from './friendJars';
-import { JarError, fetchPublicJar, type JarErrorKind } from './monobankJar';
+import { JarError, fetchPublicJar, type JarErrorKind, type PublicJar } from './monobankJar';
 
 /** A linked jar read less than this long ago is not read again by the automatic refresh. */
 export const STALE_AFTER_MS = 15 * 60 * 1000;
-/** Pause between two reads — the endpoint is throttled. */
+/** Pause before throttled jars are read again, and between those second reads. */
+export const RETRY_PAUSE_MS = 3000;
 export const REFRESH_GAP_MS = 1000;
 
 /** Jars that can still change: linked to a long id and not closed. */
@@ -30,60 +31,101 @@ export function dataAsOf(friends: FriendJar[]): number | undefined {
   return Math.min(...open.map((f) => f.syncedAt!));
 }
 
-export interface RefreshOptions {
-  /** which helpers to read — by default every linked open one */
-  only?: (f: FriendJar) => boolean;
+export interface ReadOptions {
   fetch?: typeof fetch;
   sleep?: (ms: number) => Promise<void>;
-  now?: () => number;
-  gapMs?: number;
+  /** how long to let Monobank cool down before jars it throttled are tried again */
+  retryPauseMs?: number;
   signal?: AbortSignal;
-  /** called before each read (`current` is the helper being read) and after the last one */
-  onProgress?: (p: { done: number; total: number; current?: string }) => void;
+  /** after each jar is settled */
+  onSettled?: (id: string, jar: PublicJar | null, error: JarErrorKind | null) => void;
+}
+
+export interface ReadResult {
+  read: Map<string, PublicJar>;
+  failed: Map<string, JarErrorKind>;
+  /** Monobank still says "too many requests" after the retry */
+  rateLimited: boolean;
+}
+
+const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
+
+/**
+ * Reads the given jars all at once. The endpoint throttles per IP, so a burst can get 429s: whatever
+ * came back is kept, and the throttled jars get one more try after a pause, one at a time, stopping
+ * if Monobank is still saying no.
+ */
+export async function readJars(jars: Array<{ id: string; jarId: string }>, opts: ReadOptions = {}): Promise<ReadResult> {
+  const { sleep = realSleep, retryPauseMs = RETRY_PAUSE_MS, signal, onSettled } = opts;
+  const result: ReadResult = { read: new Map(), failed: new Map(), rateLimited: false };
+
+  const readOne = async (id: string, jarId: string) => {
+    try {
+      const jar = await fetchPublicJar(jarId, { fetch: opts.fetch, signal });
+      result.read.set(id, jar);
+      result.failed.delete(id);
+      onSettled?.(id, jar, null);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      const kind = err instanceof JarError ? err.kind : 'unexpected';
+      result.failed.set(id, kind);
+      onSettled?.(id, null, kind);
+    }
+  };
+
+  await Promise.all(jars.map((j) => readOne(j.id, j.jarId)));
+
+  const throttled = jars.filter((j) => result.failed.get(j.id) === 'rate-limit');
+  if (throttled.length > 0 && !signal?.aborted) {
+    await sleep(retryPauseMs);
+    for (const j of throttled) {
+      if (signal?.aborted) break;
+      await readOne(j.id, j.jarId);
+      if (result.failed.get(j.id) === 'rate-limit') break;
+      await sleep(REFRESH_GAP_MS);
+    }
+  }
+  result.rateLimited = [...result.failed.values()].includes('rate-limit');
+  return result;
+}
+
+export interface RefreshOptions extends Omit<ReadOptions, 'onSettled'> {
+  /** which helpers to read — by default every linked open one */
+  only?: (f: FriendJar) => boolean;
+  now?: () => number;
+  onProgress?: (p: { done: number; total: number }) => void;
 }
 
 export interface RefreshResult {
   friends: FriendJar[];
   updated: number;
   failed: number;
-  /** stopped early on "too many requests" */
+  /** some jars were left unread on "too many requests" */
   rateLimited: boolean;
   firstError?: JarErrorKind;
 }
 
-const realSleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
-
-/**
- * Reads the linked open jars one after another and returns the helpers with their new amounts and status.
- * Whatever the user typed stays (see applyJarInfo); `updatedAt` moves only for helpers that really changed.
- * Stops at the first 429 or when `signal` aborts — what was read until then is kept.
- */
+/** Reads the linked open jars and returns the helpers with their new amounts and status. Whatever the
+ * user typed stays (see applyJarInfo); `updatedAt` moves only for helpers that really changed. */
 export async function refreshSavedFriends(friends: FriendJar[], opts: RefreshOptions = {}): Promise<RefreshResult> {
-  const { only = () => true, sleep = realSleep, now = Date.now, gapMs = REFRESH_GAP_MS, signal, onProgress } = opts;
+  const { only = () => true, now = Date.now, onProgress, ...read } = opts;
   const todo = linkedOpen(friends).filter(only);
-  let rows = friendsToRows(friends);
-  const result: Omit<RefreshResult, 'friends'> = { updated: 0, failed: 0, rateLimited: false };
-
-  for (let i = 0; i < todo.length; i++) {
-    if (signal?.aborted) break;
-    if (i > 0) await sleep(gapMs);
-    if (signal?.aborted) break;
-    const f = todo[i];
-    onProgress?.({ done: i, total: todo.length, current: f.id });
-    try {
-      const jar = await fetchPublicJar(f.jarId!, { fetch: opts.fetch, signal });
-      rows = rows.map((r) => (r.id === f.id ? applyJarInfo(r, jar, now()) : r));
-      result.updated++;
-    } catch (err) {
-      if (err instanceof DOMException && err.name === 'AbortError') break;
-      result.failed++;
-      result.firstError ??= err instanceof JarError ? err.kind : 'unexpected';
-      if (err instanceof JarError && err.kind === 'rate-limit') {
-        result.rateLimited = true;
-        break;
-      }
-    }
-  }
-  onProgress?.({ done: todo.length, total: todo.length });
-  return { friends: rowsToFriends(rows, friends, now()), ...result };
+  let done = 0;
+  onProgress?.({ done, total: todo.length });
+  const res = await readJars(
+    todo.map((f) => ({ id: f.id, jarId: f.jarId! })),
+    { ...read, onSettled: () => onProgress?.({ done: ++done, total: todo.length }) },
+  );
+  const at = now();
+  const rows = friendsToRows(friends).map((r) => {
+    const jar = res.read.get(r.id);
+    return jar ? applyJarInfo(r, jar, at) : r;
+  });
+  return {
+    friends: rowsToFriends(rows, friends, at),
+    updated: res.read.size,
+    failed: res.failed.size,
+    rateLimited: res.rateLimited,
+    firstError: [...res.failed.values()][0],
+  };
 }

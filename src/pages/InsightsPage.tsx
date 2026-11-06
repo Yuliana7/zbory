@@ -1,20 +1,26 @@
-import { useMemo, useState } from 'react';
+import { Suspense, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
-// import { SaveCampaignControl } from '../components/insights/SaveCampaignControl';
+import { MergeBanner } from '../components/insights/MergeBanner';
 import { CrossCampaignSection } from '../components/insights/CrossCampaignSection';
-import { detectMoments } from '../utils/momentDetector';
 import { normalizeDonations } from '../utils/csvParser';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments, attachCampaignCounts } from '../utils/commentAnalyzer';
-import { ArrowLeftIcon, ArrowRightIcon, XIcon } from '../icons';
+import { rawDonationsToManualRows } from '../utils/csvExporter';
+import { lazyNamed } from '../utils/lazyPage';
+import { PageLoading } from '../components/PageLoading';
+import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+
+const FriendsPage = lazyNamed(() => import('../components/insights/FriendsPage'), 'FriendsPage');
+const DailyPage = lazyNamed(() => import('../components/insights/DailyPage'), 'DailyPage');
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
   const { t: tC } = useTranslation('campaigns');
-  const { state, dispatch, goToStep, handleTemplateSelect, handleReset } = useAppContext();
+  const { t: tU } = useTranslation('upload');
+  const { state, dispatch, handleReset } = useAppContext();
   const { app } = state;
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
@@ -26,7 +32,7 @@ export function InsightsPage() {
     if (!ds) return null;
     const { donations, withdrawals, currentBalance } = normalizeDonations(ds.rawData);
     const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
-    return { aggregates, insights: generateInsights(aggregates, t), commentInsights: analyzeComments(donations) };
+    return { aggregates, donations, withdrawals, insights: generateInsights(aggregates, t), commentInsights: analyzeComments(donations) };
   }, [datasets, viewId, t]);
 
   const isMerged = !perJar;
@@ -43,9 +49,35 @@ export function InsightsPage() {
     };
   }, [isMerged, datasets, app.commentInsights]);
 
+  const invalidRows = useMemo(
+    () =>
+      rawDonationsToManualRows(app.rawData ?? []).filter((row) => {
+        const amount = parseFloat(row.amount);
+        return !row.date || !row.amount || isNaN(amount) || amount <= 0;
+      }).length,
+    [app.rawData],
+  );
+
   if (!app.aggregates || !app.insights) return null;
 
-  const moments = detectMoments(app.aggregates, t, app.goal);
+  if (app.insightsView === 'friends') {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <FriendsPage friends={app.friends ?? []} totalAmount={app.aggregates.totalAmount} />
+      </Suspense>
+    );
+  }
+  if (app.insightsView === 'daily') {
+    return (
+      <Suspense fallback={<PageLoading />}>
+        <DailyPage
+          aggregates={perJar?.aggregates ?? app.aggregates}
+          donations={perJar?.donations ?? app.donations ?? []}
+          withdrawals={perJar?.withdrawals ?? app.withdrawals ?? []}
+        />
+      </Suspense>
+    );
+  }
 
   return (
     <div>
@@ -53,8 +85,7 @@ export function InsightsPage() {
         <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
-            // straight from the project list → back to the list; after the preview → back to the preview
-            onClick={() => (app.fromLibrary ? handleReset() : goToStep('upload'))}
+            onClick={handleReset}
             className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"
@@ -90,36 +121,11 @@ export function InsightsPage() {
         </div>
       )}
 
-      {/* Share-worthy moments — one tap jumps to the matching template */}
-      {isMerged && moments.length > 0 && !app.momentsDismissed && (
-        <div className="mb-6 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4">
-          <div className="flex items-start justify-between gap-2 mb-3">
-            <p className="text-xs font-semibold text-amber-700 uppercase tracking-wider">{t('moments.title')}</p>
-            <button
-              onClick={() => dispatch({ type: 'MOMENTS_DISMISSED' })}
-              title={t('moments.dismiss')}
-              aria-label={t('moments.dismiss')}
-              className="-m-1 p-1 text-amber-500 hover:text-amber-800 transition-colors"
-            >
-              <XIcon className="w-4 h-4" />
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {moments.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => handleTemplateSelect(m.templateId)}
-                className="flex items-center gap-2 px-3 py-2 bg-white border border-amber-200 rounded-xl
-                           text-sm font-medium text-gray-800 shadow-sm
-                           hover:border-amber-400 hover:shadow transition-all"
-              >
-                <span className="text-base leading-none">{m.icon}</span>
-                {m.text}
-                <span className="text-amber-500 font-semibold">→</span>
-              </button>
-            ))}
-          </div>
-        </div>
+      {app.lastMerge && <MergeBanner merge={app.lastMerge} />}
+      {invalidRows > 0 && (
+        <p role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
+          {tU('preview.invalidRows', { count: invalidRows })}
+        </p>
       )}
 
       {/* Cross-campaign analytics — only in multi mode, on the merged view */}

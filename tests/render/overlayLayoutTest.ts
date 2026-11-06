@@ -1,4 +1,4 @@
-import { placeButtons, type MeasuredBox } from '../../src/utils/overlayLayout';
+import { placeButtons, undoLastHidden, type MeasuredBox } from '../../src/utils/overlayLayout';
 
 let failures = 0;
 const check = (label: string, ok: boolean, extra = '') => {
@@ -65,6 +65,13 @@ check('tiny box: still ends up separated', minPairDistance(placed) >= STEP - 1e-
 // ── nothing to place ──
 check('empty input', placeButtons([], SIZE, GAP).length === 0);
 check('single element stays centered', (() => { const [b] = placeButtons([{ id: 'x', left: 10, top: 10, width: 50, height: 50 }], SIZE, GAP); return center(b).x === 35 && center(b).y === 35; })());
+
+// ── undo in the elements editor ──
+const removable = [{ id: 'header' }, { id: 'chart' }, { id: 'flag', storyOnly: true }];
+check('undo: takes back the latest removal', undoLastHidden(['header', 'chart'], removable, 'story').join() === 'header');
+check('undo: skips what this format cannot show', undoLastHidden(['chart', 'flag'], removable, 'post').join() === 'flag');
+const none = ['flag'];
+check('undo: nothing to take back returns the same list', undoLastHidden(none, removable, 'post') === none);
 
 console.log(failures === 0 ? '\nAll overlay layout checks passed.' : `\n${failures} check(s) FAILED`);
 process.exitCode = failures === 0 ? 0 : 1;

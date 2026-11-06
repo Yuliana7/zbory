@@ -6,7 +6,7 @@ import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateN
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
-import { FriendsShareCard } from '../../src/components/templates/FriendsShareCard';
+import { FriendsStatsCard } from '../../src/components/templates/FriendsStatsCard';
 import { FriendsClosedCard } from '../../src/components/templates/FriendsClosedCard';
 
 let failures = 0;
@@ -49,10 +49,8 @@ const many = Array.from({ length: 12 }, (_, i) => ({ id: `m${i}`, name: `Дру�
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={many} format="story" />);
 check('Leaderboard: caps rows and says how many more', strip(html).includes('+ ще 5'));
 
-html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={real} format="post" />);
-const expectPct = Math.round((1500 / aggregates.totalAmount) * 100);
-check('Share: shows the share %', strip(html).includes(`${Math.min(100, expectPct)}%`), `(expected ${expectPct}%)`);
-check('Share: counts friends', />2</.test(html));
+html = renderToStaticMarkup(<FriendsStatsCard aggregates={aggregates} friends={real} format="post" />);
+check('Stats: no targets → amount and jar count, no bar', /1\s*500\s*₴/.test(strip(html)) && />2</.test(html) && !html.includes('data-element="targetBar"'));
 
 // ── targets ──
 const tg = [
@@ -101,11 +99,16 @@ check('Leaderboard: overflow shows 142%', strip(html).includes('142%'));
 check('Leaderboard: ✓ only on reached jars', (html.match(/data-reached/g) ?? []).length === 1);
 check('Leaderboard: reached line', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 3'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={tg} hiddenFriendIds={['a']} format="story" />);
-check('Leaderboard: hidden jar gone, total + reached follow', !strip(html).includes('Оля') && !html.includes('data-reached') && /800\s*₴/.test(strip(html)) && strip(html).includes('0 з 2'));
+check('Leaderboard: hidden jar leaves the list, total + reached stay whole', !strip(html).includes('Оля') && !html.includes('data-reached') && /2\s*220\s*₴/.test(strip(html)) && strip(html).includes('1 з 3'));
 html = renderToStaticMarkup(<FriendsLeaderboardCard aggregates={aggregates} friends={real} format="story" />);
 check('Leaderboard: no targets → no reached line, no ✓', !html.includes('data-reached') && !strip(html).includes('Досягли цілі'));
-html = renderToStaticMarkup(<FriendsShareCard aggregates={aggregates} friends={tg} format="post" />);
-check('Share: counts only jars that raised something', />3</.test(html));
+const statsJars = [
+  { id: 'a', name: 'А', raised: 600, target: 1000 },
+  { id: 'b', name: 'Б', raised: 200, target: 1000 },
+  { id: 'c', name: 'В', raised: 200 }, // no target: counts at its own amount
+];
+html = renderToStaticMarkup(<FriendsStatsCard aggregates={aggregates} friends={statsJars} format="post" />);
+check('Stats: raised, jars, combined target and the same % as analytics', /1\s*000\s*₴/.test(strip(html)) && />3</.test(html) && /2\s*200\s*₴/.test(strip(html)) && strip(html).includes('45%'));
 
 // ── linked jars, status, sorting, paging ──
 const T0 = 1_000_000;
@@ -153,10 +156,10 @@ const fl = [
 ];
 const latest = latestModified(fl);
 check('latest: newest change first, never-changed last', latest.map((f) => f.id).join() === '3,6,4,1,7,5,2');
-const pg0 = pageOf(latest, 0);
-const pg1 = pageOf(latest, 1);
-check('page: five at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
-check('page: out of range clamps', pageOf(latest, 9).page === 1 && pageOf([], 3).page === 0);
+const pg0 = pageOf(latest, 0, 5);
+const pg1 = pageOf(latest, 1, 5);
+check('page: a given size at a time', pg0.items.length === 5 && pg1.items.length === 2 && pg0.pages === 2);
+check('page: out of range clamps', pageOf(latest, 9, 5).page === 1 && pageOf([], 3).page === 0);
 
 const row0 = { id: 'r', name: '', raised: '', target: '' };
 const jarInfo = { title: 'Akatsuki Team', ownerName: 'Наталія Б.', raised: 500, goal: 10000, closed: false };
@@ -182,7 +185,7 @@ check('Closed card: hero total and count of closed jars', /2\s?000\s*₴/.test(s
 check('Closed card: ✓ only on the jar that reached its target', (html.match(/data-reached/g) ?? []).length === 1 && strip(html).includes('150%'));
 check('Closed card: reached line and thanks', strip(html).includes('Досягли цілі') && strip(html).includes('1 з 2') && strip(html).includes('Дякуємо'));
 html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} hiddenFriendIds={['c1']} format="story" />);
-check('Closed card: a hidden jar is gone and the totals follow', !strip(html).includes('Закрита Оля') && /500\s*₴/.test(strip(html)) && strip(html).includes('Закрито 2 банки') && !html.includes('data-reached'));
+check('Closed card: a hidden jar leaves the list, the totals stay whole', !strip(html).includes('Закрита Оля') && /2\s?000\s*₴/.test(strip(html)) && strip(html).includes('Закрито 3 банки') && strip(html).includes('1 з 2') && !html.includes('data-reached'));
 html = renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={jars} format="post" hidden={new Set(['hero', 'thanks', 'reachedLine'])} />);
 check('Closed card: removable elements', !strip(html).includes('Дякуємо') && !strip(html).includes('Досягли цілі') && !strip(html).includes('Закрито 3'));
 check('Closed card: no closed jars is safe', renderToStaticMarkup(<FriendsClosedCard aggregates={aggregates} friends={real} format="story" />).includes('0 ₴'));

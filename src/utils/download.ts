@@ -1,5 +1,5 @@
 // iPadOS reports itself as a Mac, hence the touch-points check.
-function isIOS(): boolean {
+export function isIOS(): boolean {
   const { userAgent, platform, maxTouchPoints } = navigator;
   return /iP(hone|ad|od)/.test(userAgent) || (platform === 'MacIntel' && maxTouchPoints > 1);
 }

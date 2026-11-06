@@ -5,6 +5,9 @@ import {
   loadCampaignData,
   deleteCampaign,
   computeCampaignSummary,
+  buildBackup,
+  parseBackup,
+  restoreBackup,
 } from '../../src/utils/campaignStore';
 import { DEFAULT_SHARED_STYLE } from '../../src/utils/exportStack';
 import type { RawDonation } from '../../src/types';
@@ -104,4 +107,40 @@ const raw: RawDonation[] = [
   assertEq('delete: gone from list', (await listCampaigns()).length, 1);
   assertEq('delete: meta gone', await getCampaignMeta(created.id), null);
   assertEq('delete: data gone', await loadCampaignData(created.id), null);
+
+  // ── backup ──
+  const friend = { id: 'f', name: 'Оля', raised: 100, history: [{ at: 1, raised: 50 }, { at: 2, raised: 100 }] };
+  const kept = await saveCampaign({ name: 'З друзями', rawData: raw, fileName: null, goal: 500, friends: [friend], monobankJar: { id: 'j', title: 'Банка' }, monobankSyncedAt: 123 });
+  const backup = await buildBackup(999);
+  const text = JSON.stringify(backup);
+  assertEq('backup: every project', backup.projects.length, 2);
+  assertEq('backup: reads back from text', parseBackup(text)?.projects.length, 2);
+  assertEq('backup: not JSON', parseBackup('hello'), null);
+  assertEq('backup: another JSON file', parseBackup('{"a":1}'), null);
+  assertEq('backup: a future version', parseBackup(JSON.stringify({ ...backup, version: 2 })), null);
+  assertEq('backup: broken rows', parseBackup(JSON.stringify({ ...backup, projects: [{ meta: backup.projects[0].meta, data: { rawData: [{ x: 1 }] } }] })), null);
+
+  // lost everything: it all comes back, history included
+  for (const c of await listCampaigns()) await deleteCampaign(c.id);
+  let restored = await restoreBackup(parseBackup(text)!);
+  assertEq('restore: all added', `${restored.added}/${restored.updated}/${restored.kept}`, '2/0/0');
+  const back = await loadCampaignData(kept.id);
+  const backMeta = await getCampaignMeta(kept.id);
+  assertEq('restore: rows', back?.rawData.length, raw.length);
+  assertEq('restore: helper history', back?.friends[0].history?.length, 2);
+  assertEq('restore: jar and last renewal', `${back?.monobankJar?.id} ${backMeta?.monobankSyncedAt}`, 'j 123');
+  assertEq('restore: keeps its saved time', backMeta?.updatedAt, kept.updatedAt);
+
+  // same file again: nothing changes; a newer local project is never overwritten
+  restored = await restoreBackup(parseBackup(text)!);
+  assertEq('restore: again changes nothing', `${restored.added}/${restored.updated}/${restored.kept}`, '0/0/2');
+  await new Promise((r) => setTimeout(r, 5));
+  await saveCampaign({ id: kept.id, name: 'Новіша назва', rawData: raw, fileName: null });
+  restored = await restoreBackup(parseBackup(text)!);
+  assertEq('restore: a newer local copy stays', (await getCampaignMeta(kept.id))?.name, 'Новіша назва');
+  const newer = parseBackup(text)!;
+  const entry = newer.projects.find((p) => p.meta.id === kept.id)!;
+  entry.meta.updatedAt = Date.now() + 1000;
+  restored = await restoreBackup(newer);
+  assertEq('restore: a newer backup replaces', `${restored.updated} ${(await getCampaignMeta(kept.id))?.name}`, '1 З друзями');
 })();

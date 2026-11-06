@@ -73,7 +73,7 @@ export function filterAggregates(
   dateTo: string,
 ): Aggregates {
   if (!dateFrom && !dateTo) return fullAggregates;
-  const from = dateFrom ? new Date(dateFrom).getTime() : 0;
+  const from = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : 0;
   const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
   const filtered = donations.filter((d) => {
     const ts = d.timestamp.getTime();

@@ -1,4 +1,4 @@
-import type { FriendJar } from '../types';
+import type { FriendJar, FriendSnapshot } from '../types';
 import { generateId } from './id';
 import type { PublicJar } from './monobankJar';
 
@@ -119,6 +119,7 @@ export interface FriendDraftRow {
   closed?: boolean;
   updatedAt?: number;
   syncedAt?: number;
+  history?: FriendSnapshot[];
 }
 
 export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[] =>
@@ -131,7 +132,25 @@ export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[
     closed: f.closed,
     updatedAt: f.updatedAt,
     syncedAt: f.syncedAt,
+    history: f.history,
   }));
+
+/** How many points a helper's history keeps (one a day at most, so over a year). */
+const HISTORY_LIMIT = 400;
+
+/**
+ * A helper's history after seeing `raised`. A point is added only when the amount changed, one per day
+ * (a later change that day replaces it); a helper with no history starts from what was known before,
+ * so the first change already has something to compare with.
+ */
+export function nextHistory(old: FriendJar | undefined, history: FriendSnapshot[] | undefined, raised: number, now: number): FriendSnapshot[] {
+  const base = history ?? (old ? [{ at: old.syncedAt ?? old.updatedAt ?? now, raised: old.raised }] : []);
+  const last = base[base.length - 1];
+  if (last && last.raised === raised) return base;
+  const point = { at: now, raised };
+  const sameDay = last && base.length > 1 && new Date(last.at).toDateString() === new Date(now).toDateString();
+  return [...(sameDay ? base.slice(0, -1) : base), point].slice(-HISTORY_LIMIT);
+}
 
 /**
  * Typed rows → clean helpers, exactly what gets stored. `updatedAt` moves to `now` only for a helper
@@ -156,7 +175,8 @@ export function rowsToFriends(rows: FriendDraftRow[], prev: FriendJar[] = [], no
       const same =
         old && old.name.trim() === f.name.trim() && old.raised === f.raised && (old.target ?? 0) === (f.target ?? 0) && !!old.closed === !!f.closed;
       const updatedAt = same ? (old.updatedAt ?? r.updatedAt) : now;
-      return updatedAt ? { ...f, updatedAt } : f;
+      const history = nextHistory(old, old?.history ?? r.history, f.raised, now);
+      return { ...f, ...(updatedAt ? { updatedAt } : null), history };
     }),
   );
 }
@@ -199,7 +219,11 @@ export function sortFriends(friends: FriendJar[], key: FriendSortKey, desc = fal
   return desc ? out.reverse() : out;
 }
 
-export const FRIENDS_PAGE_SIZE = 5;
+export const fmtUah = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
+
+/** how many helpers the analytics page previews */
+export const FRIENDS_PREVIEW = 5;
+export const FRIENDS_PAGE_SIZE = 10;
 
 /** Helpers by last change, newest first (never-changed ones last, biggest first). */
 export const latestModified = (friends: FriendJar[]) => sortFriends(friends, 'modified');

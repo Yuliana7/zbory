@@ -1,15 +1,19 @@
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useAppContext } from './context/AppContext'
 import type { AppState } from './types'
 import { UploadPage } from './pages/UploadPage'
-import { InsightsPage } from './pages/InsightsPage'
-import { GalleryPage } from './pages/GalleryPage'
-import { ExportPage } from './pages/ExportPage'
+import { lazyNamed } from './utils/lazyPage'
+import { PageLoading } from './components/PageLoading'
 import { SafeAreaTopBar } from './components/SafeAreaTopBar'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
 import { HryvniaIcon } from './icons/HryvniaIcon'
+
+// Step 1 is what everyone sees first; the rest arrive when they are opened
+const InsightsPage = lazyNamed(() => import('./pages/InsightsPage'), 'InsightsPage')
+const GalleryPage = lazyNamed(() => import('./pages/GalleryPage'), 'GalleryPage')
+const ExportPage = lazyNamed(() => import('./pages/ExportPage'), 'ExportPage')
 
 const STEP_INDEX: Record<AppState['step'], number> = {
   upload: 1,
@@ -28,7 +32,7 @@ function App() {
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [app.step])
+  }, [app.step, app.insightsView])
 
   const stepLabels = [
     t('steps.upload'),
@@ -110,10 +114,12 @@ function App() {
         )}
 
         <div className="animate-fade-in">
-          {app.step === 'upload' && <UploadPage />}
-          {app.step === 'insights' && <InsightsPage />}
-          {app.step === 'gallery' && <GalleryPage />}
-          {app.step === 'export' && <ExportPage />}
+          <Suspense fallback={<PageLoading />}>
+            {app.step === 'upload' && <UploadPage />}
+            {app.step === 'insights' && <InsightsPage />}
+            {app.step === 'gallery' && <GalleryPage />}
+            {app.step === 'export' && <ExportPage />}
+          </Suspense>
         </div>
       </main>
 

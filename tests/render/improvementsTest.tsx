@@ -1,10 +1,8 @@
 import { writeFileSync } from 'node:fs';
 import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
-import i18n from '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations, defaultAskUnit } from '../../src/utils/dataAggregator';
-import { detectMoments } from '../../src/utils/momentDetector';
 import { analyzeComments, getPersonalComments } from '../../src/utils/commentAnalyzer';
 import { createZip } from '../../src/utils/zip';
 import { FinalReportCard } from '../../src/components/templates/FinalReportCard';
@@ -24,7 +22,6 @@ const check = (label: string, ok: boolean, extra = '') => {
 };
 
 // t bound to real i18next instance (all namespaces loaded)
-const tInsights = i18n.getFixedT('uk', 'insights');
 const GOAL = 8000;
 
 // ── Concrete ask math: goal 8000, total 4480 → remaining 3520, median 200 → unit 200 → 18 донатів ──
@@ -101,13 +98,6 @@ html = renderToStaticMarkup(<FinalReportCard aggregates={aggregates} format="pos
 check('safeZonePad ignored for post-4-5 format', html.includes('padding:80px'));
 check('post-4-5 renders at 1080x1350', html.includes('height:1350px'));
 
-// ── Moments ──
-const moments = detectMoments(aggregates, tInsights, GOAL);
-console.log('─── Moments (goal 8 000) ───');
-for (const m of moments) console.log(`  ${m.icon} ${m.text} → ${m.templateId}`);
-check('moments: goal 50% detected', moments.some((m) => m.id === 'goal-50'));
-check('moments: record day is fresh (single-day campaign, best day = last day) → present', moments.some((m) => m.id === 'record-day'));
-check('moments: no missing i18n', moments.every((m) => !m.text.includes('moments.') && !m.text.includes('{{')));
 
 // ── ZIP writer: build a zip, verify with unzip ──
 const zipBlob = createZip([

@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { FriendsEditor } from '../../../components/FriendsEditor';
 import { useAppContext } from '../../../context/AppContext';
 import { computeFriendStats, friendProgress } from '../../../utils/friendJars';
 import { Collapsible } from '../shared';
@@ -8,8 +7,6 @@ interface FriendsPanelProps {
   open: boolean;
   onToggle: () => void;
   count: number;
-  /** the leaderboard and closed-jars cards let you pick which helpers they list */
-  pickable: boolean;
   /** the closed-jars card lists closed helpers only, so only those can be picked */
   closedOnly?: boolean;
   hiddenFriendIds: string[];
@@ -18,7 +15,9 @@ interface FriendsPanelProps {
 
 const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-export function FriendsPanel({ open, onToggle, count, pickable, closedOnly = false, hiddenFriendIds, onHiddenFriendIdsChange }: FriendsPanelProps) {
+/** Which helpers a leaderboard or closed-jars card lists. Read-only: the amounts are edited on the
+ * friends screen, and switching a helper off only drops its row — the card's totals stay whole. */
+export function FriendsPanel({ open, onToggle, count, closedOnly = false, hiddenFriendIds, onHiddenFriendIdsChange }: FriendsPanelProps) {
   const { t } = useTranslation('export');
   const { state } = useAppContext();
   const stats = computeFriendStats(state.app.friends, state.app.aggregates?.totalAmount ?? 0);
@@ -34,8 +33,8 @@ export function FriendsPanel({ open, onToggle, count, pickable, closedOnly = fal
       open={open}
       onToggle={onToggle}
     >
-      {pickable && ranked.length > 0 && (
-        <div className="mb-5 pb-5 border-b border-gray-100">
+      {ranked.length > 0 && (
+        <div>
           <div className="flex items-baseline justify-between gap-2 mb-2">
             <p className="text-xs font-semibold text-gray-700">{t('friends.display.title')}</p>
             <div className="flex gap-3 text-xs">
@@ -74,7 +73,6 @@ export function FriendsPanel({ open, onToggle, count, pickable, closedOnly = fal
           <p className="mt-2 text-xs text-gray-400">{t('friends.display.hint')}</p>
         </div>
       )}
-      <FriendsEditor compact />
     </Collapsible>
   );
 }

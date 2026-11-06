@@ -24,16 +24,45 @@ import type {
   FriendJar,
   MonobankJarRef,
   LoadedCampaign,
+  LastMerge,
+  InsightsView,
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
 import { aggregateDonations } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
-import { saveSession, updateSessionGoal, updateSessionFriends, updateSessionMonobankJar, clearSession, loadSession } from '../utils/session';
+import { saveSession, updateSessionFriends, clearSession, loadSession } from '../utils/session';
 import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
-import { TEMPLATE_GROUPS } from '../utils/templateConfig';
+
+import { makeCard } from '../utils/exportStack';
+
+/** Where a project's rows come from and what goes with them; no id = a new project. */
+interface ProjectSource {
+  id?: string | null;
+  name?: string | null;
+  fileName?: string | null;
+  goal?: number;
+  style?: SharedStyle;
+  friends?: FriendJar[];
+  monobankJar?: MonobankJarRef;
+  monobankSyncedAt?: number;
+}
+
+/** A new project's name: the jar's title, then the file's name, then its dates. */
+function projectName(
+  fileName: string | null,
+  jar: MonobankJarRef | undefined,
+  donations: Donation[],
+  t: (key: string, opts?: Record<string, unknown>) => string,
+): string {
+  if (jar) return jar.title;
+  if (fileName) return fileName.replace(/\.csv$/i, '');
+  const times = donations.map((d) => d.timestamp.getTime());
+  const day = (ms: number) => new Date(ms).toLocaleDateString('uk-UA');
+  return t('defaultName', { from: day(Math.min(...times)), to: day(Math.max(...times)) });
+}
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
@@ -54,8 +83,7 @@ const INITIAL_APP_STATE: AppState = {
   commentInsights: null,
   selectedTemplates: null,
   gallerySelection: [],
-  // First category open by default
-  galleryOpenGroups: [TEMPLATE_GROUPS[0].id],
+  galleryOpenGroups: [],
   stackCards: null,
   stackStyle: null,
   originalFileName: null,
@@ -73,13 +101,13 @@ const INITIAL_STATE: FullState = {
 // ─── Actions ──────────────────────────────────────────────────────────────────
 
 export type AppAction =
-  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; unsaved?: boolean } }
+  | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; monobankJar?: MonobankJarRef; monobankSyncedAt?: number } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
-  | { type: 'MOMENTS_DISMISSED' }
   | { type: 'FRIENDS_EDIT_OPENED' }
   | { type: 'FRIENDS_EDIT_DONE' }
-  // Before the fetched rows are reviewed: remember which jar they came from (and its goal)
-  | { type: 'MONOBANK_SOURCE_SET'; payload: { jar?: MonobankJarRef; goal?: number } }
+  | { type: 'MERGE_REPORTED'; payload: LastMerge | undefined }
+  | { type: 'RENEW_REQUESTED'; payload: boolean }
+  | { type: 'INSIGHTS_VIEW'; payload: InsightsView }
   | { type: 'CAMPAIGN_SAVED'; payload: { id: string; name: string } }
   | {
       type: 'PROCEED_TO_INSIGHTS';
@@ -88,11 +116,9 @@ export type AppAction =
         insights: Insight[];
         commentInsights: CommentInsights | null;
         goal?: number;
-        /** opened with «Аналітика» from the project list, never through the preview */
-        fromLibrary?: boolean;
       };
     }
-  | { type: 'TEMPLATES_SELECTED'; payload: TemplateType[] }
+  | { type: 'TEMPLATES_SELECTED'; payload: TemplateType[]; range?: { from: string; to: string } }
   | { type: 'GALLERY_UI'; payload: { selection?: TemplateType[]; openGroups?: string[] } }
   | { type: 'STACK_UPDATED'; payload: { cards: CardState[]; style: SharedStyle } }
   | { type: 'GO_TO_STEP'; payload: AppState['step'] }
@@ -133,8 +159,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
           stackStyle: action.payload.style ?? null,
           friends: action.payload.friends,
           monobankJar: action.payload.monobankJar,
-          unsavedChanges: action.payload.unsaved ?? false,
-          momentsDismissed: false, // a different dataset gets its moments back
+          monobankSyncedAt: action.payload.monobankSyncedAt,
         },
       };
 
@@ -144,31 +169,45 @@ function appReducer(state: FullState, action: AppAction): FullState {
     case 'FRIENDS_EDIT_DONE':
       return { ...state, app: { ...state.app, friendsEdit: undefined, step: 'insights' } };
 
-    case 'MOMENTS_DISMISSED':
-      return { ...state, app: { ...state.app, momentsDismissed: true } };
+    case 'MERGE_REPORTED':
+      return { ...state, app: { ...state.app, lastMerge: action.payload } };
 
-    case 'MONOBANK_SOURCE_SET':
-      return { ...state, app: { ...state.app, monobankJar: action.payload.jar, goal: action.payload.goal } };
+    case 'RENEW_REQUESTED':
+      return { ...state, app: { ...state.app, renewRequested: action.payload } };
+
+    case 'INSIGHTS_VIEW':
+      return { ...state, app: { ...state.app, insightsView: action.payload } };
 
     case 'FRIENDS_UPDATED':
-      return { ...state, app: { ...state.app, friends: action.payload, unsavedChanges: state.app.activeCampaignId ? true : state.app.unsavedChanges } };
+      return { ...state, app: { ...state.app, friends: action.payload } };
 
     case 'CAMPAIGN_SAVED':
       return {
         ...state,
-        app: { ...state.app, activeCampaignId: action.payload.id, activeCampaignName: action.payload.name, unsavedChanges: false },
+        app: { ...state.app, activeCampaignId: action.payload.id, activeCampaignName: action.payload.name },
       };
 
     case 'PROCEED_TO_INSIGHTS':
       return {
         ...state,
-        app: { ...state.app, ...action.payload, fromLibrary: action.payload.fromLibrary ?? false, step: 'insights' },
+        app: { ...state.app, ...action.payload, step: 'insights' },
       };
 
     case 'TEMPLATES_SELECTED':
       return {
         ...state,
-        app: { ...state.app, selectedTemplates: action.payload, step: 'export' },
+        app: {
+          ...state.app,
+          selectedTemplates: action.payload,
+          // a card opened for a period of the breakdown page starts on that period
+          stackCards: action.range
+            ? [
+                ...(state.app.stackCards ?? []).filter((c) => !action.payload.includes(c.templateId)),
+                ...action.payload.map((id) => ({ ...makeCard(id, []), dateFrom: action.range!.from, dateTo: action.range!.to })),
+              ]
+            : state.app.stackCards,
+          step: 'export',
+        },
       };
 
     case 'STACK_UPDATED':
@@ -204,18 +243,18 @@ interface AppContextValue {
   state: FullState;
   dispatch: Dispatch<AppAction>;
   handleFileSelect: (file: File) => Promise<void>;
-  handleManualDataProceed: (rows: ManualRow[]) => void;
-  handleProceedToInsights: (goal?: number) => void;
-  handleTemplateSelect: (templateId: TemplateType) => void;
+  handleManualDataProceed: (rows: ManualRow[]) => Promise<void>;
+  handleTemplateSelect: (templateId: TemplateType, range?: { from: string; to: string }) => void;
   handleTemplatesSelect: (templateIds: TemplateType[]) => void;
   handleReset: () => void;
-  handleRestoreSession: () => boolean;
+  handleRestoreSession: () => Promise<boolean>;
   handleLoadCampaign: (id: string, opts?: { proceed?: boolean }) => Promise<LoadedCampaign | null>;
   handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number | null) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
-  handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }) => MergeResult | null;
-  handleMonobankSource: (jar?: MonobankJarRef, goal?: number) => void;
+  handleMergeRows: (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef; syncedAt?: number }) => Promise<MergeResult | null>;
+  handleMonobankProject: (rows: RawDonation[], jar: MonobankJarRef, goal?: number) => Promise<void>;
+  handleUndoMerge: () => Promise<void>;
   handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
   goToStep: (step: AppState['step']) => void;
 }
@@ -231,133 +270,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   stateRef.current = state;
   const { t } = useTranslation('common');
   const { t: tInsights } = useTranslation('insights');
-
-  const handleFileSelect = useCallback(async (file: File) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const rawData = await parseCSV(file);
-      if (rawData.length === 0)
-        throw new Error(t('errors.csvEmpty'));
-
-      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
-      if (donations.length === 0)
-        throw new Error(t('errors.csvParseError'));
-
-      dispatch({ type: 'FILE_PARSED', payload: { rawData, donations, withdrawals, currentBalance, originalFileName: file.name } });
-      saveSession(rawData, file.name);
-      updateSessionMonobankJar(undefined);
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
-      });
-    }
-  }, [t]);
-
-  // Handles both fresh manual entry (state.app is empty, so the campaign link
-  // below is already null) and editing rows of an already-loaded dataset —
-  // in the latter case, preserving activeCampaignId/originalFileName/goal is
-  // what keeps "Зберегти" showing as "Оновити" for the same campaign instead
-  // of silently treating the edit as a brand-new, unlinked dataset.
-  const handleManualDataProceed = useCallback((rows: ManualRow[]) => {
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      const rawData = manualRowsToRawDonations(rows);
-      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
-      if (donations.length === 0) {
-        throw new Error(t('errors.manualProcessError'));
-      }
-      dispatch({
-        type: 'FILE_PARSED',
-        payload: {
-          rawData,
-          donations,
-          withdrawals,
-          currentBalance,
-          originalFileName: state.app.originalFileName ?? undefined,
-          goal: state.app.goal,
-          activeCampaignId: state.app.activeCampaignId ?? undefined,
-          activeCampaignName: state.app.activeCampaignName ?? undefined,
-          style: state.app.stackStyle ?? undefined,
-          friends: state.app.friends,
-          monobankJar: state.app.monobankJar,
-          unsaved: !!state.app.activeCampaignId,
-        },
-      });
-      saveSession(rawData, state.app.originalFileName ?? null);
-      updateSessionMonobankJar(state.app.monobankJar);
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : t('errors.manualDataError'),
-      });
-    }
-  }, [state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
-
-  // `monobankJar` links the project to a jar at the same time (the state's own value would still be the old one here)
-  const handleMergeRows = useCallback((incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef }): MergeResult | null => {
-    if (!state.app.rawData) return null;
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      if (incoming.length === 0) throw new Error(t('errors.csvEmpty'));
-
-      const result = mergeRawDonations(state.app.rawData, incoming);
-      const { donations, withdrawals, currentBalance } = normalizeDonations(result.merged);
-      if (donations.length === 0) throw new Error(t('errors.csvParseError'));
-
-      const fileName = state.app.originalFileName ?? opts?.fileName;
-      const monobankJar = opts?.monobankJar ?? state.app.monobankJar;
-      dispatch({
-        type: 'FILE_PARSED',
-        payload: {
-          rawData: result.merged,
-          donations,
-          withdrawals,
-          currentBalance,
-          originalFileName: fileName,
-          goal: state.app.goal,
-          activeCampaignId: state.app.activeCampaignId ?? undefined,
-          activeCampaignName: state.app.activeCampaignName ?? undefined,
-          style: state.app.stackStyle ?? undefined,
-          friends: state.app.friends,
-          monobankJar,
-          unsaved: !!state.app.activeCampaignId,
-        },
-      });
-      saveSession(result.merged, fileName ?? null);
-      updateSessionMonobankJar(monobankJar);
-      return result;
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
-      });
-      return null;
-    }
-  }, [state.app.rawData, state.app.originalFileName, state.app.goal, state.app.activeCampaignId, state.app.activeCampaignName, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
-
-  // Merges another CSV export into the currently loaded dataset (long
-  // campaigns come in chunks); campaign link and goal survive the merge.
-  const handleMergeFile = useCallback(async (file: File): Promise<MergeResult | null> => {
-    if (!state.app.rawData) return null;
-    dispatch({ type: 'SET_LOADING', payload: true });
-    try {
-      return handleMergeRows(await parseCSV(file), { fileName: file.name });
-    } catch (err) {
-      dispatch({
-        type: 'SET_ERROR',
-        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
-      });
-      return null;
-    }
-  }, [state.app.rawData, handleMergeRows, t]);
-
-  // Remembers which Monobank jar the rows being reviewed came from (and its goal);
-  // the review table's "proceed" then carries both into the normal flow. Called
-  // with no jar to forget it again (cancel).
-  const handleMonobankSource = useCallback((jar?: MonobankJarRef, goal?: number) => {
-    dispatch({ type: 'MONOBANK_SOURCE_SET', payload: { jar, goal } });
-  }, []);
+  const { t: tCampaigns } = useTranslation('campaigns');
 
   // Everything step 2 needs, derived from the loaded rows
   const buildAnalytics = useCallback(
@@ -372,23 +285,175 @@ export function AppProvider({ children }: { children: ReactNode }) {
     [tInsights],
   );
 
-  const handleProceedToInsights = useCallback(
-    (goal?: number) => {
-      if (!state.app.donations) return;
+  // The one way data enters a project: whatever the source, the rows are saved to the library
+  // straight away (a new project gets a name of its own, renamed later from «Редагувати») and the
+  // analytics opens on them. If storage fails the rows stay in the session and the error is shown.
+  const commitRows = useCallback(
+    async (rawData: RawDonation[], src: ProjectSource): Promise<boolean> => {
+      const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
+      if (donations.length === 0) return false;
+      const fileName = src.fileName ?? null;
+      let id = src.id ?? undefined;
+      let name = src.name ?? projectName(fileName, src.monobankJar, donations, tCampaigns);
+      let saveFailed = false;
       try {
-        const analytics = buildAnalytics(state.app.donations, state.app.withdrawals ?? [], state.app.currentBalance);
-        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...analytics, goal } });
-        updateSessionGoal(goal);
-      } catch (err) {
-        console.error(err);
-        dispatch({ type: 'SET_ERROR', payload: t('errors.insightsError') });
+        const meta = await saveCampaign({
+          id,
+          name,
+          rawData,
+          fileName,
+          goal: src.goal,
+          style: src.style,
+          friends: src.friends,
+          monobankJar: src.monobankJar,
+          monobankSyncedAt: src.monobankSyncedAt,
+        });
+        id = meta.id;
+        name = meta.name;
+        clearSession(); // it is in the library now; nothing is left to restore
+      } catch {
+        saveFailed = true;
+        saveSession(rawData, fileName);
       }
+      dispatch({
+        type: 'FILE_PARSED',
+        payload: {
+          rawData,
+          donations,
+          withdrawals,
+          currentBalance,
+          originalFileName: fileName ?? undefined,
+          goal: src.goal,
+          activeCampaignId: saveFailed ? undefined : id,
+          activeCampaignName: saveFailed ? undefined : name,
+          style: src.style,
+          friends: src.friends,
+          monobankJar: src.monobankJar,
+          monobankSyncedAt: src.monobankSyncedAt,
+        },
+      });
+      dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: src.goal } });
+      if (saveFailed) dispatch({ type: 'SET_ERROR', payload: t('errors.campaignSaveError') });
+      return true;
     },
-    [state.app.donations, state.app.withdrawals, state.app.currentBalance, buildAnalytics, t],
+    [buildAnalytics, t, tCampaigns],
   );
 
-  const handleTemplateSelect = useCallback((templateId: TemplateType) => {
-    dispatch({ type: 'TEMPLATES_SELECTED', payload: [templateId] });
+  /** the open project as a source for commitRows */
+  const currentSource = useCallback((): ProjectSource => {
+    const { app } = stateRef.current;
+    return {
+      id: app.activeCampaignId,
+      name: app.activeCampaignName,
+      fileName: app.originalFileName,
+      goal: app.goal,
+      style: app.stackStyle ?? undefined,
+      friends: app.friends,
+      monobankJar: app.monobankJar,
+      monobankSyncedAt: app.monobankSyncedAt,
+    };
+  }, []);
+
+  const handleFileSelect = useCallback(async (file: File) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      const rawData = await parseCSV(file);
+      if (rawData.length === 0)
+        throw new Error(t('errors.csvEmpty'));
+
+      if (!(await commitRows(rawData, { fileName: file.name }))) throw new Error(t('errors.csvParseError'));
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
+      });
+    }
+  }, [commitRows, t]);
+
+  // Fresh manual entry (nothing open, so a new project) and edited rows of the open project alike
+  const handleManualDataProceed = useCallback(async (rows: ManualRow[]) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      if (!(await commitRows(manualRowsToRawDonations(rows), currentSource()))) throw new Error(t('errors.manualProcessError'));
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.manualDataError'),
+      });
+    }
+  }, [commitRows, currentSource, t]);
+
+  // `monobankJar` links the project to a jar at the same time. With `syncedAt` this is a renew from
+  // Monobank, where an empty result is a normal answer: nothing new, but the data is fresh as of now.
+  const handleMergeRows = useCallback(async (incoming: RawDonation[], opts?: { fileName?: string; monobankJar?: MonobankJarRef; syncedAt?: number }): Promise<MergeResult | null> => {
+    const rawData = stateRef.current.app.rawData;
+    if (!rawData) return null;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      if (incoming.length === 0 && !opts?.syncedAt) throw new Error(t('errors.csvEmpty'));
+
+      const result = mergeRawDonations(rawData, incoming);
+      const src = currentSource();
+      const saved = await commitRows(result.merged, {
+        ...src,
+        fileName: src.fileName ?? opts?.fileName,
+        monobankJar: opts?.monobankJar ?? src.monobankJar,
+        monobankSyncedAt: opts?.syncedAt ?? src.monobankSyncedAt,
+      });
+      if (!saved) throw new Error(t('errors.csvParseError'));
+      dispatch({
+        type: 'MERGE_REPORTED',
+        payload: {
+          added: result.added,
+          duplicates: result.duplicates,
+          timeShiftMinutes: result.timeShiftMinutes,
+          suspectedOverlap: result.suspectedOverlap,
+          // only a merge the app itself doubts can be taken back
+          previousRows: result.suspectedOverlap ? rawData : undefined,
+        },
+      });
+      return result;
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
+      });
+      return null;
+    }
+  }, [commitRows, currentSource, t]);
+
+  const handleUndoMerge = useCallback(async () => {
+    const previous = stateRef.current.app.lastMerge?.previousRows;
+    if (!previous) return;
+    await commitRows(previous, currentSource());
+    dispatch({ type: 'MERGE_REPORTED', payload: undefined });
+  }, [commitRows, currentSource]);
+
+  // A new project from a Monobank jar
+  const handleMonobankProject = useCallback(async (rows: RawDonation[], jar: MonobankJarRef, goal?: number) => {
+    dispatch({ type: 'SET_LOADING', payload: true });
+    const saved = await commitRows(rows, { fileName: null, monobankJar: jar, goal, monobankSyncedAt: Date.now() });
+    if (!saved) dispatch({ type: 'SET_ERROR', payload: t('errors.csvParseError') });
+  }, [commitRows, t]);
+
+  // Merges another CSV export into the currently loaded dataset (long
+  // campaigns come in chunks); campaign link and goal survive the merge.
+  const handleMergeFile = useCallback(async (file: File): Promise<MergeResult | null> => {
+    if (!state.app.rawData) return null;
+    dispatch({ type: 'SET_LOADING', payload: true });
+    try {
+      return await handleMergeRows(await parseCSV(file), { fileName: file.name });
+    } catch (err) {
+      dispatch({
+        type: 'SET_ERROR',
+        payload: err instanceof Error ? err.message : t('errors.fileProcessError'),
+      });
+      return null;
+    }
+  }, [state.app.rawData, handleMergeRows, t]);
+
+  const handleTemplateSelect = useCallback((templateId: TemplateType, range?: { from: string; to: string }) => {
+    dispatch({ type: 'TEMPLATES_SELECTED', payload: [templateId], range });
   }, []);
 
   const handleTemplatesSelect = useCallback((templateIds: TemplateType[]) => {
@@ -401,31 +466,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
     dispatch({ type: 'RESET' });
   }, []);
 
-  // Restores the autosaved dataset (after an accidental refresh/close)
-  const handleRestoreSession = useCallback((): boolean => {
+  // Rows left from a session that could not reach the library: they become a project like any other
+  const handleRestoreSession = useCallback(async (): Promise<boolean> => {
     const session = loadSession();
     if (!session) return false;
     try {
-      const { donations, withdrawals, currentBalance } = normalizeDonations(session.rawData);
-      if (donations.length === 0) return false;
-      dispatch({
-        type: 'FILE_PARSED',
-        payload: {
-          rawData: session.rawData,
-          donations,
-          withdrawals,
-          currentBalance,
-          originalFileName: session.fileName ?? undefined,
-          goal: session.goal,
-          friends: session.friends,
-          monobankJar: session.monobankJar,
-        },
+      return await commitRows(session.rawData, {
+        fileName: session.fileName,
+        goal: session.goal,
+        friends: session.friends,
+        monobankJar: session.monobankJar,
       });
-      return true;
     } catch {
       return false;
     }
-  }, []);
+  }, [commitRows]);
 
   // Opens a saved campaign from the library (IndexedDB)
   // `proceed` skips the data check and goes straight to analytics (step 2).
@@ -451,13 +506,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
           style: style ?? undefined,
           friends,
           monobankJar: monobankJar ?? undefined,
+          monobankSyncedAt: meta.monobankSyncedAt,
         },
       });
-      saveSession(rawData, meta.fileName);
-      updateSessionMonobankJar(monobankJar ?? undefined);
-      updateSessionGoal(meta.goal);
       if (opts?.proceed) {
-        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: meta.goal, fromLibrary: true } });
+        dispatch({ type: 'PROCEED_TO_INSIGHTS', payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: meta.goal } });
       }
       return { rawData, monobankJar: monobankJar ?? undefined };
     } catch {
@@ -515,7 +568,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (opts?.proceed) {
         dispatch({
           type: 'PROCEED_TO_INSIGHTS',
-          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined, fromLibrary: true },
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined },
         });
       }
       return true;
@@ -525,11 +578,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [buildAnalytics, t]);
 
-  // Saves (or updates, when a campaign is already open) the current dataset.
-  // goalOverride lets a caller that owns a not-yet-committed goal value (the
-  // upload preview's goal input, before the user hits "Proceed") save that
-  // value directly — state.app.goal only updates on PROCEED_TO_INSIGHTS, so
-  // saving from the preview screen would otherwise persist a stale/empty goal.
+  // Saves the open project under `name` (renaming it) — goalOverride sets its goal, null clears it.
   const handleSaveCampaign = useCallback(async (name: string, goalOverride?: number | null): Promise<CampaignMeta | null> => {
     if (!state.app.rawData) return null;
     try {
@@ -552,9 +601,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [state.app.rawData, state.app.activeCampaignId, state.app.originalFileName, state.app.goal, state.app.stackStyle, state.app.friends, state.app.monobankJar, t]);
 
-  // Helpers are stored with the open project right away when it is already in the library, so
-  // «Зберегти друзів» is a real save; a project that was never saved keeps them for this session
-  // only (it has no name yet — the top «Зберегти» puts it in the library).
+  // Helpers are stored with the open project right away.
   const handleFriendsChange = useCallback(async (friends: FriendJar[]) => {
     dispatch({ type: 'FRIENDS_UPDATED', payload: friends });
     updateSessionFriends(friends);
@@ -580,16 +627,17 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const goToStep = useCallback(
     (step: AppState['step']) => {
       const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
-      if (idx[step] < idx[state.app.step]) {
-        dispatch({ type: 'GO_TO_STEP', payload: step });
-      }
+      if (idx[step] >= idx[state.app.step]) return;
+      // everything is saved as it happens, so going back to step 1 just closes the project
+      if (step === 'upload') handleReset();
+      else dispatch({ type: 'GO_TO_STEP', payload: step });
     },
-    [state.app.step],
+    [state.app.step, handleReset],
   );
 
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleProceedToInsights, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankSource, handleFriendsChange, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, goToStep }}
     >
       {children}
     </AppContext.Provider>

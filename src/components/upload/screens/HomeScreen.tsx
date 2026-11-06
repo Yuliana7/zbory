@@ -5,6 +5,7 @@ import { NewProjectOptions } from '../NewProjectOptions';
 import type { CampaignAction } from '../CampaignActionsSheet';
 import { CampaignList } from '../CampaignList';
 import { EmptyState } from '../EmptyState';
+import { BackupControls } from '../BackupControls';
 import { loadSession, clearSession } from '../../../utils/session';
 import { listCampaigns, type CampaignMeta } from '../../../utils/campaignStore';
 import { SaveIcon, XIcon } from '../../../icons';
@@ -50,8 +51,8 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
             <p className="text-xs text-indigo-500 mt-0.5">{new Date(savedSession.savedAt).toLocaleString('uk-UA')}</p>
           </div>
           <button
-            onClick={() => {
-              if (!handleRestoreSession()) {
+            onClick={async () => {
+              if (!(await handleRestoreSession())) {
                 clearSession();
                 setSavedSession(null);
               }
@@ -110,6 +111,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           isLoading={isLoading}
         />
       )}
+      {campaigns !== null && <BackupControls hasProjects={campaigns.length > 0} onRestored={setCampaigns} />}
     </div>
   );
 }

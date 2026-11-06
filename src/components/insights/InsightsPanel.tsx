@@ -5,6 +5,7 @@ import { formatCurrency } from '../../utils/dataAggregator';
 import { CampaignCharts } from './CampaignCharts';
 import { CumulativeChart } from './CumulativeChart';
 import { FriendsChart } from './FriendsChart';
+import { TotalRaisedCard } from './TotalRaisedCard';
 
 interface InsightsPanelProps {
   insights: Insight[];
@@ -33,7 +34,7 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
   );
   const duration = Math.round((lastDay.getTime() - firstDay.getTime()) / msPerDay) + 1;
 
-  const { handleTemplateSelect } = useAppContext();
+  const { handleTemplateSelect, dispatch } = useAppContext();
   const hasAudience = !!commentInsights?.hasEnoughData;
   // How much of the jar the loyal and the biggest donors carry: the people behind the total
   const sumOf = (list: RepeatDonor[]) => list.reduce((sum, d) => sum + d.totalAmount, 0);
@@ -44,28 +45,18 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
       {/* Left column: hero, charts, insight cards */}
       <div className="space-y-4">
         {/* Hero stat */}
-        <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
-          <p className="text-indigo-200 text-sm font-medium mb-1">{t('totalAmount')}</p>
-          <p className="text-4xl font-bold tracking-tight">
-            {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.currentBalance + aggregates.totalWithdrawn))} ₴
-          </p>
-          <p className="mt-2 text-indigo-200 text-sm">
-            {t('donationsCount', { count: aggregates.donationCount })}{' '}
-            {t('duration', { count: duration })} 💙💛
-          </p>
-        </div>
+        <TotalRaisedCard aggregates={aggregates} duration={duration} wholeProject={!!friends} />
 
         {friends && <FriendsChart friends={friends} totalAmount={aggregates.totalAmount} />}
 
-        {/* Cumulative chart: one line per jar, aligned by campaign day in multi mode.
-            Hidden for a campaign that ran within a single day — a one-point line
-            isn't a meaningful "over time" chart. */}
-        {duration > 1 && (
+        {/* Comparing jars by campaign day has no place on the calendar of the day-by-day page,
+            so it stays here; a single jar's all-time line lives on that page. */}
+        {duration > 1 && (campaignDatasets?.length ?? 0) >= 2 && (
           <CumulativeChart aggregates={aggregates} datasets={campaignDatasets ?? null} />
         )}
 
         {/* Charts section */}
-        <CampaignCharts aggregates={aggregates} />
+        <CampaignCharts aggregates={aggregates} onExpand={() => dispatch({ type: 'INSIGHTS_VIEW', payload: 'daily' })} />
 
         {/* Regular insight cards */}
         {insights.slice(1).map((insight, i) => (

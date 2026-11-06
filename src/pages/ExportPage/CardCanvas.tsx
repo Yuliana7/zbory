@@ -17,7 +17,7 @@ import { EmojiCloudCard } from '../../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../../components/templates/CommentsCard';
 import { FriendsLeaderboardCard } from '../../components/templates/FriendsLeaderboardCard';
 import { FriendsClosedCard } from '../../components/templates/FriendsClosedCard';
-import { FriendsShareCard } from '../../components/templates/FriendsShareCard';
+import { FriendsStatsCard } from '../../components/templates/FriendsStatsCard';
 import { ReportCard } from '../../components/templates/ReportCard';
 import { CampaignsChartCard } from '../../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems, type ReportPeriod } from '../../utils/campaignAnalytics';
@@ -195,7 +195,7 @@ function TemplateRenderer({
     case 'comments': return <CommentsCard {...shared} selectedComments={selectedComments} />;
     case 'friends-leaderboard': return <FriendsLeaderboardCard {...shared} friends={friends} hiddenFriendIds={hiddenFriendIds} />;
     case 'friends-closed': return <FriendsClosedCard {...shared} friends={friends} hiddenFriendIds={hiddenFriendIds} />;
-    case 'friends-share': return <FriendsShareCard {...shared} friends={friends} />;
+    case 'friends-stats': return <FriendsStatsCard {...shared} friends={friends} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
     default: {

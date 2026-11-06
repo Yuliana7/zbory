@@ -22,7 +22,6 @@ import {
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
-  CheckIcon,
   DownloadIcon,
   EditIcon,
   PlusIcon,
@@ -30,7 +29,6 @@ import {
   TrashIcon,
 } from '../../icons';
 import { CardCanvas } from './CardCanvas';
-import { ElementsOverlay } from './ElementsOverlay';
 import { ToggleRow } from './shared';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
@@ -40,12 +38,20 @@ import { BackgroundEditorOverlay } from './panels/BackgroundEditorOverlay';
 import { FontScalePanel } from './panels/FontScalePanel';
 import { DateRangePanel } from './panels/DateRangePanel';
 import { RefundsPanel } from './panels/RefundsPanel';
-import { HiddenElementsChips } from './panels/HiddenElementsChips';
+import { ElementsEditorOverlay } from './panels/ElementsEditorOverlay';
 import { GoalPanel } from './panels/GoalPanel';
 import { ReportPeriodPanel } from './panels/ReportPeriodPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
 import { CommentPickerPanel } from './panels/CommentPickerPanel';
 import { AddTemplateModal } from './panels/AddTemplateModal';
+
+// Below the xl breakpoint the page is one column and the preview is pinned to the top
+const SINGLE_COLUMN_MAX = 1280;
+/** the preview never gets smaller than this share of its size, however far the controls are scrolled */
+const PREVIEW_MIN_SCALE = 0.33;
+const PREVIEW_PAD = 24;
+const PREVIEW_PAD_MIN = 8;
+const PREVIEW_GAP = 16;
 
 export function ExportPage() {
   const { state } = useAppContext();
@@ -100,9 +106,7 @@ function ExportPageInner() {
   const [goal, setGoal] = useState(app.goal ? String(app.goal) : '');
   const [isExporting, setIsExporting] = useState(false);
   const [showSafeZones, setShowSafeZones] = useState(false);
-  // Element edit mode: freezes background drag/zoom + swipe-nav and shows
-  // the tap-to-remove overlay over the preview instead.
-  const [elementsEditMode, setElementsEditMode] = useState(false);
+  const [elementsEditorOpen, setElementsEditorOpen] = useState(false);
   const [backgroundEditorOpen, setBackgroundEditorOpen] = useState(false);
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
@@ -124,6 +128,8 @@ function ExportPageInner() {
   const exportRef = useRef<HTMLDivElement>(null);
   const previewContainerRef = useRef<HTMLDivElement>(null);
   const previewClipRef = useRef<HTMLDivElement>(null);
+  const previewTopRef = useRef<HTMLDivElement>(null);
+  const previewNavRef = useRef<HTMLDivElement>(null);
   const bgInputRef = useRef<HTMLInputElement>(null);
   const touchStartX = useRef<number | null>(null);
 
@@ -149,7 +155,7 @@ function ExportPageInner() {
   useLayoutEffect(() => {
     const calculate = () => {
       if (!previewContainerRef.current) return;
-      const containerW = previewContainerRef.current.clientWidth - 48;
+      const containerW = previewContainerRef.current.clientWidth - 2 * PREVIEW_PAD;
       const containerH = window.innerHeight * 0.65;
       const scaleW = containerW / dims.width;
       const scaleH = containerH / dims.height;
@@ -160,17 +166,37 @@ function ExportPageInner() {
     return () => window.removeEventListener('resize', calculate);
   }, [dims]);
 
-  // On mobile (single-column layout) the preview is sticky; shrink it as the
-  // user scrolls into the controls so the panel gets roughly half the screen.
-  const [scrollShrink, setScrollShrink] = useState(0);
+  // On a single column the preview is pinned and gives way to the controls like a reel to its
+  // comments: past the point where it reaches the top, it loses exactly what the page scrolled, so the
+  // controls rise with the finger right under it. Its share `collapse` (0..1) stops at PREVIEW_MIN_SCALE;
+  // from there on the controls slide under the pinned preview.
+  const [collapse, setCollapse] = useState(0);
+  const [singleColumn, setSingleColumn] = useState(() => window.innerWidth < SINGLE_COLUMN_MAX);
+  const [navH, setNavH] = useState(0);
+  useLayoutEffect(() => {
+    const measure = () => setNavH(previewNavRef.current?.offsetHeight ?? 0);
+    measure();
+    const observer = new ResizeObserver(measure);
+    if (previewNavRef.current) observer.observe(previewNavRef.current);
+    return () => observer.disconnect();
+  }, []);
+
+  const fullCardH = Math.ceil(dims.height * scale);
+  const navSpace = navH + PREVIEW_GAP;
+  const collapseRange = fullCardH * (1 - PREVIEW_MIN_SCALE) + navSpace + 2 * (PREVIEW_PAD - PREVIEW_PAD_MIN);
+
   useEffect(() => {
     const onScroll = () => {
-      // xl breakpoint = side-by-side layout, no shrinking needed
-      if (window.innerWidth >= 1280) {
-        setScrollShrink(0);
+      const single = window.innerWidth < SINGLE_COLUMN_MAX;
+      setSingleColumn(single);
+      const top = previewTopRef.current;
+      if (!single || !top || collapseRange <= 0) {
+        setCollapse(0);
         return;
       }
-      setScrollShrink(Math.min(1, Math.max(0, window.scrollY / 320)));
+      const pinnedAt = previewContainerRef.current ? parseFloat(getComputedStyle(previewContainerRef.current).top) || 0 : 0;
+      const past = pinnedAt - top.getBoundingClientRect().top;
+      setCollapse(Math.min(1, Math.max(0, past / collapseRange)));
     };
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
@@ -179,7 +205,7 @@ function ExportPageInner() {
       window.removeEventListener('scroll', onScroll);
       window.removeEventListener('resize', onScroll);
     };
-  }, []);
+  }, [collapseRange]);
 
   // Any text field focused in the controls must end up below the pinned preview
   // and above the keyboard (see revealInput).
@@ -192,7 +218,8 @@ function ExportPageInner() {
     return () => document.removeEventListener('focusin', onFocusIn);
   }, []);
 
-  const effectiveScale = scale * (1 - 0.45 * scrollShrink);
+  const effectiveScale = scale * (1 - (1 - PREVIEW_MIN_SCALE) * collapse);
+  const previewPad = PREVIEW_PAD - (PREVIEW_PAD - PREVIEW_PAD_MIN) * collapse;
 
   const goalValue = goal ? parseFloat(goal.replace(/\s/g, '').replace(',', '.')) : undefined;
 
@@ -260,7 +287,7 @@ function ExportPageInner() {
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
-      if (id === 'friends-leaderboard' || id === 'friends-share') return hasFriends;
+      if (id === 'friends-leaderboard' || id === 'friends-stats') return hasFriends;
       if (id === 'friends-closed') return hasClosedFriends;
       return true;
     };
@@ -331,26 +358,36 @@ function ExportPageInner() {
         </div>
       </div>
 
-      {/* overflowAnchor none: the preview shrinks as you scroll, which moves everything below it;
-          Chrome's scroll anchoring "corrects" for that by changing scrollY, which changes the shrink
-          again — the page drifted on its own and felt jumpy anywhere between the two ends. */}
+      {/* flex on a single column: a sticky child can then travel the whole column (in a grid it stays
+          within its own row). overflowAnchor none: Chrome must not "correct" the scroll while the
+          preview changes size. */}
       <div
-        className="grid grid-cols-1 xl:grid-cols-[1fr_340px] gap-8 items-start"
+        className="flex flex-col xl:grid xl:grid-cols-[1fr_340px] gap-8 items-stretch xl:items-start"
         style={{ position: 'relative', overflowAnchor: 'none' }}
       >
-        {/* Preview */}
+        {/* Where the preview sits before it pins — marks the start of its collapse */}
+        <div ref={previewTopRef} className="xl:hidden -mb-8" style={{ height: 0 }} />
+
+        {/* Preview. Whatever it gives up while collapsing comes back as a margin: the page keeps its
+            height, so the controls below move exactly with the scroll. */}
         <div
           ref={previewContainerRef}
           data-pinned-preview
-          className="bg-gray-100 rounded-2xl p-6 flex flex-col items-center justify-center gap-4"
-          style={{ minHeight: previewH + 48, position: 'sticky', top: 'var(--safe-top)', zIndex: 100 }}
+          className="bg-gray-100 rounded-2xl flex flex-col items-center justify-center"
+          style={{
+            position: 'sticky',
+            top: 'var(--safe-top)',
+            zIndex: 100,
+            padding: previewPad,
+            marginBottom: singleColumn ? collapseRange * collapse : undefined,
+            // the card's shadow must not fall over the controls below
+            overflow: singleColumn ? 'hidden' : undefined,
+          }}
           onTouchStart={(e) => {
-            // Element edit mode freezes the canvas entirely (no swipe)
-            if (elementsEditMode) return;
             touchStartX.current = e.touches[0].clientX;
           }}
           onTouchEnd={(e) => {
-            if (touchStartX.current === null || elementsEditMode) return;
+            if (touchStartX.current === null) return;
             const delta = e.changedTouches[0].clientX - touchStartX.current;
             touchStartX.current = null;
             if (Math.abs(delta) < 60) return;
@@ -358,24 +395,6 @@ function ExportPageInner() {
             else goNext();
           }}
         >
-          {/* Element edit mode — sits above the preview, mirroring "Додати
-              шаблон" below it (same pill style); both are actions on the
-              whole card, not a specific field, so they read as a matched
-              pair bookending the canvas. Lives inside the sticky preview
-              container (not the sidebar list) so it's always reachable
-              without scrolling, on any viewport. */}
-          <button
-            onClick={() => setElementsEditMode((v) => !v)}
-            title={elementsEditMode ? t('layout.done') : t('layout.editButton')}
-            className={`flex items-center gap-1.5 px-3 py-2 rounded-full text-xs font-medium shadow-sm transition-all ${elementsEditMode
-              ? 'bg-indigo-600 border border-indigo-600 text-white hover:bg-indigo-700'
-              : 'bg-white border border-dashed border-gray-300 text-gray-500 hover:text-indigo-700 hover:border-indigo-400'
-              }`}
-          >
-            {elementsEditMode ? <CheckIcon className="w-3.5 h-3.5" /> : <EditIcon className="w-3.5 h-3.5" />}
-            {elementsEditMode ? t('layout.done') : t('layout.editButton')}
-          </button>
-
           <div
             ref={previewClipRef}
             style={{
@@ -413,88 +432,76 @@ function ExportPageInner() {
                   <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 310, background: 'rgba(244,63,94,0.14)', borderTop: '3px dashed rgba(244,63,94,0.55)', pointerEvents: 'none' }} />
                 </>
               )}
-
-              {/* Tap-to-remove overlay — preview only, never exported (same
-                  sibling-of-exportRef technique as the safe zones above) */}
-              {elementsEditMode && (
-                <ElementsOverlay
-                  templateRef={templateRef}
-                  elements={removableElements}
-                  card={card}
-                  effectiveScale={effectiveScale}
-                  onHide={(id) => updateCard({ hiddenElements: [...card.hiddenElements, id] })}
-                />
-              )}
             </div>
           </div>
 
-          {elementsEditMode && (
-            <p className="text-xs text-gray-400 text-center max-w-full">{t('layout.editHint')}</p>
-          )}
-          <HiddenElementsChips
-            elements={removableElements}
-            format={card.format}
-            card={card}
-            onRestore={(id) => updateCard({ hiddenElements: card.hiddenElements.filter((x) => x !== id) })}
-          />
-
-          {/* Stack navigation — wraps onto extra lines instead of overflowing
-              the preview box once enough cards make the dots row too wide */}
-          <div className="flex flex-wrap items-center justify-center gap-3 max-w-full">
-            {cards.length > 1 && (
-              <>
-                <button
-                  onClick={goPrev}
-                  disabled={safeCurrent === 0}
-                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
-                  <ArrowLeftIcon className="w-4 h-4" />
-                </button>
-                <div className="flex flex-wrap items-center justify-center gap-2 max-w-[240px]">
-                  {cards.map((c, i) => (
-                    <button
-                      key={i}
-                      onClick={() => setCurrent(i)}
-                      title={t(`templateNames.${c.templateId}`)}
-                      className={`relative w-3 h-3 rounded-full transition-all ${i === safeCurrent ? 'bg-indigo-600 scale-125' : c.touched ? 'bg-indigo-300' : 'bg-gray-300 hover:bg-gray-400'
-                        }`}
-                    />
-                  ))}
-                </div>
-                <button
-                  onClick={goNext}
-                  disabled={safeCurrent === cards.length - 1}
-                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
-                >
-                  <ArrowRightIcon className="w-4 h-4" />
-                </button>
-              </>
-            )}
-            {/* Grouped into one flex item so add/delete wrap onto line 2 together, never split */}
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setAddOpen(true)}
-                title={t('stack.addTemplate')}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
-              >
-                <PlusIcon className="w-3.5 h-3.5" />
-                {t('stack.addTemplate')}
-              </button>
+          {/* Stack navigation folds away with the collapse. Wraps onto extra lines instead of
+              overflowing the preview box once enough cards make the dots row too wide. */}
+          <div
+            className="w-full overflow-hidden"
+            style={{
+              height: navSpace * (1 - collapse),
+              opacity: 1 - collapse,
+              pointerEvents: collapse > 0.5 ? 'none' : undefined,
+            }}
+          >
+            <div ref={previewNavRef} className="flex flex-wrap items-center justify-center gap-3 max-w-full" style={{ marginTop: PREVIEW_GAP }}>
               {cards.length > 1 && (
-                <button
-                  onClick={removeCurrentCard}
-                  title={t('stack.removeCard')}
-                  className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+                <>
+                  <button
+                    onClick={goPrev}
+                    disabled={safeCurrent === 0}
+                    className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ArrowLeftIcon className="w-4 h-4" />
+                  </button>
+                  <div className="flex flex-wrap items-center justify-center gap-2 max-w-[240px]">
+                    {cards.map((c, i) => (
+                      <button
+                        key={i}
+                        onClick={() => setCurrent(i)}
+                        title={t(`templateNames.${c.templateId}`)}
+                        className={`relative w-3 h-3 rounded-full transition-all ${i === safeCurrent ? 'bg-indigo-600 scale-125' : c.touched ? 'bg-indigo-300' : 'bg-gray-300 hover:bg-gray-400'
+                          }`}
+                      />
+                    ))}
+                  </div>
+                  <button
+                    onClick={goNext}
+                    disabled={safeCurrent === cards.length - 1}
+                    className="p-2 rounded-full bg-white border border-gray-200 text-gray-500 shadow-sm hover:text-gray-800 hover:border-gray-300 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
+                  >
+                    <ArrowRightIcon className="w-4 h-4" />
+                  </button>
+                </>
               )}
+              {/* Grouped into one flex item so add/delete wrap onto line 2 together, never split */}
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setAddOpen(true)}
+                  title={t('stack.addTemplate')}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white border border-dashed border-gray-300 text-gray-500 text-xs font-medium shadow-sm hover:text-indigo-700 hover:border-indigo-400 transition-all"
+                >
+                  <PlusIcon className="w-3.5 h-3.5" />
+                  {t('stack.addTemplate')}
+                </button>
+                {cards.length > 1 && (
+                  <button
+                    onClick={removeCurrentCard}
+                    title={t('stack.removeCard')}
+                    className="p-2 rounded-full bg-white border border-gray-200 text-gray-400 shadow-sm hover:text-red-500 hover:border-red-300 transition-all"
+                  >
+                    <TrashIcon className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-4">
+        {/* Sidebar. On a single column it is at least a screen tall minus the collapsed preview, so
+            a short list of controls can still scroll the preview all the way down. */}
+        <div className="space-y-4" style={singleColumn ? { minHeight: `calc(100vh - ${Math.ceil(fullCardH * PREVIEW_MIN_SCALE) + 2 * PREVIEW_PAD_MIN + 32}px)` } : undefined}>
           <FormatPanel
             open={openSections.has('format')}
             onToggle={() => toggleSection('format')}
@@ -503,6 +510,14 @@ function ExportPageInner() {
             showSafeZones={showSafeZones}
             onShowSafeZonesChange={setShowSafeZones}
           />
+
+          <button
+            onClick={() => setElementsEditorOpen(true)}
+            className="w-full flex items-center gap-2 rounded-xl border border-gray-200 bg-white p-4 text-left text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+          >
+            <EditIcon className="w-4 h-4 text-gray-400" />
+            {t('layout.editButton')}
+          </button>
 
           {/* its own switch, so changing just this card's font size doesn't mean opening the background panel */}
           {cards.length > 1 && (
@@ -577,12 +592,11 @@ function ExportPageInner() {
             />
           )}
 
-          {(templateId === 'progress' || templateId === 'friends-leaderboard' || templateId === 'friends-closed' || templateId === 'friends-share') && (
+          {(templateId === 'friends-leaderboard' || templateId === 'friends-closed') && (
             <FriendsPanel
               open={openSections.has('friends')}
               onToggle={() => toggleSection('friends')}
               count={(app.friends ?? []).filter((f) => f.raised > 0).length}
-              pickable={templateId === 'friends-leaderboard' || templateId === 'friends-closed'}
               closedOnly={templateId === 'friends-closed'}
               hiddenFriendIds={card.hiddenFriendIds ?? []}
               onHiddenFriendIdsChange={(ids) => updateCard({ hiddenFriendIds: ids })}
@@ -679,6 +693,20 @@ function ExportPageInner() {
           }
           onSelect={handleAddTemplate}
           onClose={() => setAddOpen(false)}
+        />
+      )}
+
+      {/* Full-screen tap-to-remove editor */}
+      {elementsEditorOpen && (
+        <ElementsEditorOverlay
+          card={card}
+          elements={removableElements}
+          dims={dims}
+          aggregates={filteredAggregates}
+          selectedComments={selectedComments}
+          renderCard={renderCard}
+          onChange={(hiddenElements) => updateCard({ hiddenElements })}
+          onClose={() => setElementsEditorOpen(false)}
         />
       )}
 

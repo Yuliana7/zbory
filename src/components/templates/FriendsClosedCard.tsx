@@ -32,13 +32,14 @@ export const FriendsClosedCard = forwardRef<HTMLDivElement, FriendsClosedCardPro
     const tx = (key: string) => textOverrides[key] ?? t(`friends-closed.${key}`);
     const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
-    // Only closed jars, minus what the user switched off; the numbers describe exactly what is shown
-    const listed = visibleFriends(closedFriends(friends), hiddenFriendIds);
-    const total = listed.reduce((sum, f) => sum + f.raised, 0);
-    const targeted = listed.filter((f) => friendProgress(f).pct !== null);
+    // Only closed jars. Switching one off drops its row; the numbers always describe all closed jars.
+    const closed = closedFriends(friends);
+    const listed = visibleFriends(closed, hiddenFriendIds);
+    const total = closed.reduce((sum, f) => sum + f.raised, 0);
+    const targeted = closed.filter((f) => friendProgress(f).pct !== null);
     const reachedCount = targeted.filter((f) => friendProgress(f).reached).length;
     // a row with a target carries an extra line, so a post fits fewer rows
-    const maxRows = isStory ? 6 : targeted.length > 0 ? 2 : 3;
+    const maxRows = isStory ? 6 : listed.some((f) => friendProgress(f).pct !== null) ? 2 : 3;
     const rows = listed.slice(0, maxRows);
     const rest = listed.length - rows.length;
 
@@ -59,7 +60,7 @@ export const FriendsClosedCard = forwardRef<HTMLDivElement, FriendsClosedCardPro
               <NoWrap>{fmt(total)} ₴</NoWrap>
             </div>
             <div style={{ marginTop: 14, fontSize: fz(30), color: p.secondary, fontWeight: 600 }}>
-              {t('friends-closed.closedCount', { count: listed.length })} · {tx('heroLabel')}
+              {t('friends-closed.closedCount', { count: closed.length })} · {tx('heroLabel')}
             </div>
           </div>
         )}
