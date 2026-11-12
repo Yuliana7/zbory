@@ -7,6 +7,7 @@ import { forecast, jarDays, jarTimeline } from '../../utils/friendInsights';
 import { formatCompact } from '../../utils/intlFormat';
 import { XIcon } from '../../icons';
 import { RangeBars } from './DailyPage';
+import { CopyJarLink } from './friendsShared';
 
 const W = 560;
 const H = 240;
@@ -84,6 +85,7 @@ export function JarChartModal({ friend: f, now, onClose }: { friend: FriendJar; 
             ? t('jarChart.summary', { raised: fmtUah(f.raised), target: fmtUah(f.target), left: fmtUah(Math.max(0, f.target - f.raised)) })
             : t('jarChart.summaryNoTarget', { raised: fmtUah(f.raised) })}
         </p>
+        {f.shortId && <CopyJarLink shortId={f.shortId} className="-mt-2 mb-3 -ml-2" />}
 
         {points.length < 2 ? (
           <p className="py-8 text-center text-sm text-gray-500">{t('jarChart.tooFew')}</p>

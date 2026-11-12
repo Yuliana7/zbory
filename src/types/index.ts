@@ -66,6 +66,8 @@ export interface FriendJar {
   target?: number;
   /** the helper's own jar, by Monobank's long id — lets «Оновити» read its amount, goal and status */
   jarId?: string;
+  /** the id in the jar's share link (send.monobank.ua/jar/…), to pass on to people; Monobank reports it with every read */
+  shortId?: string;
   /** the jar was closed (known only for linked jars): its numbers are final and the row is read-only */
   closed?: boolean;
   /** the short id of the main jar this one feeds, when it was added by its link */

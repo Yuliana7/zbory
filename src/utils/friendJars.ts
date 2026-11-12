@@ -115,6 +115,8 @@ export interface FriendDraftRow {
   target: string;
   /** the helper's own jar (Monobank long id), once linked */
   jarId?: string;
+  /** the id in the jar's share link */
+  shortId?: string;
   /** the linked jar is closed: the row is read-only */
   closed?: boolean;
   parentJar?: string;
@@ -130,6 +132,7 @@ export const friendsToRows = (friends: FriendJar[] | undefined): FriendDraftRow[
     raised: f.raised ? String(f.raised) : '',
     target: f.target ? String(f.target) : '',
     jarId: f.jarId,
+    shortId: f.shortId,
     closed: f.closed,
     parentJar: f.parentJar,
     updatedAt: f.updatedAt,
@@ -170,6 +173,7 @@ export function rowsToFriends(rows: FriendDraftRow[], prev: FriendJar[] = [], no
         raised: parseAmount(r.raised) ?? 0,
         ...(target ? { target } : null),
         ...(r.jarId ? { jarId: r.jarId } : null),
+        ...(r.shortId ? { shortId: r.shortId } : null),
         ...(r.closed ? { closed: true } : null),
         ...(r.parentJar ? { parentJar: r.parentJar } : null),
         ...(r.syncedAt ? { syncedAt: r.syncedAt } : null),
@@ -222,6 +226,9 @@ export function sortFriends(friends: FriendJar[], key: FriendSortKey, desc = fal
   return desc ? out.reverse() : out;
 }
 
+/** The link people open to donate to a jar. */
+export const jarShareLink = (shortId: string) => `https://send.monobank.ua/jar/${shortId}`;
+
 export const fmtUah = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
 /** how many helpers the analytics page previews */
@@ -250,6 +257,7 @@ export function applyJarInfo(row: FriendDraftRow, jar: PublicJar, now: number): 
     // the owner's name is who the helper is; the jar's title is only a fallback
     name: row.name.trim() === '' ? jar.ownerName || jar.title : row.name,
     closed: jar.closed,
+    shortId: jar.shortId ?? row.shortId,
     syncedAt: now,
   };
 }
@@ -297,7 +305,7 @@ const localStamp = (ms: number) => {
 /** The helper list as CSV (comma separated, text quoted, UTF-8 — Excel gets a BOM from downloadCSV).
  * Times are on the user's own clock. */
 export function friendsToCSV(friends: FriendJar[]): string {
-  const head = ['Назва', 'Зібрано, ₴', 'Ціль, ₴', 'Відсоток цілі', 'Статус', 'ID банки', 'Остання зміна', 'Оновлено з Monobank'];
+  const head = ['Назва', 'Зібрано, ₴', 'Ціль, ₴', 'Відсоток цілі', 'Статус', 'ID банки', 'Посилання', 'Остання зміна', 'Оновлено з Monobank'];
   const lines = friends.map((f) => {
     const { pct } = friendProgress(f);
     return [
@@ -307,6 +315,7 @@ export function friendsToCSV(friends: FriendJar[]): string {
       pct === null ? '' : String(Math.round(pct)),
       csvField(f.closed ? 'Закрита' : 'Відкрита'),
       csvField(f.jarId ?? ''),
+      csvField(f.shortId ? jarShareLink(f.shortId) : ''),
       f.updatedAt ? csvField(localStamp(f.updatedAt)) : '',
       f.syncedAt ? csvField(localStamp(f.syncedAt)) : '',
     ].join(',');

@@ -4,6 +4,7 @@ import { CheckIcon, LinkIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../
 import { friendProgress, parseAmount, type FriendDraftRow } from '../../utils/friendJars';
 import type { JarErrorKind } from '../../utils/monobankJar';
 import type { LinkResult } from '../../hooks/useFriendsDraft';
+import { CopyJarLink } from '../insights/friendsShared';
 
 const INPUT =
   // text-base (16px) on a phone: anything smaller makes iOS zoom the page on focus
@@ -175,6 +176,7 @@ export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onR
           {linked ? (
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1">
               <span title={row.jarId}>{t('friends.linkedId', { id: shortId(row.jarId!) })}</span>
+              {row.shortId && <CopyJarLink shortId={row.shortId} className="-mx-2" />}
               {row.syncedAt && (
                 <span>
                   {t('friends.synced', {
