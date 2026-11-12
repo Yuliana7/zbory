@@ -1,8 +1,9 @@
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FriendJar } from '../../types';
 import type { RenewAll } from '../../hooks/useRenewAll';
-import { RefreshIcon, SpinnerIcon } from '../../icons';
-import { fmtUah, type FriendStats } from '../../utils/friendJars';
+import { CheckIcon, LinkIcon, RefreshIcon, SpinnerIcon } from '../../icons';
+import { fmtUah, jarShareLink, type FriendStats } from '../../utils/friendJars';
 import { dataAsOf, formatWhen, linkedOpen } from '../../utils/friendsRefresh';
 
 /** The page's renew again, for the friends page, which has no main-total block. */
@@ -53,5 +54,52 @@ export function TargetsBar({ stats }: { stats: FriendStats }) {
       </div>
       {withoutTarget > 0 && <p className="mt-1.5 text-[11px] text-gray-400">{t('friends.targetsBarNote', { count: withoutTarget })}</p>}
     </div>
+  );
+}
+
+/** Puts text on the clipboard; the old selection trick covers browsers without the async clipboard. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    const area = document.createElement('textarea');
+    area.value = text;
+    area.setAttribute('readonly', '');
+    area.style.position = 'fixed';
+    area.style.opacity = '0';
+    document.body.appendChild(area);
+    area.select();
+    const ok = document.execCommand('copy');
+    area.remove();
+    return ok;
+  }
+}
+
+/** Copies a jar's share link, to send to people who want to donate to it. */
+export function CopyJarLink({ shortId, className = '' }: { shortId: string; className?: string }) {
+  const { t } = useTranslation('insights');
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = setTimeout(() => setCopied(false), 2000);
+    return () => clearTimeout(timer);
+  }, [copied]);
+  const link = jarShareLink(shortId);
+  return (
+    <button
+      type="button"
+      onClick={async (e) => {
+        e.stopPropagation();
+        setCopied(await copyText(link));
+      }}
+      title={link}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium transition-colors ${
+        copied ? 'text-green-700 bg-green-50' : 'text-indigo-600 hover:text-indigo-800 hover:bg-indigo-50'
+      } ${className}`}
+    >
+      {copied ? <CheckIcon className="w-3.5 h-3.5" /> : <LinkIcon className="w-3.5 h-3.5" />}
+      <span aria-live="polite">{copied ? t('friendsPage.linkCopied') : t('friendsPage.copyLink')}</span>
+    </button>
   );
 }

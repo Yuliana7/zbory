@@ -119,7 +119,7 @@ const progress: Array<[number, number]> = [];
   const lines = csv.split('\n');
   check('csv: header + one line per helper', lines.length === 3 && lines[0].startsWith('"Назва","Зібрано, ₴"'));
   check('csv: quotes doubled, amounts with 2 decimals, % and status', lines[1].startsWith('"Ім\'я ""з лапками"", кома",1234.50,1000.00,123,"Закрита","' + J('A') + '"'));
-  check('csv: empty target and % when there is no target', lines[2] === '"Без цілі",10.00,,,"Відкрита","",,');
+  check('csv: empty target and % when there is no target', lines[2] === '"Без цілі",10.00,,,"Відкрита","","",,');
 
   console.log(failures === 0 ? '\nAll refresh checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;

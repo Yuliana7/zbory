@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar, helperProblem } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar, helperProblem, friendsToCSV, jarShareLink } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -169,6 +169,18 @@ const mine = applyJarInfo({ id: 'r', name: 'Моя назва', raised: '100', t
 check('jar read: keeps the typed name and target, updates the amount', mine.name === 'Моя назва' && mine.target === '2000' && mine.raised === '500');
 check('jar read: no owner name → the jar title', applyJarInfo(row0, { ...jarInfo, ownerName: '' }, T0).name === 'Akatsuki Team');
 check('jar read: carries the closed status', applyJarInfo(row0, { ...jarInfo, closed: true }, T0).closed === true);
+check('jar read: stores the share-link id', applyJarInfo(row0, { ...jarInfo, shortId: 'Abc123XyZ' }, T0).shortId === 'Abc123XyZ');
+check('jar read: a read without it keeps the known one', applyJarInfo({ ...row0, shortId: 'Old123abc' }, { ...jarInfo, shortId: undefined }, T0).shortId === 'Old123abc');
+check('share link: survives the editor rows', rowsToFriends(friendsToRows([{ id: 's', name: 'С', raised: 1, shortId: 'Abc123XyZ' }]))[0].shortId === 'Abc123XyZ');
+check('share link: a new id alone does not count as a change', !friendsDiffer(friendsToRows([{ id: 's', name: 'С', raised: 1, shortId: 'Abc123XyZ' }]), [{ id: 's', name: 'С', raised: 1 }]));
+{
+  const csv = friendsToCSV([{ id: 's', name: 'С', raised: 1, jarId: 'LongIdLongIdLongId', shortId: 'Abc123XyZ' }, { id: 'm', name: 'М', raised: 2 }]).split('\n');
+  check('csv: has a link column', csv[0].includes('"Посилання"'));
+  check('csv: the link of a jar that has one', csv[1].includes(`"${jarShareLink('Abc123XyZ')}"`) && jarShareLink('Abc123XyZ') === 'https://send.monobank.ua/jar/Abc123XyZ');
+  // commas outside quotes, plus one
+  const fields = (line: string) => line.replace(/"([^"]|"")*"/g, '').split(',').length;
+  check('csv: every row has as many columns as the header', csv.every((line) => fields(line) === fields(csv[0])), csv.map(fields).join());
+}
 
 // ── which main jar a helper feeds ──
 check('parent jar: survives the editor rows', rowsToFriends(friendsToRows([{ id: 'p', name: 'П', raised: 1, parentJar: 'Main1' }]))[0].parentJar === 'Main1');

@@ -7,7 +7,7 @@ import { downloadCSV } from '../../utils/csvExporter';
 import { computeFriendStats, fmtUah, formatSharePct, friendBar, friendsToCSV, pageOf, sortFriends, FRIENDS_PAGE_SIZE, type FriendSortKey } from '../../utils/friendJars';
 import { FRIEND_FILTERS, FRIEND_SORT_KEYS, forecast, growth, leftToTarget, matchesFilter, matchesSearch, stalledDays, type FriendFilter } from '../../utils/friendInsights';
 import { formatWhen } from '../../utils/friendsRefresh';
-import { FriendsFreshness, RenewButton, TargetsBar } from './friendsShared';
+import { CopyJarLink, FriendsFreshness, RenewButton, TargetsBar } from './friendsShared';
 import { JarChartModal } from './JarChartModal';
 import { RenewReportCard } from './RenewReportCard';
 import { ReminderCard } from './ReminderCard';
@@ -23,7 +23,7 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
   const left = f.closed ? 0 : leftToTarget(f);
   const eta = forecast(f, now);
   return (
-    <li>
+    <li className="relative">
       <button onClick={onOpen} aria-haspopup="dialog" className="w-full text-left px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="min-w-0 truncate font-medium text-gray-800">
@@ -45,7 +45,7 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
         </div>
       )}
       <div className="mt-1.5">
-        <div className="min-w-0 text-xs text-gray-500 space-y-0.5">
+        <div className={`min-w-0 text-xs text-gray-500 space-y-0.5 ${f.shortId ? 'pr-28' : ''}`}>
           {bar.pct !== null && f.target && (
             <p>
               {t('friends.ofTarget', { pct: Math.round(bar.pct), target: fmtUah(f.target) })}
@@ -61,6 +61,8 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
         </div>
       </div>
       </button>
+      {/* beside the row's button, not in it: a button can't hold another */}
+      {f.shortId && <CopyJarLink shortId={f.shortId} className="absolute right-2 bottom-2" />}
     </li>
   );
 }

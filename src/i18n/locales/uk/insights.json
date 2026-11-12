@@ -233,6 +233,8 @@
     "stalled_many": "без змін {{count}} днів",
     "stalled_other": "без змін {{count}} днів",
     "left": "лишилось {{amount}} ₴",
+    "copyLink": "Копіювати посилання",
+    "linkCopied": "Скопійовано",
     "eta": "у такому темпі до {{date}}",
     "growth": "+{{amount}} ₴ з {{when}}",
     "changed": "змінено {{when}}",

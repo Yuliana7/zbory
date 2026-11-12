@@ -151,7 +151,8 @@ export function useFriendsDraft() {
     if (!ref) return null;
     if (ref.kind === 'short') {
       const found = await lookupJar(ref.id);
-      return { jarId: found.longId, jar: await fetchPublicJar(found.longId), parentJar: found.mainJar, checked: true };
+      const jar = await fetchPublicJar(found.longId);
+      return { jarId: found.longId, jar: { ...jar, shortId: jar.shortId ?? ref.id }, parentJar: found.mainJar, checked: true };
     }
     const jar = await fetchPublicJar(ref.id);
     if (!jar.shortId) return { jarId: ref.id, jar, checked: false };
@@ -192,7 +193,7 @@ export function useFriendsDraft() {
 
   const unlinkJar = useCallback(
     (id: string) => {
-      setRows((rs) => rs.map((r) => (r.id === id ? { ...r, jarId: undefined, closed: undefined, syncedAt: undefined } : r)));
+      setRows((rs) => rs.map((r) => (r.id === id ? { ...r, jarId: undefined, shortId: undefined, closed: undefined, syncedAt: undefined } : r)));
       setRowError(id);
     },
     [setRows],
