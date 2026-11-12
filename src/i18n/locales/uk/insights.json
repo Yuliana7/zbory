@@ -3,6 +3,11 @@
   "backButton": "Назад",
   "nextButton": "Шаблони",
   "totalAmount": "Загальна сума",
+  "goalLeft": {
+    "label": "Лишилось зібрати",
+    "reached": "Ціль зібрано",
+    "of": "{{pct}}% від цілі {{goal}} ₴"
+  },
   "donationsCount_one": "{{count}} донат за",
   "donationsCount_few": "{{count}} донати за",
   "donationsCount_many": "{{count}} донатів за",
