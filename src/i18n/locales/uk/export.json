@@ -53,6 +53,7 @@
     "anonymousLine": "Рядок анонімних донатів",
     "statsRow": "Ряд статистики",
     "linkBox": "Посилання на банку",
+    "mainJar": "Основний збір",
     "list": "Список донатерів",
     "weekTotal": "Сума за тиждень",
     "hourly": "Погодинний графік",
@@ -164,6 +165,7 @@
     "friends-leaderboard": "Друзі збору",
     "friends-stats": "Банки друзів",
     "friends-closed": "Завершені банки друзів",
+    "friendly-jar": "Моя дружня банка",
     "donation-stats": "Який донат типовий",
     "raffle-donors": "Учасники розіграшу",
     "raffle-jars": "Банки в розіграші",
@@ -319,6 +321,16 @@
       "reachedLabel": "Підпис «досягли цілі»",
       "totalLabel": "Підпис суми друзів",
       "closedLabel": "Позначка закритої банки"
+    },
+    "friendly-jar": {
+      "title": "Заголовок",
+      "collectedLabel": "Підпис над сумою",
+      "goalLabel": "Підпис цілі",
+      "leftLabel": "Підпис «лишилось»",
+      "reachedLabel": "Підпис «ціль зібрано»",
+      "mainLabel": "Підпис основного збору",
+      "mainRaisedLabel": "Підпис суми основного збору",
+      "linkUrl": "Посилання на банку"
     },
     "friends-stats": {
       "title": "Заголовок",

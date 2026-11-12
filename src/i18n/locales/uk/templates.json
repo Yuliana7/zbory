@@ -212,6 +212,16 @@
         "more": "+ ще {{n}}",
         "closedLabel": "закрита"
     },
+    "friendly-jar": {
+        "title": "Моя дружня банка",
+        "collectedLabel": "Зібрано в моїй банці",
+        "goalLabel": "Моя ціль",
+        "leftLabel": "Лишилось зібрати",
+        "reachedLabel": "Ціль зібрано, дякую! 💙💛",
+        "mainLabel": "Допомагаю збору",
+        "mainRaisedLabel": "Разом зібрано",
+        "ofLabel": "з"
+    },
     "friends-stats": {
         "title": "Банки друзів",
         "heroLabel": "Зібрали друзі",

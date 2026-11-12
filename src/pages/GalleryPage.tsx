@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar, Donation, Raffle } from '../types';
+import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar, Donation, OwnJar, Raffle } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -26,7 +26,8 @@ import { ReportCard } from '../components/templates/ReportCard';
 import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems } from '../utils/campaignAnalytics';
 import { getPersonalComments } from '../utils/commentAnalyzer';
-import { TEMPLATE_GROUPS as GROUPS } from '../utils/templateConfig';
+import { groupsFor, offeredFor } from '../utils/templateConfig';
+import { FriendlyJarCard } from '../components/templates/FriendlyJarCard';
 import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, XIcon } from '../icons';
 
 const NATIVE = 1080;
@@ -34,11 +35,12 @@ const NATIVE = 1080;
 export function GalleryPage() {
   const { t } = useTranslation('gallery');
   const { t: tCamp } = useTranslation('campaigns');
-  const { state, dispatch, handleTemplateSelect, handleTemplatesSelect } = useAppContext();
+  const { state, dispatch, handleTemplateSelect, handleTemplatesSelect, handleReset } = useAppContext();
   const { app } = state;
   // Selection (series, insertion order = export order) and open groups live in
   // app state so they survive the gallery ⇄ export round trip
   const selection = app.gallerySelection;
+  const GROUPS = groupsFor(!!app.ownJar);
   const openGroups = useMemo(() => new Set(app.galleryOpenGroups), [app.galleryOpenGroups]);
 
   const setSelection = (next: TemplateType[]) =>
@@ -73,6 +75,8 @@ export function GalleryPage() {
   const isMulti = (app.campaignDatasets?.length ?? 0) >= 2;
   const visibleIds = (ids: TemplateType[]) =>
     ids.filter((id) => {
+      if (!offeredFor(id, !!app.ownJar)) return false;
+      if (app.ownJar) return true;
       if (id === 'emoji-cloud') return hasEmojis;
       if (id === 'comments') return previewComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return isMulti;
@@ -102,13 +106,14 @@ export function GalleryPage() {
           )}
         </div>
         <button
-          onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'insights' })}
+          // a friendly jar has no analytics: back is the jar list
+          onClick={() => (app.ownJar ? handleReset() : dispatch({ type: 'GO_TO_STEP', payload: 'insights' }))}
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          {t('backButton')}
+          {app.ownJar ? t('backToJars') : t('backButton')}
         </button>
       </div>
 
@@ -173,6 +178,7 @@ export function GalleryPage() {
                             commentInsights={app.commentInsights}
                             previewComments={previewComments}
                             campaignDatasets={app.campaignDatasets}
+                            ownJar={app.ownJar}
                           />
                           <div className="p-4 flex flex-col gap-1.5 flex-1">
                             <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
@@ -235,9 +241,10 @@ interface TemplatePreviewProps {
   commentInsights: CommentInsights | null;
   previewComments: SelectedComment[];
   campaignDatasets: CampaignDataset[] | null;
+  ownJar?: OwnJar;
 }
 
-function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, commentInsights, previewComments, campaignDatasets }: TemplatePreviewProps) {
+function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, commentInsights, previewComments, campaignDatasets, ownJar }: TemplatePreviewProps) {
   const { t: tCamp } = useTranslation('campaigns');
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -301,6 +308,7 @@ function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, co
           {id === 'funds-flow' && <FundsFlowCard aggregates={aggregates} format="post" />}
           {id === 'report' && previewReport && <ReportCard report={previewReport} periodLabel={tCamp('report.labelAll')} format="post" />}
           {id === 'campaigns-chart' && crossItems && <CampaignsChartCard items={crossItems} format="post" />}
+          {id === 'friendly-jar' && ownJar && <FriendlyJarCard jar={ownJar} goal={goal} format="post" />}
         </div>
       )}
     </div>

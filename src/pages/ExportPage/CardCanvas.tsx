@@ -1,6 +1,8 @@
 import { useLayoutEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, Raffle } from '../../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, OwnJar, Raffle } from '../../types';
+import { FriendlyJarCard } from '../../components/templates/FriendlyJarCard';
+import { ownJarLink } from '../../utils/ownJars';
 import { ProgressCard } from '../../components/templates/ProgressCard';
 import { DailyActivityCard } from '../../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../../components/templates/ThankYouCard';
@@ -46,9 +48,11 @@ interface CardCanvasProps {
   exRef?: React.RefObject<HTMLDivElement>;
   /** Saved campaign name — used as the default "title" text (single-campaign only) */
   activeCampaignName?: string | null;
+  /** set when the cards are for one of the user's friendly jars */
+  ownJar?: OwnJar;
 }
 
-export function CardCanvas({ card, style, aggregates, goal, friends, raffles, donations, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName }: CardCanvasProps) {
+export function CardCanvas({ card, style, aggregates, goal, friends, raffles, donations, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName, ownJar }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -110,6 +114,7 @@ export function CardCanvas({ card, style, aggregates, goal, friends, raffles, do
         crossItems={crossItems}
         selectedComments={selectedComments}
         activeCampaignName={activeCampaignName}
+        ownJar={ownJar}
       />
     </div>
   );
@@ -140,6 +145,7 @@ interface RendererProps {
   crossItems: ReturnType<typeof datasetsToItems> | null;
   selectedComments: SelectedComment[];
   activeCampaignName?: string | null;
+  ownJar?: OwnJar;
 }
 
 // Multi-campaign templates keep their own default title — a saved single
@@ -169,14 +175,18 @@ function TemplateRenderer({
   crossItems,
   selectedComments,
   activeCampaignName,
+  ownJar,
 }: RendererProps) {
   // Default "title" to the saved campaign's name until the user sets their own
   // override for this card — never for multi-campaign templates. Checked with
   // `=== undefined` (not falsy) so a deliberately-cleared, blank title is kept.
-  const effectiveTextOverrides =
+  const withTitle =
     activeCampaignName && textOverrides.title === undefined && !MULTI_CAMPAIGN_TEMPLATES.has(templateId)
       ? { ...textOverrides, title: activeCampaignName }
       : textOverrides;
+  // a friendly jar's cards point at the jar itself until the user types another link
+  const effectiveTextOverrides =
+    ownJar?.shortId && withTitle.linkUrl === undefined ? { ...withTitle, linkUrl: ownJarLink(ownJar.shortId) } : withTitle;
   const { t: tCamp } = useTranslation('campaigns');
   // Report period rides in textOverrides (key 'periodKey') so it survives
   // card persistence and batch export without a new CardState field.
@@ -224,6 +234,7 @@ function TemplateRenderer({
     case 'friends-stats': return <FriendsStatsCard {...shared} friends={friends} />;
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
+    case 'friendly-jar': return ownJar ? <FriendlyJarCard {...shared} jar={ownJar} goal={goal} /> : null;
     default: {
       // Exhaustiveness check: a new TemplateType that isn't handled above
       // fails the build here instead of silently rendering nothing.

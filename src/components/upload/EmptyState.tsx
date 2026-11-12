@@ -6,12 +6,14 @@ interface EmptyStateProps {
   onFileSelect: (file: File) => void;
   onManualClick: () => void;
   onMonobankClick: () => void;
+  /** opens «Мої дружні банки», for someone who only runs a friendly jar */
+  onOwnJarsClick: () => void;
   isLoading: boolean;
 }
 
 /** First-run screen: no saved campaigns yet, so orient the volunteer with a
  * quick 3-step explainer before the two ways to start. */
-export function EmptyState({ onFileSelect, onManualClick, onMonobankClick, isLoading }: EmptyStateProps) {
+export function EmptyState({ onFileSelect, onManualClick, onMonobankClick, onOwnJarsClick, isLoading }: EmptyStateProps) {
   const { t } = useTranslation('upload');
   const steps = t('emptyState.steps', { returnObjects: true }) as string[];
 
@@ -40,6 +42,13 @@ export function EmptyState({ onFileSelect, onManualClick, onMonobankClick, isLoa
         onManualClick={onManualClick}
         isLoading={isLoading}
       />
+
+      <p className="mt-8 text-sm text-gray-500">
+        {t('ownJars.emptyStateHint')}{' '}
+        <button onClick={onOwnJarsClick} className="font-medium text-indigo-600 hover:text-indigo-800 transition-colors">
+          {t('view.own')} →
+        </button>
+      </p>
     </div>
   );
 }

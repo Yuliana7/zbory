@@ -18,7 +18,8 @@ import {
   TEMPLATE_SUPPORTS_DATE_RANGE,
   TEMPLATE_REQUIRES_GOAL,
   TEMPLATE_REMOVABLE_ELEMENTS,
-  TEMPLATE_GROUPS,
+  offeredFor,
+  groupsFor,
 } from '../../utils/templateConfig';
 import {
   ArrowLeftIcon,
@@ -30,6 +31,7 @@ import {
   TrashIcon,
 } from '../../icons';
 import { CardCanvas } from './CardCanvas';
+import { ownJarLink } from '../../utils/ownJars';
 import { ToggleRow } from './shared';
 import { FormatPanel } from './panels/FormatPanel';
 import { BackgroundPanel } from './panels/BackgroundPanel';
@@ -110,7 +112,7 @@ function ExportPageInner() {
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
-    () => new Set([TEMPLATE_GROUPS[0].id]),
+    () => new Set([groupsFor(!!app.ownJar)[0].id]),
   );
   // Sidebar sections — which <Collapsible> panels are expanded
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['format']));
@@ -224,11 +226,12 @@ function ExportPageInner() {
   const textDefaultFor = useCallback(
     (key: string): string => {
       if (key === 'title' && app.activeCampaignName) return app.activeCampaignName;
+      if (key === 'linkUrl' && app.ownJar?.shortId) return ownJarLink(app.ownJar.shortId);
       if (key === 'achievedLabel' && templateId === 'milestone') return t(`templates:milestone.${milestoneAchievedKey}`);
       if (key === 'dateRange') return `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`;
       return t(`templates:${templateId}.${key}`);
     },
-    [app.activeCampaignName, templateId, milestoneAchievedKey, filteredAggregates, t],
+    [app.activeCampaignName, app.ownJar, templateId, milestoneAchievedKey, filteredAggregates, t],
   );
 
   const handleExport = async () => {
@@ -255,6 +258,8 @@ function ExportPageInner() {
   const hasClosedFriends = (app.friends ?? []).some((f) => f.closed && f.raised > 0);
   const addableGroups = useMemo(() => {
     const available = (id: TemplateType) => {
+      if (!offeredFor(id, !!app.ownJar)) return false;
+      if (app.ownJar) return true;
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
       if (id === 'report' || id === 'campaigns-chart') return crossItems != null;
@@ -264,10 +269,10 @@ function ExportPageInner() {
       if (raffleKind) return hasRaffle(app.raffles, raffleKind);
       return true;
     };
-    return TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
+    return groupsFor(!!app.ownJar).map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends, app.raffles]);
+  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends, app.raffles, app.ownJar]);
 
   // Ceil, not round: previewClipRef clips the scaled-down card at exactly
   // these pixel dimensions. Rounding down even by a fraction of a pixel made
@@ -278,9 +283,10 @@ function ExportPageInner() {
   const previewW = Math.ceil(dims.width * scale);
 
   const textFields = TEMPLATE_TEXT_FIELDS[templateId];
-  const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId];
+  // a friendly jar has one total and no donations to pick a period from
+  const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId] && !app.ownJar;
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
-  const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report';
+  const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report' || templateId === 'friendly-jar';
 
   const removableElements = TEMPLATE_REMOVABLE_ELEMENTS[templateId];
   const cardRaffleKind = raffleKindOf(templateId);
@@ -307,6 +313,7 @@ function ExportPageInner() {
       crossItems={crossItems}
       selectedComments={overrides?.selectedComments ?? commentsFor(c)}
       activeCampaignName={app.activeCampaignName}
+      ownJar={app.ownJar}
       safeZonePad={showSafeZones}
       {...refs}
     />

@@ -8,7 +8,21 @@ import { EmptyState } from '../EmptyState';
 import { BackupControls } from '../BackupControls';
 import { loadSession, clearSession } from '../../../utils/session';
 import { listCampaigns, type CampaignMeta } from '../../../utils/campaignStore';
+import { listOwnJars } from '../../../utils/ownJars';
+import type { OwnJar } from '../../../types';
+import { OwnJarsTab } from '../../ownJars/OwnJarsTab';
 import { SaveIcon, XIcon } from '../../../icons';
+
+type HomeTab = 'saved' | 'own' | 'new';
+const TAB_KEY = 'zbory.homeTab';
+const readTab = (): HomeTab => {
+  try {
+    const v = sessionStorage.getItem(TAB_KEY);
+    return v === 'own' || v === 'new' ? v : 'saved';
+  } catch {
+    return 'saved';
+  }
+};
 
 interface HomeScreenProps {
   onMonobank: () => void;
@@ -23,17 +37,34 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
   const { state, handleFileSelect, handleRestoreSession } = useAppContext();
   const { app, isLoading } = state;
   const [savedSession, setSavedSession] = useState(() => loadSession());
-  // Step 1 has two views: the saved projects and the ways to start a new one
-  const [tab, setTab] = useState<'saved' | 'new'>('saved');
+  // Step 1 has three views: the saved projects, the user's own friendly jars and the ways to start a
+  // new project. The view is remembered for the visit, so coming back from a jar's cards lands on the jars.
+  const [tab, setTabState] = useState<HomeTab>(readTab);
+  const setTab = (next: HomeTab) => {
+    setTabState(next);
+    try {
+      sessionStorage.setItem(TAB_KEY, next);
+    } catch {
+      /* only the memory of the tab is lost */
+    }
+  };
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
+  const [ownJars, setOwnJars] = useState<OwnJar[] | null>(null);
+  const loadOwnJars = () => listOwnJars().then(setOwnJars).catch(() => setOwnJars([]));
 
-  // The list is refetched whenever the loaded data clears (coming back from a project, saving
+  // The lists are refetched whenever the loaded data clears (coming back from a project, saving
   // one from the preview), and on the first mount.
   useEffect(() => {
     if (app.donations) return;
     listCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+    loadOwnJars();
   }, [app.donations]);
+
+  const loaded = campaigns !== null && ownJars !== null;
+  const hasAnything = loaded && (campaigns.length > 0 || ownJars.length > 0);
+  // with no projects yet the jars are what there is to show
+  const shownTab: HomeTab = tab === 'saved' && loaded && campaigns.length === 0 && ownJars.length > 0 ? 'own' : tab;
 
   return (
     <div className="py-8 sm:py-12">
@@ -74,25 +105,28 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
         </div>
       )}
 
-      {campaigns === null ? null : campaigns.length > 0 ? (
+      {!loaded ? null : hasAnything || tab === 'own' ? (
         <>
-          <div role="tablist" className="max-w-md mx-auto mb-8 flex p-1 bg-gray-100 rounded-xl">
-            {(['saved', 'new'] as const).map((key) => (
+          <div role="tablist" className="max-w-lg mx-auto mb-8 flex p-1 bg-gray-100 rounded-xl">
+            {(['saved', 'own', 'new'] as const).map((key) => (
               <button
                 key={key}
                 role="tab"
-                aria-selected={tab === key}
+                aria-selected={shownTab === key}
                 onClick={() => setTab(key)}
-                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                  tab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
+                className={`flex-1 px-2 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-medium leading-tight transition-colors ${
+                  shownTab === key ? 'bg-white text-indigo-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                 }`}
               >
                 {t(`view.${key}`)}
-                {key === 'saved' && <span className="ml-1.5 text-xs text-gray-400">{campaigns.length}</span>}
+                {key === 'saved' && campaigns.length > 0 && <span className="ml-1 text-xs text-gray-400">{campaigns.length}</span>}
+                {key === 'own' && ownJars.length > 0 && <span className="ml-1 text-xs text-gray-400">{ownJars.length}</span>}
               </button>
             ))}
           </div>
-          {tab === 'saved' ? (
+          {shownTab === 'own' ? (
+            <OwnJarsTab jars={ownJars} onJarsChange={setOwnJars} />
+          ) : shownTab === 'saved' && campaigns.length > 0 ? (
             <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={onAction} />
           ) : (
             <NewProjectOptions
@@ -108,10 +142,11 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           onFileSelect={handleFileSelect}
           onManualClick={onManual}
           onMonobankClick={onMonobank}
+          onOwnJarsClick={() => setTab('own')}
           isLoading={isLoading}
         />
       )}
-      {campaigns !== null && <BackupControls hasProjects={campaigns.length > 0} onRestored={setCampaigns} />}
+      {loaded && <BackupControls hasProjects={hasAnything} onRestored={setCampaigns} onJarsRestored={loadOwnJars} />}
     </div>
   );
 }
