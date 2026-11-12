@@ -20,6 +20,10 @@ export function TotalRaisedCard({ aggregates, duration, renew }: TotalRaisedCard
   const { state } = useAppContext();
   const { app } = state;
   const waiting = renew.statementProgress?.waitSeconds ?? 0;
+  const raised = aggregates.currentBalance + aggregates.totalWithdrawn;
+  const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
+  const goal = app.goal && app.goal > 0 ? app.goal : null;
+  const left = goal ? Math.max(0, goal - raised) : 0;
 
   return (
     <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
@@ -37,11 +41,29 @@ export function TotalRaisedCard({ aggregates, duration, renew }: TotalRaisedCard
         )}
       </div>
       <p className="text-4xl font-bold tracking-tight">
-        {new Intl.NumberFormat('uk-UA').format(Math.round(aggregates.currentBalance + aggregates.totalWithdrawn))} ₴
+        {fmt(raised)} ₴
       </p>
       <p className="mt-2 text-indigo-200 text-sm">
         {t('donationsCount', { count: aggregates.donationCount })} {t('duration', { count: duration })} 💙💛
       </p>
+
+      {goal && (
+        <div className="mt-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            {left > 0 ? (
+              <p className="text-sm text-indigo-100">
+                {t('goalLeft.label')} <span className="text-lg font-bold text-white whitespace-nowrap">{fmt(left)} ₴</span>
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-white">{t('goalLeft.reached')} 🎉</p>
+            )}
+            <p className="text-xs text-indigo-200 whitespace-nowrap">{t('goalLeft.of', { pct: Math.floor((raised / goal) * 100), goal: fmt(goal) })}</p>
+          </div>
+          <div className="mt-1.5 h-1.5 rounded-full bg-white/20 overflow-hidden">
+            <div className="h-full rounded-full bg-white" style={{ width: `${Math.min(1, raised / goal) * 100}%` }} />
+          </div>
+        </div>
+      )}
 
       {(renew.mainLinked || renew.running) && (
         <div className="mt-3 pt-3 border-t border-white/15 text-xs text-indigo-100" aria-live="polite">
