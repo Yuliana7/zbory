@@ -173,6 +173,16 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'jarsLabel' },
     { key: 'targetLabel' },
   ],
+  'friendly-jar': [
+    { key: 'title' },
+    { key: 'collectedLabel' },
+    { key: 'goalLabel' },
+    { key: 'leftLabel' },
+    { key: 'reachedLabel' },
+    { key: 'mainLabel' },
+    { key: 'mainRaisedLabel' },
+    { key: 'linkUrl' },
+  ],
 };
 
 export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
@@ -200,6 +210,7 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   'friends-leaderboard': false, // helper totals cover the whole campaign
   'friends-closed': false,
   'friends-stats': false,
+  'friendly-jar': false, // a jar's total has no dates
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -227,6 +238,7 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   'friends-leaderboard': false,
   'friends-closed': false,
   'friends-stats': false,
+  'friendly-jar': false,
 };
 
 // Stories are the primary sharing format for volunteers — every template
@@ -256,6 +268,7 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   'friends-leaderboard': 'story',
   'friends-closed': 'story',
   'friends-stats': 'story',
+  'friendly-jar': 'story',
 };
 
 // Elements the tap-to-remove editor can hide, per template. `id` matches the
@@ -443,6 +456,15 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
     UA_FLAG,
     GLOW,
   ],
+  'friendly-jar': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('progressBar', 'layout.progressBar'),
+    el('mainJar', 'layout.mainJar'),
+    el('linkBox', 'layout.linkBox'),
+    UA_FLAG,
+    GLOW,
+  ],
 };
 
 // Gallery categories — also used by the editor's "add template" picker
@@ -453,6 +475,8 @@ export interface TemplateGroup {
   ids: TemplateType[];
 }
 
+export const OWN_JAR_GROUP = 'own-jar';
+
 export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'progress', labelKey: 'groups.progress', icon: '📊', ids: ['progress', 'milestone', 'urgency', 'concrete-ask', 'funds-flow', 'final-report'] },
   { id: 'activity', labelKey: 'groups.activity', icon: '📈', ids: ['daily-activity', 'weekly-recap', 'speed', 'donation-stats'] },
@@ -460,4 +484,18 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
   { id: 'friends',  labelKey: 'groups.friends',  icon: '🤝', ids: ['friends-leaderboard', 'friends-closed', 'friends-stats'] },
   { id: 'raffles',  labelKey: 'groups.raffles',  icon: '🎁', ids: ['raffle-donors', 'raffle-jars', 'raffle-biggest'] },
   { id: 'reports',  labelKey: 'groups.reports',  icon: '🗓️', ids: ['report', 'campaigns-chart'] },
+  { id: OWN_JAR_GROUP, labelKey: 'groups.ownJar', icon: '🫙', ids: ['friendly-jar'] },
 ];
+
+/** What a card for one of the user's friendly jars can show: there are only the jar's total and goal,
+ * no donations, so only these templates (and the footer-less versions of them) make sense. */
+export const OWN_JAR_TEMPLATES: TemplateType[] = ['friendly-jar', 'progress', 'milestone', 'urgency', 'concrete-ask'];
+
+/** Whether a template is offered: a friendly jar's cards get only OWN_JAR_TEMPLATES, a project never
+ * gets the friendly-jar one. */
+/** The gallery's groups in the order to show them: a friendly jar's own card leads for a jar, the
+ * project groups lead otherwise. */
+export const groupsFor = (ownJar: boolean): TemplateGroup[] =>
+  ownJar ? [...TEMPLATE_GROUPS].sort((a, b) => Number(b.id === OWN_JAR_GROUP) - Number(a.id === OWN_JAR_GROUP)) : TEMPLATE_GROUPS;
+
+export const offeredFor = (id: TemplateType, ownJar: boolean) => (ownJar ? OWN_JAR_TEMPLATES.includes(id) : id !== 'friendly-jar');

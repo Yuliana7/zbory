@@ -130,6 +130,8 @@ interface CardFooterProps {
  * honest "typical" value) / Найбільший — plain text row, no bordered box.
  */
 export function CardFooter({ palette: p, fz, aggregates, labels }: CardFooterProps) {
+  // a friendly jar's card has a total but no donations behind it: typical and biggest donation are unknown
+  if (aggregates.donationCount === 0) return null;
   const stats = [
     { label: labels.collected, value: <NoWrap>{fmtUA(aggregates.totalAmount)} ₴</NoWrap> },
     { label: labels.median, value: <NoWrap>{fmtUA(aggregates.medianDonation)} ₴</NoWrap> },

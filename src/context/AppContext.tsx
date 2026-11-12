@@ -22,6 +22,7 @@ import type {
   SharedStyle,
   CampaignDataset,
   FriendJar,
+  OwnJar,
   MonobankJarRef,
   LoadedCampaign,
   LastMerge,
@@ -38,6 +39,8 @@ import { saveCampaign, getCampaignMeta, loadCampaignData, type CampaignMeta } fr
 import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 
 import { makeCard } from '../utils/exportStack';
+import { ownJarAggregates } from '../utils/ownJars';
+import { OWN_JAR_GROUP } from '../utils/templateConfig';
 
 /** Where a project's rows come from and what goes with them; no id = a new project. */
 interface ProjectSource {
@@ -137,6 +140,7 @@ export type AppAction =
   | { type: 'GALLERY_UI'; payload: { selection?: TemplateType[]; openGroups?: string[] } }
   | { type: 'STACK_UPDATED'; payload: { cards: CardState[]; style: SharedStyle } }
   | { type: 'GO_TO_STEP'; payload: AppState['step'] }
+  | { type: 'OWN_JAR_OPENED'; payload: OwnJar }
   | { type: 'RESET' }
   | { type: 'SET_ERROR'; payload: string | null }
   | { type: 'SET_LOADING'; payload: boolean };
@@ -253,6 +257,30 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     case 'GO_TO_STEP':
       return { ...state, app: { ...state.app, step: action.payload } };
+
+    case 'OWN_JAR_OPENED': {
+      const jar = action.payload;
+      // no statement behind it: the jar's numbers stand in for one, straight to the templates
+      return {
+        ...INITIAL_STATE,
+        app: {
+          ...INITIAL_APP_STATE,
+          step: 'gallery',
+          ownJar: jar,
+          rawData: [],
+          donations: [],
+          withdrawals: [],
+          currentBalance: jar.raised,
+          aggregates: ownJarAggregates(jar),
+          insights: [],
+          commentInsights: null,
+          goal: jar.target,
+          activeCampaignName: jar.name || null,
+          gallerySelection: [],
+          galleryOpenGroups: [OWN_JAR_GROUP, 'progress'],
+        },
+      };
+    }
 
     case 'RESET':
       return INITIAL_STATE;
@@ -492,7 +520,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const handleReset = useCallback(() => {
-    clearSession();
+    // leaving a friendly jar's cards: there was no project, so an unsaved one waiting to be restored stays
+    if (!stateRef.current.app.ownJar) clearSession();
     dispatch({ type: 'RESET' });
   }, []);
 
@@ -680,11 +709,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
     (step: AppState['step']) => {
       const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
       if (idx[step] >= idx[state.app.step]) return;
-      // everything is saved as it happens, so going back to step 1 just closes the project
-      if (step === 'upload') handleReset();
+      // everything is saved as it happens, so going back to step 1 just closes the project; a friendly
+      // jar has no analytics step, so going back past its templates returns to the jar list
+      if (step === 'upload' || (state.app.ownJar && step === 'insights')) handleReset();
       else dispatch({ type: 'GO_TO_STEP', payload: step });
     },
-    [state.app.step, handleReset],
+    [state.app.step, state.app.ownJar, handleReset],
   );
 
   return (

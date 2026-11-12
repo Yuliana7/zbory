@@ -5,11 +5,11 @@
 // the tab.
 
 const DB_NAME = 'zbory-campaigns';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 // Every object store any domain module needs, created up front on upgrade —
 // keeping this list in one place means a version bump only has to happen
 // when a store is added, not per domain.
-const STORE_NAMES = ['meta', 'data', 'themes'];
+const STORE_NAMES = ['meta', 'data', 'themes', 'ownJars'];
 
 export interface KVBackend {
   get(store: string, key: string): Promise<unknown>;
@@ -44,7 +44,16 @@ function idbBackend(): KVBackend {
           if (!db.objectStoreNames.contains(store)) db.createObjectStore(store, { keyPath: 'id' });
         }
       };
-      req.onsuccess = () => resolve(req.result);
+      req.onsuccess = () => {
+        const db = req.result;
+        // a newer version of the app (another tab, or the update about to load) needs the database
+        // upgraded; letting go here keeps it from waiting on this tab forever
+        db.onversionchange = () => {
+          db.close();
+          dbPromise = null;
+        };
+        resolve(db);
+      };
       req.onerror = () => reject(req.error);
     });
     return dbPromise;

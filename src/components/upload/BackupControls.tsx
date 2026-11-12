@@ -15,7 +15,7 @@ const readLast = () => {
 
 /** One file with every project, to keep elsewhere or move to another device. It is what protects
  * the helper jars' history, which Monobank can't give back. */
-export function BackupControls({ hasProjects, onRestored }: { hasProjects: boolean; onRestored: (campaigns: CampaignMeta[]) => void }) {
+export function BackupControls({ hasProjects, onRestored, onJarsRestored }: { hasProjects: boolean; onRestored: (campaigns: CampaignMeta[]) => void; onJarsRestored?: () => void }) {
   const { t } = useTranslation('campaigns');
   const inputRef = useRef<HTMLInputElement>(null);
   const [last, setLast] = useState(readLast);
@@ -51,7 +51,9 @@ export function BackupControls({ hasProjects, onRestored }: { hasProjects: boole
     }
     const result = await restoreBackup(backup);
     onRestored(await listCampaigns());
-    setMessage({ text: t('backup.restored', { ...result }), bad: false });
+    const jars = result.ownJars > 0 ? ` · ${t('backup.restoredJars', { n: result.ownJars })}` : '';
+    setMessage({ text: t('backup.restored', { ...result }) + jars, bad: false });
+    onJarsRestored?.();
   };
 
   const link = 'font-medium text-indigo-600 hover:text-indigo-800 transition-colors';

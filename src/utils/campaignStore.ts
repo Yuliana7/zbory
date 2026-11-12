@@ -1,4 +1,5 @@
-import type { FriendJar, MonobankJarRef, Raffle, RawDonation, SharedStyle } from '../types';
+import type { FriendJar, MonobankJarRef, OwnJar, Raffle, RawDonation, SharedStyle } from '../types';
+import { isOwnJar, listOwnJars, restoreOwnJars } from './ownJars';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
 import { getBackend } from './db';
@@ -151,6 +152,8 @@ export interface ProjectBackup {
   version: number;
   exportedAt: number;
   projects: Array<{ meta: CampaignMeta; data: CampaignData }>;
+  /** «Мої дружні банки»; missing in backups made before they existed */
+  ownJars?: OwnJar[];
 }
 
 export async function buildBackup(now: number = Date.now()): Promise<ProjectBackup> {
@@ -161,7 +164,8 @@ export async function buildBackup(now: number = Date.now()): Promise<ProjectBack
     const data = (await kv.get(DATA_STORE, meta.id)) as CampaignData | undefined;
     if (data) projects.push({ meta, data });
   }
-  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: now, projects };
+  const ownJars = await listOwnJars();
+  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: now, projects, ...(ownJars.length ? { ownJars } : null) };
 }
 
 const isRow = (r: unknown) => {
@@ -181,7 +185,8 @@ export function parseBackup(text: string): ProjectBackup | null {
   const valid = body.projects.every(
     (p) => typeof p?.meta?.id === 'string' && typeof p.meta.name === 'string' && typeof p.meta.updatedAt === 'number' && Array.isArray(p.data?.rawData) && p.data.rawData.every(isRow),
   );
-  return valid ? (body as ProjectBackup) : null;
+  if (!valid || (body.ownJars !== undefined && !(Array.isArray(body.ownJars) && body.ownJars.every(isOwnJar)))) return null;
+  return body as ProjectBackup;
 }
 
 export interface RestoreResult {
@@ -189,13 +194,15 @@ export interface RestoreResult {
   updated: number;
   /** already here, in the same or a newer state */
   kept: number;
+  /** friendly jars brought in (added or updated) */
+  ownJars: number;
 }
 
 /** Brings a backup in without losing anything newer: a project the device doesn't have is added, and one
  * it has is replaced only if the backup's copy was saved later. */
 export async function restoreBackup(backup: ProjectBackup): Promise<RestoreResult> {
   const kv = getBackend();
-  const result: RestoreResult = { added: 0, updated: 0, kept: 0 };
+  const result: RestoreResult = { added: 0, updated: 0, kept: 0, ownJars: 0 };
   for (const { meta, data } of backup.projects) {
     const existing = (await kv.get(META_STORE, meta.id)) as CampaignMeta | undefined;
     if (existing && existing.updatedAt >= meta.updatedAt) {
@@ -206,6 +213,10 @@ export async function restoreBackup(backup: ProjectBackup): Promise<RestoreResul
     // the list's numbers are worked out from the rows, not taken from the file
     await kv.put(META_STORE, { ...meta, summary: computeCampaignSummary(data.rawData) });
     result[existing ? 'updated' : 'added'] += 1;
+  }
+  if (backup.ownJars?.length) {
+    const jars = await restoreOwnJars(backup.ownJars);
+    result.ownJars = jars.added + jars.updated;
   }
   return result;
 }

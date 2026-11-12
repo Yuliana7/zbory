@@ -80,6 +80,28 @@ export interface FriendJar {
   history?: FriendSnapshot[];
 }
 
+/** The main jar a friendly jar feeds, as last read from Monobank. Only `shortId` is sure to be there:
+ * the rest needs our lookup (for the long id) and a read, either of which can fail. */
+export interface MainJarInfo {
+  shortId: string;
+  longId?: string;
+  title?: string;
+  ownerName?: string;
+  raised?: number;
+  goal?: number;
+  closed?: boolean;
+  syncedAt?: number;
+}
+
+/** A friendly jar the user runs for someone else's fundraiser. Monobank leaves these out of the
+ * user's own statement, so they are tracked like a friend's jar: by link, total only, with the
+ * app keeping its own history. `name` is the jar's title and `target` its goal. */
+export interface OwnJar extends FriendJar {
+  jarId: string;
+  main?: MainJarInfo;
+  addedAt: number;
+}
+
 export type RaffleKind = 'donors' | 'jars' | 'biggest';
 
 /** A prize raffled off by whoever runs the fundraiser. The app only shows who is in the running; the draw happens elsewhere. */
@@ -225,7 +247,8 @@ export type TemplateType =
   | 'friends-closed'
   | 'friends-stats'
   | 'report'
-  | 'campaigns-chart';
+  | 'campaigns-chart'
+  | 'friendly-jar';
 
 export interface Template {
   id: TemplateType;
@@ -266,6 +289,9 @@ export interface AppState {
   friendsEdit?: { returnTo: 'insights' };
   /** the raffles screen is open from analytics; done/back returns there */
   rafflesEdit?: boolean;
+  /** set while cards are made for one of the user's friendly jars: there is no statement, only this
+   * jar's numbers, so steps 2 and 3 are replaced by the jar list and only jar-friendly templates show */
+  ownJar?: OwnJar;
   /** which page of step 2 is showing */
   insightsView?: InsightsView;
   /** what the latest merge did — reported on the analytics until dismissed */
