@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { Aggregates, Donation, Withdrawal } from '../../types';
 import { addDays, changePct, cumulativePoints, dayDetail, dayKey, daysBetween, daysInRange, groupWeeks, previousRange, shortKey, summarize, weekHourGrid, type DayRow } from '../../utils/dailyBreakdown';
-import { DateField } from '../DateField';
+import { DateRangeField } from '../DateRangeField';
 import { ArrowLeftIcon, ArrowRightIcon } from '../../icons';
 import { CumulativeChart } from './CumulativeChart';
 import { fmtUah } from '../../utils/friendJars';
@@ -181,6 +181,7 @@ function WeekHourMap({ grid }: { grid: number[][] }) {
 /** The fundraiser day by day: any period, how it compares with the one before, and what happened on each day. */
 export function DailyPage({ aggregates, donations, withdrawals }: DailyPageProps) {
   const { t } = useTranslation('insights');
+  const { t: tc } = useTranslation();
   const { handleTemplateSelect } = useAppContext();
   const first = dayKey(aggregates.firstDate);
   const last = dayKey(aggregates.lastDate);
@@ -220,9 +221,8 @@ export function DailyPage({ aggregates, donations, withdrawals }: DailyPageProps
           ))}
           <button onClick={() => setRange({ from: first, to: last })} aria-pressed={allOn} className={chip(allOn)}>{t('daily.allTime')}</button>
         </div>
-        <div className="grid grid-cols-2 gap-3 max-w-md">
-          <DateField label={t('daily.from')} value={range.from} min={first} max={range.to} onChange={(from) => from && setRange((r) => ({ ...r, from }))} />
-          <DateField label={t('daily.to')} value={range.to} min={range.from} max={last} onChange={(to) => to && setRange((r) => ({ ...r, to }))} />
+        <div className="max-w-md">
+          <DateRangeField label={tc('dateRange.period')} from={range.from} to={range.to} min={first} max={last} required onChange={(from, to) => setRange({ from, to })} />
         </div>
       </div>
 

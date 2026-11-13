@@ -20,7 +20,7 @@ import {
 } from '../../utils/monobankApi';
 import { SpinnerIcon } from '../../icons';
 import { forgetToken, loadToken, saveToken } from '../../utils/monobankToken';
-import { DateField } from '../DateField';
+import { DateRangeField } from '../DateRangeField';
 import { RememberToken } from './RememberToken';
 import { CountdownRing } from './CountdownRing';
 
@@ -50,6 +50,7 @@ const fmtUah = (kopecks: number) => new Intl.NumberFormat('uk-UA').format(Math.r
  * unless the user chooses to keep it on this device. */
 export function MonobankImport({ onFetched, onCancel }: MonobankImportProps) {
   const { t } = useTranslation('upload');
+  const { t: tc } = useTranslation();
   const [stage, setStage] = useState<Stage>('token');
   const [token, setToken] = useState(() => loadToken() ?? '');
   const [remember, setRemember] = useState(() => !!loadToken());
@@ -265,23 +266,15 @@ export function MonobankImport({ onFetched, onCancel }: MonobankImportProps) {
         <div className="mt-4 space-y-4">
           {selectedJar && <p className="text-sm text-gray-600">{t('monobank.fromJar', { title: selectedJar.title })}</p>}
 
-          <div className="grid grid-cols-2 gap-4">
-            <DateField
-              label={t('monobank.from')}
-              value={range.from}
-              max={range.to || today}
-              disabled={stage === 'fetching'}
-              onChange={(from) => setRange((r) => ({ ...r, from }))}
-            />
-            <DateField
-              label={t('monobank.to')}
-              value={range.to}
-              min={range.from}
-              max={today}
-              disabled={stage === 'fetching'}
-              onChange={(to) => setRange((r) => ({ ...r, to }))}
-            />
-          </div>
+          <DateRangeField
+            label={tc('dateRange.period')}
+            from={range.from}
+            to={range.to}
+            max={today}
+            required
+            disabled={stage === 'fetching'}
+            onChange={(from, to) => setRange({ from, to })}
+          />
 
           {requests > 1 && stage === 'range' && (
             <p className="text-xs text-gray-500">{t('monobank.manyRequests', { count: requests, minutes: requests - 1 })}</p>

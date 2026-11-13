@@ -68,6 +68,19 @@ export function mergeCards(
   });
 }
 
+/** The donations on the days from–to (YYYY-MM-DD, either end may be open), on the user's clock. */
+export function donationsInRange(donations: Donation[], dateFrom: string, dateTo: string): Donation[] {
+  [dateFrom, dateTo] = orderedRange(dateFrom, dateTo);
+  const from = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : 0;
+  const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
+  return donations.filter((d) => {
+    const ts = d.timestamp.getTime();
+    return ts >= from && ts <= to;
+  });
+}
+
+/** The card's numbers for a date range. A range with no donations falls back to the whole
+ * campaign (the date panel says so), since the cards can't show an empty campaign. */
 export function filterAggregates(
   donations: Donation[],
   fullAggregates: Aggregates,
@@ -75,13 +88,7 @@ export function filterAggregates(
   dateTo: string,
 ): Aggregates {
   if (!dateFrom && !dateTo) return fullAggregates;
-  [dateFrom, dateTo] = orderedRange(dateFrom, dateTo);
-  const from = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : 0;
-  const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
-  const filtered = donations.filter((d) => {
-    const ts = d.timestamp.getTime();
-    return ts >= from && ts <= to;
-  });
+  const filtered = donationsInRange(donations, dateFrom, dateTo);
   if (filtered.length === 0) return fullAggregates;
   try {
     return aggregateDonations(filtered);
