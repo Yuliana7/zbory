@@ -2,6 +2,7 @@ import type { TemplateType, CardState, SharedStyle, Donation, Aggregates } from 
 import { DEFAULT_PALETTE } from './palettes';
 import { TEMPLATE_DEFAULT_FORMAT } from './templateConfig';
 import { aggregateDonations } from './dataAggregator';
+import { orderedRange } from './dateRange';
 
 export type Format = 'post' | 'post-4-5' | 'story';
 
@@ -74,6 +75,7 @@ export function filterAggregates(
   dateTo: string,
 ): Aggregates {
   if (!dateFrom && !dateTo) return fullAggregates;
+  [dateFrom, dateTo] = orderedRange(dateFrom, dateTo);
   const from = dateFrom ? new Date(dateFrom + 'T00:00:00').getTime() : 0;
   const to = dateTo ? new Date(dateTo + 'T23:59:59').getTime() : Infinity;
   const filtered = donations.filter((d) => {

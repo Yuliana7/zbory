@@ -4,6 +4,7 @@ import type { ManualRow } from '../../types';
 import { computeBalances, sortChronologically } from '../../utils/csvExporter';
 import { generateId } from '../../utils/id';
 import { ArrowLeftIcon, ArrowRightIcon, PlusIcon, WarningIcon, XIcon } from '../../icons';
+import { ScrollX } from '../ScrollX';
 
 const ROWS_PER_PAGE = 10;
 
@@ -276,7 +277,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
       )}
 
       {/* Scrollable table */}
-      <div className="overflow-x-auto rounded-xl border border-gray-200 shadow-sm bg-white">
+      <ScrollX className="rounded-xl border border-gray-200 shadow-sm bg-white">
         <table className="min-w-full">
           <thead>
             <tr className="bg-gray-50 border-b border-gray-200">
@@ -311,7 +312,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       type="date"
                       value={row.date}
                       onChange={(e) => updateRow(row.id, 'date', e.target.value)}
-                      className={`w-36 px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+                      className={`w-36 px-2 py-1.5 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         rowErrors.date ? 'border-red-400 bg-red-50' : 'border-gray-300'
                       }`}
                     />
@@ -323,7 +324,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       type="time"
                       value={row.time}
                       onChange={(e) => updateRow(row.id, 'time', e.target.value)}
-                      className="w-28 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                      className="w-28 px-2 py-1.5 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                     />
                   </td>
                   {/* Name */}
@@ -333,7 +334,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       value={row.name}
                       onChange={(e) => updateRow(row.id, 'name', e.target.value)}
                       placeholder={t('placeholders.name')}
-                      className={`w-44 px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+                      className={`w-44 px-2 py-1.5 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         'border-gray-300'
                       }`}
                     />
@@ -349,7 +350,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                         if (value !== null) updateRow(row.id, 'amount', value);
                       }}
                       placeholder={t('placeholders.amount')}
-                      className={`w-28 px-2 py-1.5 text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+                      className={`w-28 px-2 py-1.5 text-base sm:text-sm border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         rowErrors.amount ? 'border-red-400 bg-red-50' : 'border-gray-300'
                       }`}
                     />
@@ -370,7 +371,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       onChange={(e) => updateBalance(row.id, e.target.value)}
                       onFocus={() => setFocusedBalanceId(row.id)}
                       onBlur={() => setFocusedBalanceId((current) => (current === row.id ? null : current))}
-                      className={`w-28 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
+                      className={`w-28 px-2 py-1.5 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors ${
                         row.balance === '' ? 'text-gray-400' : 'text-gray-900'
                       }`}
                     />
@@ -382,7 +383,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                       value={row.comment}
                       onChange={(e) => updateRow(row.id, 'comment', e.target.value)}
                       placeholder={t('placeholders.comment')}
-                      className="w-44 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                      className="w-44 px-2 py-1.5 text-base sm:text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                     />
                   </td>
                   {/* Delete */}
@@ -400,7 +401,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
             })}
           </tbody>
         </table>
-      </div>
+      </ScrollX>
 
       {/* Add row + Pagination */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -464,7 +465,7 @@ export function ManualEntryEditor({ onProceed, onCancel, initialRows, isLoading 
                 value={jumpInput}
                 onChange={(e) => setJumpInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === 'Enter') handleJumpCommit(); }}
-                className="w-24 px-1.5 py-1 text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                className="w-24 px-1.5 py-1 text-base sm:text-sm text-center border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
                 placeholder={String(safePage)}
               />
               <button

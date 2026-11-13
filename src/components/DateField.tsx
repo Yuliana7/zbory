@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { clampDate } from '../utils/dateRange';
 
 interface DateFieldProps {
   label: string;
@@ -31,7 +32,7 @@ export function DateField({ label, value, onChange, min, max, disabled }: DateFi
         min={min}
         max={max}
         disabled={disabled}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e) => onChange(clampDate(e.target.value, min, max))}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         // text-base (16px): anything smaller makes iOS zoom the page on focus.

@@ -4,6 +4,7 @@ import type { CampaignDataset } from '../../types';
 import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { CAMPAIGN_COLORS } from '../../utils/campaignColors';
+import { ScrollX } from '../ScrollX';
 
 const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -64,7 +65,7 @@ export function CrossCampaignSection({ datasets }: { datasets: CampaignDataset[]
           })}
         </div>
       </div>
-      <div className="overflow-x-auto">
+      <ScrollX>
         <table className="min-w-full text-sm">
           <thead>
             <tr className="text-xs text-gray-500 uppercase tracking-wider">
@@ -94,7 +95,7 @@ export function CrossCampaignSection({ datasets }: { datasets: CampaignDataset[]
             ))}
           </tbody>
         </table>
-      </div>
+      </ScrollX>
 
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-100">

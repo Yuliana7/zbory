@@ -14,12 +14,10 @@
     "docs:screenshots": "node scripts/docs-screenshots.mjs"
   },
   "dependencies": {
-    "chart.js": "^4.4.6",
     "html-to-image": "^1.11.11",
     "i18next": "^26.0.6",
     "papaparse": "^5.4.1",
     "react": "^18.3.1",
-    "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.3.1",
     "react-i18next": "^17.0.4"
   },
