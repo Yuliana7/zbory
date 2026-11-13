@@ -53,6 +53,7 @@ export function RafflesScreen({ onDone, backLabel }: { onDone: () => void; backL
 
   return (
     <ScreenShell
+      stickyHeader
       wide
       title={t('raffles.title')}
       backLabel={backLabel ?? tUpload('focus.back')}

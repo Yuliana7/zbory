@@ -200,6 +200,31 @@ export function friendsDiffer(rows: FriendDraftRow[], saved: FriendJar[] | undef
   return norm(rowsToFriends(rows)) !== norm(cleanFriends(saved ?? []));
 }
 
+export type RowChange = 'new' | 'changed';
+
+/** Which rows differ from `before` (the list as it was when the editor opened): added ones, and ones
+ * whose name, amount, target, status or linked jar changed. Blank new rows count too, so a row that was
+ * just added is easy to find. */
+export function rowChanges(rows: FriendDraftRow[], before: FriendJar[]): Map<string, RowChange> {
+  const old = new Map(before.map((f) => [f.id, f]));
+  const out = new Map<string, RowChange>();
+  for (const r of rows) {
+    const o = old.get(r.id);
+    if (!o) {
+      out.set(r.id, 'new');
+      continue;
+    }
+    const same =
+      o.name.trim() === r.name.trim() &&
+      o.raised === (parseAmount(r.raised) ?? 0) &&
+      (o.target ?? 0) === (parseAmount(r.target) ?? 0) &&
+      !!o.closed === !!r.closed &&
+      (o.jarId ?? '') === (r.jarId ?? '');
+    if (!same) out.set(r.id, 'changed');
+  }
+  return out;
+}
+
 /** The helpers whose jar is closed and that raised something, biggest first — the closed-jars card's list. */
 export const closedFriends = (friends: FriendJar[]) =>
   friends.filter((f) => f.closed && f.raised > 0).sort((a, b) => b.raised - a.raised);

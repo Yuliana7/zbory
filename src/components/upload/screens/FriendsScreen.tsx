@@ -15,6 +15,7 @@ export function FriendsScreen({ onDone, backLabel }: { onDone: () => void; backL
 
   return (
     <ScreenShell
+      stickyHeader
       wide
       title={tExport('friends.label')}
       backLabel={backLabel ?? t('focus.back')}
@@ -28,7 +29,7 @@ export function FriendsScreen({ onDone, backLabel }: { onDone: () => void; backL
             <PlusIcon className="w-3.5 h-3.5" />
             {tExport('friends.add')}
           </button>
-          <button onClick={() => guard(onDone)} className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+          <button onClick={() => guard(onDone)} className="px-3 sm:px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
             {t('focus.done')}
           </button>
         </div>

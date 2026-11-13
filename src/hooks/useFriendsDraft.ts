@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type Dispatch, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type Dispatch, type SetStateAction } from 'react';
 import { useAppContext } from '../context/AppContext';
 import {
   applyJarInfo,
@@ -8,6 +8,7 @@ import {
   friendsToRows,
   newFriend,
   helperProblem,
+  rowChanges,
   rowsToFriends,
   type FriendDraftRow,
 } from '../utils/friendJars';
@@ -15,6 +16,8 @@ import { JarError, fetchPublicJar, lookupJar, parseJarRef, type JarErrorKind, ty
 
 /** Pause between two reads when ids are added one by one. */
 const REFRESH_GAP_MS = 1000;
+/** How long typing has to pause before the list saves itself. */
+const AUTOSAVE_MS = 800;
 const sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 const kindOf = (err: unknown): JarErrorKind => (err instanceof JarError ? err.kind : 'unexpected');
 
@@ -40,12 +43,13 @@ interface Resolved {
   checked: boolean;
 }
 
-/** What is typed into the helper-jar editor, kept apart from what is saved: nothing reaches the
- * app (and the cards) until `save()`, and `dirty` says whether leaving would lose something.
+/** What is typed into the helper-jar editor. It saves itself: a moment after typing pauses, after
+ * every read from Monobank (`refreshOne`, `linkJar`, `addByIds`), and at once through `save()` when
+ * the screen is left. The one thing that can't be saved is two helpers with the same name: then
+ * `dirty` stays true and leaving asks first.
  *
- * Reading a linked jar from Monobank (`refreshOne`, `linkJar`, `addByIds`) goes through
- * the same draft. If the form had no unsaved edits when the read started, the result is saved right
- * away — a plain refresh is one tap and sticks; if there were edits, they and the result wait for «Зберегти». */
+ * `changes` says which rows differ from how the list was when the editor opened, so the screen can
+ * show what this visit changed. */
 export function useFriendsDraft() {
   const { state, handleFriendsChange } = useAppContext();
   const saved = state.app.friends;
@@ -65,6 +69,8 @@ export function useFriendsDraft() {
 
   const dirty = friendsDiffer(rows, saved);
   const duplicates = duplicateNameIds(rows);
+  const [initial] = useState(() => saved ?? []);
+  const changes = useMemo(() => rowChanges(rows, initial), [rows, initial]);
 
   const [busyIds, setBusyIds] = useState<string[]>([]);
   const [rowErrors, setRowErrors] = useState<Record<string, JarErrorKind>>({});
@@ -86,18 +92,37 @@ export function useFriendsDraft() {
     [handleFriendsChange],
   );
 
-  /** false (and nothing stored) while two helpers share a name */
+  /** Saves now if anything changed; false (and nothing stored) while two helpers share a name. Blank
+   * rows stay in the form: someone may be about to type into them. */
   const save = useCallback((): boolean => {
     if (duplicateNameIds(rowsRef.current).size > 0) return false;
-    const clean = persist(rowsRef.current);
-    setRows(friendsToRows(clean)); // drop blank rows from the form too
+    if (friendsDiffer(rowsRef.current, savedRef.current)) persist(rowsRef.current);
     return true;
-  }, [persist, setRows]);
+  }, [persist]);
+
+  // saves a moment after the last change
+  useEffect(() => {
+    if (!dirty || duplicates.size > 0) return;
+    const timer = setTimeout(() => {
+      if (alive.current) save();
+    }, AUTOSAVE_MS);
+    return () => clearTimeout(timer);
+  }, [rows, dirty, duplicates.size, save]);
+
+  // and whatever is still waiting when the editor goes away
+  const saveRef = useRef(save);
+  saveRef.current = save;
+  useEffect(() => () => void saveRef.current(), []);
 
   const discard = useCallback(() => setRows(friendsToRows(savedRef.current)), [setRows]);
 
   /** A blank row for typing a helper in by hand. */
-  const addRow = useCallback(() => setRows((rs) => [...rs, { id: newFriend().id, name: '', raised: '', target: '' }]), [setRows]);
+  const [addedId, setAddedId] = useState<string | null>(null);
+  const addRow = useCallback(() => {
+    const id = newFriend().id;
+    setRows((rs) => [...rs, { id, name: '', raised: '', target: '' }]);
+    setAddedId(id); // the screen brings it into view: the newest row is at the top of the list
+  }, [setRows]);
 
   const setBusy = (id: string, on: boolean) => setBusyIds((ids) => (on ? [...ids, id] : ids.filter((x) => x !== id)));
   const setRowError = (id: string, kind?: JarErrorKind) =>
@@ -114,23 +139,14 @@ export function useFriendsDraft() {
     setRowError(id);
   };
 
-  const finish = (autoSave: boolean) => {
-    if (autoSave && alive.current && duplicateNameIds(rowsRef.current).size === 0) {
-      persist(rowsRef.current);
-      setRows(friendsToRows(savedRef.current));
-    }
-  };
-
   /** Reads one linked, still-open jar. */
   const refreshOne = useCallback(
     async (id: string): Promise<JarErrorKind | null> => {
       const row = rowsRef.current.find((r) => r.id === id);
       if (!row?.jarId || row.closed) return null;
-      const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
       setBusy(id, true);
       try {
         applyRead(id, await fetchPublicJar(row.jarId));
-        finish(autoSave);
         return null;
       } catch (err) {
         const kind = kindOf(err);
@@ -167,7 +183,6 @@ export function useFriendsDraft() {
   /** Links a row to a helper's jar by its share link or long id, if it is a helper of this project. */
   const linkJar = useCallback(
     async (id: string, input: string): Promise<LinkResult> => {
-      const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
       setBusy(id, true);
       try {
         const target = await resolve(input);
@@ -179,7 +194,6 @@ export function useFriendsDraft() {
         }
         setRows((rs) => rs.map((r) => (r.id === id ? { ...applyJarInfo({ ...r, jarId: target.jarId }, target.jar, Date.now()), parentJar: target.parentJar } : r)));
         setRowError(id);
-        finish(autoSave);
         return target.checked ? null : 'unverified';
       } catch (err) {
         return kindOf(err);
@@ -204,7 +218,6 @@ export function useFriendsDraft() {
   const addByIds = useCallback(
     async (inputs: string[]): Promise<AddResult> => {
       const out: AddResult = { added: 0, invalid: 0, duplicate: 0, otherMain: 0, notHelper: 0, unverified: 0, failed: null };
-      const autoSave = !friendsDiffer(rowsRef.current, savedRef.current);
       for (let i = 0; i < inputs.length && alive.current; i++) {
         if (i > 0) await sleep(REFRESH_GAP_MS);
         try {
@@ -240,14 +253,13 @@ export function useFriendsDraft() {
           if (out.failed === 'rate-limit' || out.failed === 'lookup') break;
         }
       }
-      finish(autoSave);
       return out;
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [],
   );
 
-  return { rows, setRows, addRow, dirty, duplicates, save, discard, busyIds, rowErrors, refreshOne, linkJar, unlinkJar, addByIds };
+  return { rows, setRows, addRow, addedId, dirty, duplicates, changes, save, discard, busyIds, rowErrors, refreshOne, linkJar, unlinkJar, addByIds };
 }
 
 export type FriendsDraft = ReturnType<typeof useFriendsDraft>;
