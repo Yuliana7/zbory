@@ -2,7 +2,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import '../../src/i18n';
 import { normalizeDonations } from '../../src/utils/csvParser';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
-import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar, helperProblem, friendsToCSV, jarShareLink } from '../../src/utils/friendJars';
+import { cleanFriends, computeFriendStats, formatSharePct, friendBar, duplicateNameIds, friendProgress, friendsDiffer, friendsToRows, rowsToFriends, parseAmount, visibleFriends, sortFriends, closedFriends, latestModified, pageOf, applyJarInfo, usualParentJar, helperProblem, friendsToCSV, jarShareLink, rowChanges } from '../../src/utils/friendJars';
 import { loadRawDonations } from './testFixture';
 import { ProgressCard } from '../../src/components/templates/ProgressCard';
 import { FriendsLeaderboardCard } from '../../src/components/templates/FriendsLeaderboardCard';
@@ -224,6 +224,27 @@ html = renderToStaticMarkup(<ProgressCard aggregates={aggregates} friends={real}
 check('Progress: friends line removable', !strip(html).includes('через друзів'));
 const headline = (h: string) => strip(h).match(/Зібрано\s+([\d\s]+)/)?.[1].replace(/\s/g, '');
 check('Progress: friends never change the headline total', headline(base) === headline(renderToStaticMarkup(<ProgressCard aggregates={aggregates} friends={real} format="post" />)));
+
+
+// rows changed since the editor opened (highlighted there)
+{
+  const before = [
+    { id: 'a', name: 'Оля', raised: 100, target: 500 },
+    { id: 'b', name: 'Назар', raised: 200, jarId: 'L'.repeat(16) },
+    { id: 'c', name: 'Ірина', raised: 300 },
+  ];
+  const rows = friendsToRows(before);
+  check('changes: nothing touched → none', rowChanges(rows, before).size === 0);
+  check('changes: renaming only by spaces is not a change', rowChanges(rows.map((r) => (r.id === 'a' ? { ...r, name: ' Оля ' } : r)), before).size === 0);
+  const edited = rows.map((r) =>
+    r.id === 'a' ? { ...r, raised: '150' } : r.id === 'b' ? { ...r, closed: true } : r,
+  );
+  const ch = rowChanges([...edited, { id: 'n', name: '', raised: '', target: '' }], before);
+  check('changes: an amount and a status change are marked', ch.get('a') === 'changed' && ch.get('b') === 'changed' && !ch.has('c'));
+  check('changes: a new row (even blank) is marked new', ch.get('n') === 'new');
+  check('changes: a target and an unlink are changes', rowChanges(rows.map((r) => (r.id === 'a' ? { ...r, target: '' } : r.id === 'b' ? { ...r, jarId: undefined } : r)), before).size === 2);
+  check('changes: an edit typed back to the old value is no change', rowChanges(rows.map((r) => (r.id === 'c' ? { ...r, raised: '300.00' } : r)), before).size === 0);
+}
 
 console.log(failures === 0 ? '\nAll friend-jar checks passed.' : `\n${failures} check(s) FAILED`);
 process.exitCode = failures === 0 ? 0 : 1;

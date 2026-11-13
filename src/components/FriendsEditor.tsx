@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import { useFriendsDraft, type FriendsDraft } from '../hooks/useFriendsDraft';
+import type { FriendsDraft } from '../hooks/useFriendsDraft';
 import { CheckIcon } from '../icons';
 import { downloadCSV } from '../utils/csvExporter';
 import { computeFriendStats, friendsToCSV, rowsToFriends, type FriendDraftRow } from '../utils/friendJars';
@@ -11,15 +11,14 @@ import { AddByIdPanel } from './friends/AddByIdPanel';
 /** Helper ("friendly") jars of the open campaign: a name, how much each one raised, optionally what
  * it set out to raise (its target — progress can go past 100%), and — for a jar linked by its long id —
  * its status. Attribution only: those donations are already inside the main jar's totals, so nothing
- * here ever changes a total. Edits stay in a draft until «Зберегти» is pressed; a page that must
- * warn before leaving passes in its own `draft`. */
-export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
+ * here ever changes a total. Edits save themselves, and rows changed since the editor opened are
+ * highlighted. The screen owns the `draft` (it saves it on leaving); there must be only one, or a
+ * second copy that never sees the edits would save its stale rows over them. */
+export function FriendsEditor({ draft }: { draft: FriendsDraft }) {
   const { t } = useTranslation('export');
   const { state } = useAppContext();
   const { app } = state;
-  const own = useFriendsDraft();
-  const draft = external ?? own;
-  const { rows, setRows, dirty, duplicates, save, discard, busyIds, rowErrors } = draft;
+  const { rows, setRows, dirty, duplicates, changes, busyIds, rowErrors } = draft;
   const [addingById, setAddingById] = useState(false);
 
   const mainTotal = app.aggregates?.totalAmount ?? (app.donations ?? []).reduce((sum, d) => sum + d.amount, 0);
@@ -71,33 +70,18 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
           </button>
         </div>
       </div>
-      {dirty ? (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 space-y-2">
-          <p className="text-sm text-amber-800">{t('friends.unsaved')}</p>
-          <div className="flex flex-col gap-2 sm:flex-row">
-            <button
-              onClick={save}
-              disabled={duplicates.size > 0}
-              className="flex-1 btn-primary flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <CheckIcon className="w-4 h-4" />
-              {t('friends.save')}
-            </button>
-            <button
-              onClick={discard}
-              className="px-4 py-2 text-sm font-medium text-gray-600 bg-white border border-gray-200 rounded-lg hover:border-gray-300 transition-colors"
-            >
-              {t('friends.discard')}
-            </button>
-          </div>
-        </div>
+      {/* it saves itself (see useFriendsDraft); this line only says where that stands */}
+      {duplicates.size > 0 ? (
+        <p role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">{t('friends.notSavedDuplicate')}</p>
+      ) : dirty ? (
+        <p className="text-xs text-gray-400" role="status">{t('friends.saving')}</p>
       ) : (
-        // only once something has actually been saved — an empty or still-blank form is not "saved"
         (app.friends?.length ?? 0) > 0 &&
         (app.activeCampaignId ? (
-          <p className="flex items-center gap-1.5 text-xs text-green-600">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-xs text-green-600" role="status">
             <CheckIcon className="w-3.5 h-3.5" />
             {t('friends.saved')}
+            {changes.size > 0 && <span className="text-indigo-600">· {t('friends.changedCount', { count: changes.size })}</span>}
           </p>
         ) : (
           <p className="text-xs text-gray-500">{t('friends.savedSession')}</p>
@@ -125,6 +109,8 @@ export function FriendsEditor({ draft: external }: { draft?: FriendsDraft }) {
             key={r.id}
             row={r}
             duplicate={duplicates.has(r.id)}
+            change={changes.get(r.id)}
+            reveal={r.id === draft.addedId}
             busy={busyIds.includes(r.id)}
             error={rowErrors[r.id]}
             onChange={(change) => patch(r.id, change)}

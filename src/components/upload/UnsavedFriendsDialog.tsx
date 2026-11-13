@@ -2,13 +2,13 @@ import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 
 interface UnsavedFriendsDialogProps {
-  onSave: () => void;
   onDiscard: () => void;
   onCancel: () => void;
 }
 
-/** Shown when leaving the preview with helper-jar edits that were never saved. */
-export function UnsavedFriendsDialog({ onSave, onDiscard, onCancel }: UnsavedFriendsDialogProps) {
+/** Shown when leaving the friends editor while its last edits can't be saved (the list saves itself
+ * otherwise; two helpers sharing a name is the one thing that stops it). */
+export function UnsavedFriendsDialog({ onDiscard, onCancel }: UnsavedFriendsDialogProps) {
   const { t } = useTranslation('export');
 
   useEffect(() => {
@@ -38,20 +38,14 @@ export function UnsavedFriendsDialog({ onSave, onDiscard, onCancel }: UnsavedFri
           <p className="text-sm text-gray-600">{t('friends.leave.text')}</p>
         </div>
         <div className="space-y-2">
-          <button onClick={onSave} className="btn-primary w-full">
-            {t('friends.leave.save')}
+          <button onClick={onCancel} className="btn-primary w-full">
+            {t('friends.leave.cancel')}
           </button>
           <button
             onClick={onDiscard}
             className="w-full px-4 py-2.5 text-sm font-medium text-red-600 bg-red-50 hover:bg-red-100 rounded-lg transition-colors"
           >
             {t('friends.leave.discard')}
-          </button>
-          <button
-            onClick={onCancel}
-            className="w-full px-4 py-2.5 text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
-          >
-            {t('friends.leave.cancel')}
           </button>
         </div>
       </div>

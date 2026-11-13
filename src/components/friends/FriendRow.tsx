@@ -1,7 +1,7 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { CheckIcon, LinkIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
-import { friendProgress, parseAmount, type FriendDraftRow } from '../../utils/friendJars';
+import { friendProgress, parseAmount, type FriendDraftRow, type RowChange } from '../../utils/friendJars';
 import type { JarErrorKind } from '../../utils/monobankJar';
 import type { LinkResult } from '../../hooks/useFriendsDraft';
 import { CopyJarLink } from '../insights/friendsShared';
@@ -31,6 +31,10 @@ const ICON_BUTTON = 'p-1.5 rounded-lg transition-colors disabled:opacity-40 disa
 interface FriendRowProps {
   row: FriendDraftRow;
   duplicate: boolean;
+  /** added or changed since the editor opened: the row is highlighted */
+  change?: RowChange;
+  /** just added: scroll it into view and put the cursor in its name */
+  reveal?: boolean;
   busy: boolean;
   /** what went wrong the last time this jar was read, if anything */
   error?: JarErrorKind;
@@ -48,13 +52,19 @@ const shortId = (id: string) => (id.length > 10 ? `${id.slice(0, 4)}…${id.slic
  * unlink) or its id field open under the row only when asked for, so a list of rows stays calm.
  * A closed helper is skipped by refreshes but can be edited by hand like any other. Phone: three stacked
  * lines; from `sm` up: one line that lines up with the column header. */
-export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onRefresh, onLink, onUnlink }: FriendRowProps) {
+export function FriendRow({ row, duplicate, change, reveal, busy, error, onChange, onRemove, onRefresh, onLink, onUnlink }: FriendRowProps) {
   const { t } = useTranslation('export');
   const [showLink, setShowLink] = useState(false);
   const [idInput, setIdInput] = useState('');
   const [linkError, setLinkError] = useState<LinkResult>(null);
   const closed = !!row.closed;
   const linked = !!row.jarId;
+  const nameRef = useRef<HTMLInputElement>(null);
+  useEffect(() => {
+    if (!reveal || !nameRef.current) return;
+    nameRef.current.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    nameRef.current.focus({ preventScroll: true });
+  }, [reveal]);
 
   // Progress as typed so far, so the row answers "is that a hit?" at once
   const progress = friendProgress({
@@ -79,11 +89,21 @@ export function FriendRow({ row, duplicate, busy, error, onChange, onRemove, onR
   const linkLabel = linked ? t('friends.linkedTitle', { id: shortId(row.jarId!) }) : t('friends.link');
 
   return (
-    <div className={`rounded-xl border px-3 py-2.5 ${closed ? 'border-gray-200 bg-gray-50' : 'border-gray-200 bg-white'}`}>
+    <div
+      className={`relative rounded-xl border px-3 py-2.5 transition-colors ${
+        change ? 'border-indigo-300 bg-indigo-50/60 shadow-[inset_3px_0_0_0_theme(colors.indigo.500)]' : closed ? 'border-gray-200 bg-gray-50' : 'border-gray-200 bg-white'
+      }`}
+    >
+      {change && (
+        <span className="absolute -top-2 left-3 rounded-full bg-indigo-600 px-1.5 py-px text-[10px] font-semibold leading-tight text-white">
+          {t(change === 'new' ? 'friends.rowNew' : 'friends.rowChanged')}
+        </span>
+      )}
       <div className={`grid grid-cols-2 gap-2 ${L.grid}`}>
         {/* phone: name + actions share the first line; desktop: they are separate cells (see `order`) */}
         <div className={`col-span-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 ${L.contents}`}>
           <input
+            ref={nameRef}
             type="text"
             value={row.name}
             onChange={(e) => onChange({ name: e.target.value })}

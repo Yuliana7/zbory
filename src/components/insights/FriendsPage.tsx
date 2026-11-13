@@ -23,7 +23,7 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
   const left = f.closed ? 0 : leftToTarget(f);
   const eta = forecast(f, now);
   return (
-    <li className="relative">
+    <li>
       <button onClick={onOpen} aria-haspopup="dialog" className="w-full text-left px-4 py-3 hover:bg-gray-50 active:bg-gray-100 transition-colors">
       <div className="flex items-baseline justify-between gap-3 text-sm">
         <span className="min-w-0 truncate font-medium text-gray-800">
@@ -45,7 +45,7 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
         </div>
       )}
       <div className="mt-1.5">
-        <div className={`min-w-0 text-xs text-gray-500 space-y-0.5 ${f.shortId ? 'pr-28' : ''}`}>
+        <div className="min-w-0 text-xs text-gray-500 space-y-0.5">
           {bar.pct !== null && f.target && (
             <p>
               {t('friends.ofTarget', { pct: Math.round(bar.pct), target: fmtUah(f.target) })}
@@ -61,8 +61,13 @@ function JarRow({ friend: f, listed, totalAmount, now, onOpen }: { friend: Frien
         </div>
       </div>
       </button>
-      {/* beside the row's button, not in it: a button can't hold another */}
-      {f.shortId && <CopyJarLink shortId={f.shortId} className="absolute right-2 bottom-2" />}
+      {/* below the row's button, not in it (a button can't hold another), and in the flow, so it never
+          covers the details whatever their length */}
+      {f.shortId && (
+        <div className="-mt-2 px-2 pb-2">
+          <CopyJarLink shortId={f.shortId} />
+        </div>
+      )}
     </li>
   );
 }
