@@ -78,7 +78,7 @@ export function BackgroundEditorOverlay({
   };
 
   return (
-    <div ref={rootRef} className="screen-overlay z-[300] bg-black/90 flex flex-col" style={{ paddingTop: 'var(--safe-top)' }}>
+    <div ref={rootRef} className="screen-overlay z-[300] bg-black flex flex-col" style={{ paddingTop: 'var(--safe-top)' }}>
       <div className="flex-1 flex items-center justify-center overflow-hidden p-4">
         <div
           ref={clipRef}

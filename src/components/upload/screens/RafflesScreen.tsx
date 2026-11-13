@@ -5,7 +5,7 @@ import type { Raffle, RaffleKind } from '../../../types';
 import { dayKey } from '../../../utils/dailyBreakdown';
 import { RAFFLE_KINDS, cleanRaffles, newRaffle } from '../../../utils/raffles';
 import { PlusIcon, TrashIcon } from '../../../icons';
-import { DateField } from '../../DateField';
+import { DateRangeField } from '../../DateRangeField';
 import { RaffleStatus } from '../../insights/RaffleStatus';
 import { ScreenShell } from './ScreenShell';
 
@@ -20,6 +20,7 @@ const chip = (on: boolean) =>
 export function RafflesScreen({ onDone, backLabel }: { onDone: () => void; backLabel?: string }) {
   const { t } = useTranslation('insights');
   const { t: tUpload } = useTranslation('upload');
+  const { t: tc } = useTranslation();
   const { state, handleRafflesChange } = useAppContext();
   const { app } = state;
   const [rows, setRows] = useState<Raffle[]>(app.raffles ?? []);
@@ -131,10 +132,14 @@ export function RafflesScreen({ onDone, backLabel }: { onDone: () => void; backL
                     </button>
                   </div>
                   {hasPeriod && (
-                    <div className="grid grid-cols-2 gap-3">
-                      <DateField label={t('daily.from')} value={r.from ?? ''} min={first} max={r.to} onChange={(from) => patch(r.id, { from: from || undefined }, true)} />
-                      <DateField label={t('daily.to')} value={r.to ?? ''} min={r.from} onChange={(to) => patch(r.id, { to: to || undefined }, true)} />
-                    </div>
+                    <DateRangeField
+                      label={tc('dateRange.period')}
+                      from={r.from ?? ''}
+                      to={r.to ?? ''}
+                      min={first}
+                      required
+                      onChange={(from, to) => patch(r.id, { from, to }, true)}
+                    />
                   )}
                 </div>
               )}

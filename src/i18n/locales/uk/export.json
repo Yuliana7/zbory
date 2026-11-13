@@ -95,13 +95,13 @@
   "requiredField": "Обов'язкове поле",
   "dateRange": {
     "label": "Діапазон дат",
-    "from": "Від",
-    "to": "До",
     "reset": "Скинути фільтр",
     "filtered_one": "Показано {{count}} донат",
     "filtered_few": "Показано {{count}} донати",
     "filtered_many": "Показано {{count}} донатів",
-    "filtered_other": "Показано {{count}} донатів"
+    "filtered_other": "Показано {{count}} донатів",
+    "whole": "Увесь збір",
+    "empty": "У цьому періоді донатів немає, тож картка показує весь збір."
   },
   "goal": {
     "label": "Ціль збору",

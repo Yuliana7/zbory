@@ -1,6 +1,7 @@
 export * from './types';
 export * from './ArrowLeftIcon';
 export * from './ArrowRightIcon';
+export * from './CalendarIcon';
 export * from './CheckCircleIcon';
 export * from './CheckIcon';
 export * from './ChevronDownIcon';

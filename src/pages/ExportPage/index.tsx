@@ -9,7 +9,7 @@ import { analyzeCampaigns, datasetsToItems } from '../../utils/campaignAnalytics
 import { exportToPNG } from '../../utils/exportPNG';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { getPersonalComments } from '../../utils/commentAnalyzer';
-import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
+import { type Format, FORMAT_DIMS, toDateInput, filterAggregates, donationsInRange } from '../../utils/exportStack';
 import { useCardStack } from './hooks/useCardStack';
 import { PREVIEW_MIN_SCALE, PREVIEW_PAD, PREVIEW_PAD_MIN, useCollapsingPreview } from './hooks/useCollapsingPreview';
 import { useZipExport } from './hooks/useZipExport';
@@ -148,8 +148,11 @@ function ExportPageInner() {
   const dims = FORMAT_DIMS[card.format];
 
   const campaignMin = toDateInput(fullAggregates.firstDate);
-  const campaignMax = toDateInput(fullAggregates.lastDate);
 
+  const rangeCount = useMemo(
+    () => (card.dateFrom || card.dateTo ? donationsInRange(donations, card.dateFrom, card.dateTo).length : donations.length),
+    [donations, card.dateFrom, card.dateTo],
+  );
   const filteredAggregates = useMemo(
     () => filterAggregates(donations, fullAggregates, card.dateFrom, card.dateTo),
     [donations, fullAggregates, card.dateFrom, card.dateTo],
@@ -541,10 +544,8 @@ function ExportPageInner() {
               dateFrom={card.dateFrom}
               dateTo={card.dateTo}
               campaignMin={campaignMin}
-              campaignMax={campaignMax}
-              filteredCount={filteredAggregates.donationCount}
-              onFromChange={(v) => updateCard({ dateFrom: v })}
-              onToChange={(v) => updateCard({ dateTo: v })}
+              rangeCount={rangeCount}
+              onChange={(dateFrom, dateTo) => updateCard({ dateFrom, dateTo })}
               onReset={() => updateCard({ dateFrom: '', dateTo: '' })}
             />
           )}
