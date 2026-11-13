@@ -2,6 +2,7 @@ import type { Donation, FriendJar, Raffle, RaffleKind, TemplateType } from '../t
 import { dayKey } from './dailyBreakdown';
 import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 import { generateId } from './id';
+import { orderedRange } from './dateRange';
 
 export const RAFFLE_KINDS: RaffleKind[] = ['donors', 'jars', 'biggest'];
 
@@ -23,7 +24,8 @@ export const cleanRaffles = (raffles: Raffle[]): Raffle[] =>
 /** The period counted, on the user's clock; an empty end is open. */
 const inPeriod = (d: Donation, r: Raffle) => {
   const key = dayKey(d.timestamp);
-  return (!r.from || key >= r.from) && (!r.to || key <= r.to);
+  const [from, to] = orderedRange(r.from ?? '', r.to ?? '');
+  return (!from || key >= from) && (!to || key <= to);
 };
 
 /** What each person gave within the raffle's period: a named donor's donations add up, because they can

@@ -10,7 +10,6 @@ import { exportToPNG } from '../../utils/exportPNG';
 import { formatUkrainianDate } from '../../utils/dataAggregator';
 import { getPersonalComments } from '../../utils/commentAnalyzer';
 import { type Format, FORMAT_DIMS, toDateInput, filterAggregates } from '../../utils/exportStack';
-import { orderedRange } from '../../utils/dateRange';
 import { useCardStack } from './hooks/useCardStack';
 import { PREVIEW_MIN_SCALE, PREVIEW_PAD, PREVIEW_PAD_MIN, useCollapsingPreview } from './hooks/useCollapsingPreview';
 import { useZipExport } from './hooks/useZipExport';
@@ -150,7 +149,6 @@ function ExportPageInner() {
 
   const campaignMin = toDateInput(fullAggregates.firstDate);
   const campaignMax = toDateInput(fullAggregates.lastDate);
-  const [rangeFrom, rangeTo] = orderedRange(card.dateFrom, card.dateTo);
 
   const filteredAggregates = useMemo(
     () => filterAggregates(donations, fullAggregates, card.dateFrom, card.dateTo),
@@ -540,13 +538,13 @@ function ExportPageInner() {
             <DateRangePanel
               open={openSections.has('date')}
               onToggle={() => toggleSection('date')}
-              dateFrom={rangeFrom}
-              dateTo={rangeTo}
+              dateFrom={card.dateFrom}
+              dateTo={card.dateTo}
               campaignMin={campaignMin}
               campaignMax={campaignMax}
               filteredCount={filteredAggregates.donationCount}
-              onFromChange={(v) => updateCard({ dateFrom: v, dateTo: rangeTo })}
-              onToChange={(v) => updateCard({ dateFrom: rangeFrom, dateTo: v })}
+              onFromChange={(v) => updateCard({ dateFrom: v })}
+              onToChange={(v) => updateCard({ dateTo: v })}
               onReset={() => updateCard({ dateFrom: '', dateTo: '' })}
             />
           )}

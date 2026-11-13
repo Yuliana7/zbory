@@ -32,9 +32,16 @@ export function DateField({ label, value, onChange, min, max, disabled }: DateFi
         min={min}
         max={max}
         disabled={disabled}
-        onChange={(e) => onChange(clampDate(e.target.value, min, max))}
+        // The limits are enforced when the picker closes, not on every change: iOS fires changes
+        // while its picker is open (it even fills an empty field with today on opening), and
+        // rewriting the value then resets the picker, so no other day could be chosen.
+        onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
+        onBlur={(e) => {
+          setFocused(false);
+          const clamped = clampDate(e.target.value, min, max);
+          if (clamped !== e.target.value) onChange(clamped);
+        }}
         // text-base (16px): anything smaller makes iOS zoom the page on focus.
         // min-w-0 + w-full: iOS gives date inputs an intrinsic width that otherwise squeezes the grid.
         className={`date-field ${floated ? '' : 'date-empty'} block w-full min-w-0 h-14 pt-5 pb-1 px-3 rounded-lg border border-gray-300 bg-white
