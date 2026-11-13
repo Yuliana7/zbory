@@ -49,6 +49,7 @@ import { ReportPeriodPanel } from './panels/ReportPeriodPanel';
 import { TextEditorPanel } from './panels/TextEditorPanel';
 import { CommentPickerPanel } from './panels/CommentPickerPanel';
 import { AddTemplateModal } from './panels/AddTemplateModal';
+import { stableViewportHeight } from '../../utils/stableViewport';
 
 // Below the xl breakpoint the page is one column and the preview is pinned to the top
 const SINGLE_COLUMN_MAX = 1280;
@@ -162,7 +163,9 @@ function ExportPageInner() {
     const calculate = () => {
       if (!previewContainerRef.current) return;
       const containerW = previewContainerRef.current.clientWidth - 2 * PREVIEW_PAD;
-      const containerH = window.innerHeight * 0.65;
+      // not innerHeight: it changes as Safari's toolbar hides and shows during a scroll, and the card
+      // would jump in size mid-collapse
+      const containerH = stableViewportHeight() * 0.65;
       const scaleW = containerW / dims.width;
       const scaleH = containerH / dims.height;
       setScale(Math.min(scaleW, scaleH, 0.55));

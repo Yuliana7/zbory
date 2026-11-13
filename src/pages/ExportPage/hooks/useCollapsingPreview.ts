@@ -18,6 +18,13 @@ interface Parts {
   nav: RefObject<HTMLElement>;
 }
 
+/** An element's distance from the top of the page, from offsets only, so it doesn't depend on scrolling. */
+function pageTop(el: HTMLElement): number {
+  let top = 0;
+  for (let node: HTMLElement | null = el; node; node = node.offsetParent as HTMLElement | null) top += node.offsetTop;
+  return top;
+}
+
 /**
  * On a single column the preview gives way to the controls like a reel to its comments: past the point
  * where it pins, it loses exactly what the page scrolled, so the controls rise with the finger.
@@ -51,20 +58,32 @@ export function useCollapsingPreview({ box, spacer, marker, background, card, na
       navEl.style.visibility = p >= 0.12 ? 'hidden' : '';
     };
 
+    // Written only when a value really changes: Safari fires resize as its toolbar slides in and out,
+    // and re-setting the animation's range mid-scroll made the preview jump.
+    const setVar = (name: string, value: string) => {
+      if (boxEl.style.getPropertyValue(name) !== value) boxEl.style.setProperty(name, value);
+    };
+    const setHeight = (el: HTMLElement, px: number) => {
+      const value = `${px}px`;
+      if (el.style.height !== value) el.style.height = value;
+    };
+
     const measure = () => {
       const full = cardHeight + navEl.offsetHeight + 2 * PREVIEW_PAD;
       const collapsed = cardHeight * PREVIEW_MIN_SCALE + 2 * PREVIEW_PAD_MIN;
       shrink = full - collapsed;
-      boxEl.style.height = `${collapsed}px`;
-      bgEl.style.height = `${full}px`;
-      spacerEl.style.height = `${shrink}px`;
+      setHeight(boxEl, collapsed);
+      setHeight(bgEl, full);
+      setHeight(spacerEl, shrink);
       const pinnedAt = parseFloat(getComputedStyle(boxEl).top) || 0;
-      from = markerEl.getBoundingClientRect().top + window.scrollY - pinnedAt;
-      boxEl.style.setProperty('--collapse-from', `${from}px`);
-      boxEl.style.setProperty('--collapse-to', `${from + shrink}px`);
-      boxEl.style.setProperty('--collapse-bg', `${-shrink}px`);
-      boxEl.style.setProperty('--collapse-card-y', `${cardShift}px`);
-      boxEl.style.setProperty('--collapse-scale', String(PREVIEW_MIN_SCALE));
+      // From the layout alone, not getBoundingClientRect() + scrollY: while iOS animates its toolbar
+      // those two can briefly disagree, which shifted where the collapse starts.
+      from = Math.round(pageTop(markerEl) - pinnedAt);
+      setVar('--collapse-from', `${from}px`);
+      setVar('--collapse-to', `${from + shrink}px`);
+      setVar('--collapse-bg', `${-shrink}px`);
+      setVar('--collapse-card-y', `${cardShift}px`);
+      setVar('--collapse-scale', String(PREVIEW_MIN_SCALE));
       if (!scrollDriven) apply();
     };
 
