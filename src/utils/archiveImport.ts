@@ -24,6 +24,8 @@ export interface ImportDraft {
   closedOn: string;
   /** the goal, as typed (UAH); empty = none */
   goal: string;
+  /** with no goal: whether the user said it reached its goal (unset = not said) */
+  goalReached?: boolean;
   /** the same statement is already in the archive (or the app): left out unless the user takes it */
   duplicate: boolean;
   /** left out of the import */
@@ -78,14 +80,14 @@ export async function importToArchive(drafts: ImportDraft[], kind: ImportKind, n
     const goal = parseGoal(d.goal);
     if (kind === 'project') {
       const meta = await saveCampaign({ name, rawData: d.rows, fileName: d.fileName, goal });
-      await archiveCampaign(meta.id, archivedAt);
+      await archiveCampaign(meta.id, archivedAt, goal ? {} : { goalReached: d.goalReached });
     } else {
       // no link: never read from Monobank (closed), and known only by its statement, whose amount it takes
       const jar: OwnJar = {
         id: generateId(),
         name,
         raised: d.amount,
-        ...(goal ? { target: goal } : null),
+        ...(goal ? { target: goal } : d.goalReached !== undefined ? { goalReached: d.goalReached } : null),
         jarId: '',
         closed: true,
         addedAt: now,

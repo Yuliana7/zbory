@@ -7,6 +7,7 @@ import { formatDateRange } from '../../utils/dateRange';
 import { fmtUah } from '../../utils/friendJars';
 import { draftFromStatement, importToArchive, knownSignatures, statementSignature, type ImportDraft, type ImportKind } from '../../utils/archiveImport';
 import { SpinnerIcon } from '../../icons';
+import { GoalReachedQuestion } from './GoalReachedQuestion';
 
 /** «Додати з виписок»: closed jars straight into the archive, one per statement — for jars the app never
  * tracked (old friendly jars whose links are gone, past fundraisers). Each can be named, dated (the year
@@ -156,6 +157,7 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
                         />
                       </label>
                     </div>
+                    {!d.goal.trim() && <GoalReachedQuestion value={d.goalReached} onChange={(v) => change(d.key, { goalReached: v })} disabled={!!busy} />}
                   </div>
                 )}
               </li>

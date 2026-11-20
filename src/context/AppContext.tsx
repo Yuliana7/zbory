@@ -309,11 +309,11 @@ function appReducer(state: FullState, action: AppAction): FullState {
         app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [SUMMARY_GROUP], gallerySelection: [] },
       };
 
-    // the year's projects are loaded together (see handleLoadCampaigns); «Мій рік» and the year's cards open
+    // the year's projects are loaded together (see handleLoadCampaigns); the year's analytics open, then its cards
     case 'ARCHIVED_YEAR_OPENED':
       return {
         ...state,
-        app: { ...state.app, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
+        app: { ...state.app, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'insights', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
       };
 
     case 'CLOSE_REQUESTED':
@@ -331,6 +331,8 @@ export interface LoadCampaignsOptions {
   proceed?: boolean;
   /** statements that aren't saved projects (an own jar's), loaded alongside them */
   extra?: Array<{ dataset: CampaignDataset; goal?: number }>;
+  /** money with no statement behind it (a year's own jars without one): added to the totals */
+  extraTotal?: number;
 }
 
 interface AppContextValue {
@@ -369,8 +371,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Everything step 2 needs, derived from the loaded rows
   const buildAnalytics = useCallback(
-    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number) => {
-      const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
+    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number, extraTotal = 0) => {
+      const counted = aggregateDonations(donations, withdrawals, currentBalance);
+      // money known only as a total (a year's own jars with no statement) joins the totals, not the donations
+      const aggregates = extraTotal ? { ...counted, totalAmount: counted.totalAmount + extraTotal, totalRaised: counted.totalRaised + extraTotal } : counted;
       return {
         aggregates,
         insights: generateInsights(aggregates, tInsights),
@@ -679,7 +683,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (opts?.proceed) {
         dispatch({
           type: 'PROCEED_TO_INSIGHTS',
-          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined },
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance, opts.extraTotal), goal: hasAnyGoal ? goalSum : undefined },
         });
       }
       return true;

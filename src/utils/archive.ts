@@ -4,7 +4,7 @@
 
 import type { OwnJar, YearRecap } from '../types';
 import type { CampaignMeta } from './campaignStore';
-import { ownJarDonationCount } from './ownJars';
+import { ownJarDataset, ownJarDonationCount } from './ownJars';
 
 export const isArchived = (item: { archivedAt?: number }) => !!item.archivedAt;
 
@@ -66,16 +66,22 @@ export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): 
   return out;
 }
 
+/** Whether a closed jar reached its goal: by its numbers when it had one, else what the user said
+ * (undefined: neither — it isn't counted among the goals). */
+export const goalOutcome = (total: number, goal: number | undefined, said: boolean | undefined) =>
+  goal ? total >= goal : said;
+
 /** «Мій рік»: the year card's numbers, the biggest of its projects and own jars, and how many of those
- * with a goal reached it. */
+ * with a goal (or with the user's word on it) reached it. */
 export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearRecap {
   const s = yearSummary(campaigns, ownJars);
+  const own = ownJarsOnTheirOwn(campaigns, ownJars);
   const items = [
-    ...campaigns.map((c) => ({ name: c.name, total: c.summary.totalAmount, goal: c.goal })),
-    ...ownJarsOnTheirOwn(campaigns, ownJars).map((j) => ({ name: j.name || '—', total: j.raised, goal: j.target })),
+    ...campaigns.map((c) => ({ name: c.name, total: c.summary.totalAmount, reached: goalOutcome(c.summary.totalAmount, c.goal, c.archive?.goalReached) })),
+    ...own.map((j) => ({ name: j.name || '—', total: j.raised, reached: goalOutcome(j.raised, j.target, j.goalReached) })),
   ];
   const biggest = [...items].sort((a, b) => b.total - a.total)[0];
-  const withGoal = items.filter((i) => i.goal);
+  const known = items.filter((i) => i.reached !== undefined);
   return {
     year,
     total: s.total,
@@ -84,7 +90,8 @@ export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJ
     friendJars: s.friends,
     byMonth: s.byMonth,
     biggest: biggest ? { name: biggest.name, total: biggest.total } : null,
-    goals: { set: withGoal.length, reached: withGoal.filter((i) => i.total >= i.goal!).length },
+    goals: { set: known.length, reached: known.filter((i) => i.reached).length },
+    unstated: own.filter((j) => !ownJarDataset(j)).map((j) => ({ name: j.name || '—', amount: j.raised, closedAt: j.archivedAt ?? 0 })),
   };
 }
 

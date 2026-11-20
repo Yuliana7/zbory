@@ -113,9 +113,7 @@ export function GalleryPage() {
         <button
           // a friendly jar has no analytics: back is the jar list; an archived project's cards go back to its archive page
           onClick={() =>
-            app.yearRecap
-              ? dispatch({ type: 'ARCHIVE_VIEW', payload: null })
-              : app.archivedCards
+            app.archivedCards
               ? dispatch({ type: 'ARCHIVE_VIEW', payload: app.archivedCards })
               : app.ownJar
                 ? handleReset()
@@ -126,7 +124,7 @@ export function GalleryPage() {
                      hover:border-gray-300 transition-all"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          {app.archivedCards || app.yearRecap ? t('backToArchive') : app.ownJar ? t('backToJars') : t('backButton')}
+          {app.archivedCards ? t('backToArchive') : app.ownJar ? t('backToJars') : t('backButton')}
         </button>
       </div>
 
@@ -268,7 +266,7 @@ function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, co
     () => (campaignDatasets && campaignDatasets.length >= 2 ? datasetsToItems(campaignDatasets) : null),
     [campaignDatasets],
   );
-  const previewReport = useMemo(() => (crossItems ? buildReport(crossItems, { kind: 'all' }) : null), [crossItems]);
+  const previewReport = useMemo(() => (crossItems ? buildReport(crossItems, { kind: 'all' }, yearRecap?.unstated) : null), [crossItems, yearRecap]);
 
   useEffect(() => {
     const el = containerRef.current;

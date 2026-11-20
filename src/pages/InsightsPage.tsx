@@ -22,6 +22,7 @@ export function InsightsPage() {
   const { t } = useTranslation('insights');
   const { t: tC } = useTranslation('campaigns');
   const { t: tU } = useTranslation('upload');
+  const { t: tA } = useTranslation('archive');
   const { state, dispatch, handleReset } = useAppContext();
   const { app } = state;
   // lives here so a renew carries on, and reports, across the analytics' pages
@@ -71,6 +72,9 @@ export function InsightsPage() {
   );
 
   if (!app.aggregates || !app.insights) return null;
+  // a year of the archive: read-only, back to the archive, and its own jars with no statement noted
+  const year = app.yearRecap;
+  const unstatedTotal = year?.unstated.reduce((s, j) => s + j.amount, 0) ?? 0;
 
   const tokenSheet = renew.askToken && (
     <RenewTokenSheet
@@ -101,16 +105,16 @@ export function InsightsPage() {
   return (
     <div>
       <div className="mb-6 flex justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{year ? tA('yearInsights.title', { year: year.year }) : t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleReset}
-            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+            onClick={year ? () => dispatch({ type: 'ARCHIVE_VIEW', payload: null }) : handleReset}
+            className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-500 hover:text-gray-800
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"
           >
             <ArrowLeftIcon className="w-4 h-4" />
-            {t('backButton')}
+            {year ? tA('yearInsights.back') : t('backButton')}
           </button>
           <button
             onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
@@ -140,10 +144,15 @@ export function InsightsPage() {
         </div>
       )}
 
+      {year && year.unstated.length > 0 && (
+        <p role="status" className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+          {tA('yearInsights.unstated', { count: year.unstated.length, amount: new Intl.NumberFormat('uk-UA').format(Math.round(unstatedTotal)) })}
+        </p>
+      )}
       {app.lastMerge && <MergeBanner merge={app.lastMerge} />}
       <RenewReportCard renew={renew} />
       {/* one saved project that reached its goal: offer to close it */}
-      {!datasets && app.activeCampaignId && !!app.goal && app.aggregates.totalAmount >= app.goal && !closing && (
+      {!datasets && !year && !app.archivedCards && app.activeCampaignId && !!app.goal && app.aggregates.totalAmount >= app.goal && !closing && (
         <GoalReachedCard key={app.activeCampaignId} projectId={app.activeCampaignId} onClose={() => setClosing(true)} />
       )}
       {invalidRows > 0 && (
@@ -164,7 +173,7 @@ export function InsightsPage() {
         aggregates={perJar?.aggregates ?? app.aggregates}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
-        friends={isMerged ? (app.friends ?? []) : undefined}
+        friends={isMerged && !year ? (app.friends ?? []) : undefined}
         renew={renew}
       />
       {tokenSheet}

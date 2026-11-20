@@ -8,6 +8,7 @@ import { listOwnJars, setOwnJarArchived } from '../../utils/ownJars';
 import { ownJarsFeeding } from '../../utils/archive';
 import { fmtUah } from '../../utils/friendJars';
 import { CheckIcon, SpinnerIcon } from '../../icons';
+import { GoalReachedQuestion } from './GoalReachedQuestion';
 
 type Phase = 'confirm' | 'renewing' | 'archiving' | 'failed';
 
@@ -21,6 +22,8 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
   const [withOwn, setWithOwn] = useState(true);
   const [own, setOwn] = useState<OwnJar[]>([]);
   const [phase, setPhase] = useState<Phase>('confirm');
+  // with no goal set, «Мій рік» can still count it among the goals reached if the user says
+  const [goalReached, setGoalReached] = useState<boolean | undefined>(undefined);
 
   useEffect(() => {
     listOwnJars()
@@ -39,7 +42,7 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
 
   const archive = async () => {
     setPhase('archiving');
-    const done = await archiveCampaign(id).catch(() => null);
+    const done = await archiveCampaign(id, Date.now(), app.goal ? {} : { goalReached }).catch(() => null);
     if (!done) {
       setPhase('failed');
       return;
@@ -105,6 +108,12 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
             </li>
           ))}
         </ul>
+
+        {!app.goal && (
+          <div className="rounded-xl bg-gray-50 px-3.5 py-3">
+            <GoalReachedQuestion value={goalReached} onChange={setGoalReached} disabled={busy} />
+          </div>
+        )}
 
         {renew.available && (
           <label className="flex items-center gap-3 rounded-xl bg-indigo-50 px-3.5 py-3 text-sm text-indigo-900">

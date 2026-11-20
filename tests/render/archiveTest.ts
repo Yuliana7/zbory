@@ -1,3 +1,4 @@
+import { buildReport } from '../../src/utils/campaignAnalytics';
 import { saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
 import { archiveYear, archiveYears, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
 import { listOwnJars, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarStatement } from '../../src/utils/ownJars';
@@ -22,6 +23,9 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('store: a new project is active', !isArchived(p));
   const archived = await archiveCampaign(p.id, at(2026, 10, 14));
   check('store: archiving stamps the time and counts the helpers', archived?.archivedAt === at(2026, 10, 14) && archived.archive?.friendsCount === 2);
+  const q = await saveCampaign({ name: 'Без цілі', rawData: raw, fileName: null });
+  check('store: closing with no goal keeps the user’s word on it', (await archiveCampaign(q.id, at(2026, 10, 14), { goalReached: true }))?.archive?.goalReached === true);
+  check('store: not said, not stored', (await archiveCampaign(q.id, at(2026, 10, 14)))?.archive?.goalReached === undefined);
   check('store: archiving moves updatedAt (so a backup prefers it)', (archived?.updatedAt ?? 0) === at(2026, 10, 14));
   await saveCampaign({ id: p.id, name: 'На дрони', rawData: raw, fileName: null, goal: 400 });
   const afterSave = await getCampaignMeta(p.id);
@@ -64,6 +68,16 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('recap: own jars alone — the biggest, goals, no projects', ownRecap.count === 0 && ownRecap.total === 9500 && ownRecap.biggest?.name === 'big' && ownRecap.goals.reached === 1 && ownRecap.goals.set === 1);
   const recap = yearRecap(2026, [{ ...list[0], goal: 250000 }, { ...list[1], goal: 200000 }, list[4]]);
   check('recap: the year, its biggest project, and goals reached of goals set', recap.year === 2026 && recap.biggest?.name === 'На авто для евакуації' && recap.goals.set === 2 && recap.goals.reached === 1 && recap.total === 451000);
+
+  const said = yearRecap(2026, [{ ...list[0], archive: { friendsCount: 0, goalReached: true } }, { ...list[1], archive: { friendsCount: 0, goalReached: false } }, list[4]], [{ ...own('mine-no-goal'), goalReached: true }, own('silent')]);
+  check('recap: with no goal, the user’s word counts; no word, not counted', said.goals.set === 3 && said.goals.reached === 2, JSON.stringify(said.goals));
+  check('recap: own jars with no statement are listed for the totals', said.unstated.map((u) => u.name).join() === 'mine-no-goal,silent' && said.unstated[0].amount === 500);
+  const withStatementRecap = yearRecap(2026, [], [{ ...own('stated'), statement: raw }]);
+  check('recap: an own jar with a statement is not among them', withStatementRecap.unstated.length === 0);
+  const items = [{ meta: list[0] as never, rawData: raw }];
+  const plain = buildReport(items, { kind: 'year', year: 2026 });
+  const plus = buildReport(items, { kind: 'year', year: 2026 }, [{ name: 'Без виписки', amount: 4000, closedAt: at(2026, 9) }, { name: 'Інший рік', amount: 999, closedAt: at(2025, 9) }]);
+  check('report: jars known only by total join the jars and money of their period', plus.totalAmount === plain.totalAmount + 4000 && plus.campaignCount === plain.campaignCount + 1 && plus.donationCount === plain.donationCount && plus.topCampaigns[0].name === 'Без виписки');
   check('recap: an empty year has no biggest project', yearRecap(2024, []).biggest === null && yearRecap(2024, []).count === 0);
   check('summary: totals by the month they were closed', s.byMonth[9] === 300000 && s.byMonth[7] === 150000 && s.byMonth[0] === 1000);
 
@@ -92,7 +106,7 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('import: a new statement is taken, closed on its last donation', !fresh.duplicate && !fresh.skip && fresh.closedOn === '2025-03-03' && fresh.summary.donationCount === 2);
   check('import: a file without donations is no draft', draftFromStatement('x.csv', [], known) === null);
   const years = await importToArchive(
-    [{ ...fresh, name: '  Банка для Олі  ', goal: '1 000' }, { ...fresh, key: 'p', name: 'Старий збір', closedOn: '2024-12-30' }, { ...again!, name: 'skipped' }],
+    [{ ...fresh, name: '  Банка для Олі  ', goal: '1 000', goalReached: false }, { ...fresh, key: 'p', name: 'Старий збір', closedOn: '2024-12-30', goalReached: true }, { ...again!, name: 'skipped' }],
     'ownJar',
     at(2026, 11),
   );
@@ -100,6 +114,7 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const olia = jars.find((j) => j.name === 'Банка для Олі');
   check('import: own jars filed under the closing year, skipped ones not added', years.join() === '2025,2024' && jars.length === 2 && !(await listOwnJars()).some((j) => j.name === 'skipped'));
   check('import: an imported jar is closed, unlinked, carries its statement, goal and amount', !!olia && olia.closed === true && olia.jarId === '' && olia.statement === other && olia.target === 1000 && olia.raised === 500 && archiveYear(olia) === 2025);
+  check('import: with a goal its numbers decide; with none, the user’s word is kept', olia?.goalReached === undefined && jars.find((j) => j.name === 'Старий збір')?.goalReached === true);
   const projYears = await importToArchive([{ ...fresh, key: 'q', name: 'Минулий збір' }], 'project', at(2026, 11));
   const proj = (await listCampaigns()).find((c) => c.name === 'Минулий збір');
   check('import: as a main jar, it is an archived project', projYears.join() === '2025' && !!proj && isArchived(proj) && archiveYear(proj) === 2025);

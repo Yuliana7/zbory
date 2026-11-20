@@ -107,6 +107,8 @@ export interface OwnJar extends FriendJar {
   statement?: RawDonation[];
   /** when the statement was added (ms) */
   statementAddedAt?: number;
+  /** with no goal set: whether the user said it reached its goal (unset = not said) */
+  goalReached?: boolean;
 }
 
 export type RaffleKind = 'donors' | 'jars' | 'biggest';
@@ -284,6 +286,9 @@ export interface YearRecap {
   biggest: { name: string; total: number } | null;
   /** projects that had a goal, and those that reached it */
   goals: { set: number; reached: number };
+  /** own jars counted in the year with no statement: their money is in the total, but there are no
+   * donations behind it — the cards made from the year's statements add it to their totals */
+  unstated: Array<{ name: string; amount: number; closedAt: number }>;
 }
 
 /** A page of the archive: a closed project, or one of the user's own friendly jars. */

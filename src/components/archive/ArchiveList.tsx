@@ -6,7 +6,7 @@ import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
 import { listOwnJars, goalPct, ownJarDataset } from '../../utils/ownJars';
 import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
-import { ArchiveIcon, ImageIcon, LockIcon } from '../../icons';
+import { ArchiveIcon, ChartIcon, LockIcon, PlusIcon, SpinnerIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 import { ImportStatementsSheet } from './ImportStatementsSheet';
 
@@ -100,9 +100,14 @@ export function ArchiveList() {
   const makeYearCards = async () => {
     if (shownYear === null || opening) return;
     setOpening(true);
-    const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), { proceed: true, extra: yearStatements });
+    const recap = yearRecap(shownYear, yearCampaigns, yearJars);
+    const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), {
+      proceed: true,
+      extra: yearStatements,
+      extraTotal: recap.unstated.reduce((sum, j) => sum + j.amount, 0),
+    });
     setOpening(false);
-    if (ok) dispatch({ type: 'ARCHIVED_YEAR_OPENED', payload: yearRecap(shownYear, yearCampaigns, yearJars) });
+    if (ok) dispatch({ type: 'ARCHIVED_YEAR_OPENED', payload: recap });
   };
 
   return (
@@ -111,8 +116,9 @@ export function ArchiveList() {
         <h2 className="text-2xl font-bold text-gray-900">{t('list.title')}</h2>
         <button
           onClick={() => setImporting(true)}
-          className="shrink-0 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-indigo-300 transition-colors"
+          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium transition-colors"
         >
+          <PlusIcon className="w-3.5 h-3.5" />
           {t('import.open')}
         </button>
       </div>
@@ -162,19 +168,20 @@ export function ArchiveList() {
                   <span key={m}>{m}</span>
                 ))}
               </div>
-              {yearCampaigns.length + yearStatements.length > 0 && (
-              <button
-                onClick={() => void makeYearCards()}
-                disabled={opening}
-                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/25 disabled:opacity-60 transition-colors"
-              >
-                <ImageIcon className="h-4 w-4" />
-                {opening ? t('list.yearCardsOpening') : t('list.yearCards', { year: shownYear })}
-              </button>
-              )}
             </div>
           )}
         </section>
+      )}
+
+      {shownYear !== null && yearCampaigns.length + yearStatements.length > 0 && (
+        <button
+          onClick={() => void makeYearCards()}
+          disabled={opening}
+          className="-mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 disabled:opacity-60 transition-colors"
+        >
+          {opening ? <SpinnerIcon className="h-4 w-4 animate-spin" /> : <ChartIcon className="h-4 w-4" />}
+          {opening ? t('list.yearCardsOpening') : t('list.yearCards', { year: shownYear })}
+        </button>
       )}
 
       {yearCampaigns.length + yearJars.length > ARCHIVE_PAGE_SIZE / 2 && (

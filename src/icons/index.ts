@@ -25,3 +25,4 @@ export * from './XIcon';
 export * from './UndoIcon';
 export * from './GiftIcon';
 export * from './LockIcon';
+export * from './ChartIcon';

@@ -147,7 +147,7 @@ check('No lone ₴ artifacts', allCards.every((h) => !/>\s*₴\s*</.test(h.repla
   const recap: YearRecap = {
     year: 2026, total: 451000, count: 3, donations: 4510, friendJars: 18,
     byMonth: [1000, 0, 0, 0, 0, 0, 0, 150000, 0, 300000, 0, 0],
-    biggest: { name: 'На авто для евакуації', total: 300000 }, goals: { set: 2, reached: 1 },
+    biggest: { name: 'На авто для евакуації', total: 300000 }, goals: { set: 2, reached: 1 }, unstated: [],
   };
   const year = text(renderToStaticMarkup(<ArchiveYearCard recap={recap} aggregates={agg} format="story" />));
   check('Year: its title, total, projects, donors and friendly jars', year.includes('Мій 2026') && year.includes('451 000 ₴') && year.includes('зборів') && year.includes('22') && year.includes('дружніх банок'), year.slice(0, 300));

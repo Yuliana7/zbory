@@ -207,8 +207,9 @@ function TemplateRenderer({
     return { kind: 'all' };
   }, [periodKey]);
   const report = useMemo(
-    () => (templateId === 'report' && crossItems ? buildReport(crossItems, period) : null),
-    [templateId, crossItems, period],
+    // a year of the archive: its own jars with no statement count in the report's jars and money
+    () => (templateId === 'report' && crossItems ? buildReport(crossItems, period, yearRecap?.unstated) : null),
+    [templateId, crossItems, period, yearRecap],
   );
   const periodLabel =
     period.kind === 'all'

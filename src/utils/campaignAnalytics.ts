@@ -159,8 +159,16 @@ export interface ReportStats {
   lastDate: Date | null;
 }
 
+/** A closed jar known only by its total (an own jar with no statement): it counts in a report's jars
+ * and money in the period it closed, with no donations behind it. */
+export interface TotalOnly {
+  name: string;
+  amount: number;
+  closedAt: number;
+}
+
 /** Aggregates the whole library over one reporting period (quarter / year / all time). */
-export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonation[] }>, period: ReportPeriod): ReportStats {
+export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonation[] }>, period: ReportPeriod, totalsOnly: TotalOnly[] = []): ReportStats {
   const inPeriod = (t: Date) => {
     if (period.kind === 'all') return true;
     if (t.getFullYear() !== period.year) return false;
@@ -196,6 +204,12 @@ export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonat
       campaignTotals.push({ name: meta.name, amount: campaignAmount });
       totalAmount += campaignAmount;
     }
+  }
+
+  for (const j of totalsOnly) {
+    if (j.amount <= 0 || !inPeriod(new Date(j.closedAt))) continue;
+    campaignTotals.push({ name: j.name, amount: j.amount });
+    totalAmount += j.amount;
   }
 
   return {

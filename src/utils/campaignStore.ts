@@ -42,6 +42,8 @@ export interface CampaignMeta {
 export interface ArchiveSnapshot {
   /** helper jars the project had */
   friendsCount: number;
+  /** with no goal set: whether the user said, on closing, that it reached its goal (unset = not said) */
+  goalReached?: boolean;
 }
 
 interface CampaignData {
@@ -148,12 +150,13 @@ export async function loadCampaignData(id: string): Promise<{ rawData: RawDonati
 
 /** Closes a project: it moves to the archive under this year, with a few numbers the archive lists
  * without opening it. Its data stays exactly as it is. */
-export async function archiveCampaign(id: string, now: number = Date.now()): Promise<CampaignMeta | null> {
+export async function archiveCampaign(id: string, now: number = Date.now(), opts: { goalReached?: boolean } = {}): Promise<CampaignMeta | null> {
   const kv = getBackend();
   const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
   const data = (await kv.get(DATA_STORE, id)) as CampaignData | undefined;
   if (!meta || !data) return null;
-  const archived: CampaignMeta = { ...meta, archivedAt: now, archive: { friendsCount: data.friends?.length ?? 0 }, updatedAt: now };
+  const archive: ArchiveSnapshot = { friendsCount: data.friends?.length ?? 0, ...(opts.goalReached !== undefined ? { goalReached: opts.goalReached } : null) };
+  const archived: CampaignMeta = { ...meta, archivedAt: now, archive, updatedAt: now };
   await kv.put(META_STORE, archived);
   return archived;
 }

@@ -67,8 +67,10 @@ export function useRenewAll() {
   const controller = useRef<AbortController | null>(null);
   const abortTimer = useRef<ReturnType<typeof setTimeout>>();
 
-  const mainJar = app.campaignDatasets ? undefined : app.monobankJar;
-  const linkedJars = app.campaignDatasets ? 0 : linkedOpen(app.friends ?? []).length;
+  // several jars together, or anything opened from the archive, is read-only: nothing to renew
+  const readOnly = !!app.campaignDatasets || !!app.yearRecap || !!app.archivedCards;
+  const mainJar = readOnly ? undefined : app.monobankJar;
+  const linkedJars = readOnly ? 0 : linkedOpen(app.friends ?? []).length;
 
   const run = useCallback(
     async (token: string | null, quiet = false): Promise<boolean> => {
@@ -221,7 +223,7 @@ export function useRenewAll() {
     const timer = setTimeout(() => {
       const current = appRef.current;
       const now = Date.now();
-      if (!auto || current.renewRequested || current.campaignDatasets || now - lastAutoAttempt < AUTO_COOLDOWN_MS) return;
+      if (!auto || current.renewRequested || current.campaignDatasets || current.yearRecap || current.archivedCards || now - lastAutoAttempt < AUTO_COOLDOWN_MS) return;
       const friends = current.friends ?? [];
       if (linkedOpen(friends).length === 0) return;
       const jar = current.monobankJar;
