@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar, Raffle, RawDonation } from '../../types';
-import { buildProjectBackup, getCampaignMeta, loadCampaignData, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
+import { buildProjectBackup, getCampaignMeta, listCampaigns, loadCampaignData, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { normalizeDonations } from '../../utils/csvParser';
 import { aggregateDonations } from '../../utils/dataAggregator';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
@@ -10,7 +10,8 @@ import { saveBlob } from '../../utils/download';
 import { computeFriendStats, fmtUah, friendsToCSV } from '../../utils/friendJars';
 import { biggestDonation, eligibleJars, raffleParticipants } from '../../utils/raffles';
 import { formatDateRange } from '../../utils/dateRange';
-import { archiveYear } from '../../utils/archive';
+import { archiveYear, isArchived } from '../../utils/archive';
+import { CompareSection, GrowthSection, MoneySection, SupportersSection } from './ArchiveStory';
 import { CopyJarLink } from '../insights/friendsShared';
 import { ArrowLeftIcon, CalendarIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
 
@@ -33,11 +34,14 @@ export function ArchivedProject({ id }: { id: string }) {
   const { dispatch, handleLoadCampaign } = useAppContext();
   const [loaded, setLoaded] = useState<Loaded | null | 'error'>(null);
   const [allFriends, setAllFriends] = useState(false);
+  const [archived, setArchived] = useState<CampaignMeta[]>([]);
 
   useEffect(() => {
     Promise.all([getCampaignMeta(id), loadCampaignData(id)])
       .then(([meta, data]) => setLoaded(meta && data ? { meta, rawData: data.rawData, friends: data.friends, raffles: data.raffles } : 'error'))
       .catch(() => setLoaded('error'));
+    // the other closed projects, to compare with
+    listCampaigns().then((all) => setArchived(all.filter(isArchived))).catch(() => setArchived([]));
   }, [id]);
 
   const numbers = useMemo(() => {
@@ -46,14 +50,7 @@ export function ArchivedProject({ id }: { id: string }) {
     if (donations.length === 0) return null;
     const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
     const days = Math.max(1, aggregates.byDay.size && Math.round((aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / 864e5) + 1);
-    // one bar a week, from the first day
-    const weeks: number[] = [];
-    const start = new Date(aggregates.firstDate.getFullYear(), aggregates.firstDate.getMonth(), aggregates.firstDate.getDate()).getTime();
-    for (const d of donations) {
-      const w = Math.floor((d.timestamp.getTime() - start) / (7 * 864e5));
-      weeks[w] = (weeks[w] ?? 0) + d.amount;
-    }
-    return { donations, aggregates, days, weeks: Array.from(weeks, (v) => v ?? 0), bestDay: Math.max(0, ...aggregates.byDay.values()) };
+    return { donations, aggregates, days, bestDay: Math.max(0, ...aggregates.byDay.values()) };
   }, [loaded]);
 
   const back = () => dispatch({ type: 'ARCHIVE_VIEW', payload: null });
@@ -69,13 +66,12 @@ export function ArchivedProject({ id }: { id: string }) {
   }
 
   const { meta, rawData, friends, raffles } = loaded;
-  const { aggregates, days, weeks, bestDay, donations } = numbers;
+  const { aggregates, days, bestDay, donations } = numbers;
   const total = aggregates.totalAmount;
   const pct = meta.goal ? Math.round((total / meta.goal) * 100) : null;
   const ranked = [...friends].sort((a, b) => b.raised - a.raised);
   const friendStats = computeFriendStats(friends, total);
   const topRaised = Math.max(1, ...ranked.map((f) => f.raised));
-  const maxWeek = Math.max(1, ...weeks);
   const stem = fileStem(meta.name);
 
   const stats = [
@@ -162,16 +158,8 @@ export function ArchivedProject({ id }: { id: string }) {
         ))}
       </section>
 
-      {weeks.length > 1 && (
-        <section className={`${card} p-4 space-y-3`}>
-          <h3 className="text-sm font-semibold text-gray-900">{t('page.howItWent')}</h3>
-          <div role="img" aria-label={t('page.byWeek')} className="flex h-20 items-end gap-1">
-            {weeks.map((v, i) => (
-              <div key={i} className="flex-1 rounded-t bg-indigo-400" style={{ height: `${Math.max(v ? 4 : 1, Math.round((v / maxWeek) * 80))}px` }} />
-            ))}
-          </div>
-        </section>
-      )}
+      <GrowthSection aggregates={aggregates} donations={donations} goal={meta.goal} />
+      <SupportersSection donations={donations} />
 
       {ranked.length > 0 && (
         <section className={`${card} overflow-hidden`}>
@@ -204,6 +192,9 @@ export function ArchivedProject({ id }: { id: string }) {
           ) : null}
         </section>
       )}
+
+      <MoneySection aggregates={aggregates} />
+      <CompareSection meta={meta} archived={archived} />
 
       {raffles.length > 0 && (
         <section className={`${card} p-4 space-y-2`}>
