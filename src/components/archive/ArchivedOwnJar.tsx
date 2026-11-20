@@ -179,7 +179,12 @@ export function ArchivedOwnJar({ id }: { id: string }) {
           <StatsGrid aggregates={told.aggregates} />
           {mismatch && (
             <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-              {t('statement.mismatch', { statement: fmtUah(statementTotal), raised: fmtUah(jar.raised) })}
+              {/* only the facts: the app can't tell why they differ */}
+              {t('statement.mismatch', {
+                statement: fmtUah(statementTotal),
+                raised: fmtUah(jar.raised),
+                diff: `${statementTotal > jar.raised ? '+' : '−'}${fmtUah(Math.abs(statementTotal - jar.raised))}`,
+              })}
             </p>
           )}
           <GrowthSection aggregates={told.aggregates} donations={told.donations} goal={jar.target} />

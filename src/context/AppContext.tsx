@@ -354,7 +354,6 @@ interface AppContextValue {
   handleUndoMerge: () => Promise<void>;
   handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
   handleRafflesChange: (raffles: Raffle[]) => Promise<void>;
-  goToStep: (step: AppState['step']) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -760,21 +759,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
-  const goToStep = useCallback(
-    (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
-      if (idx[step] >= idx[state.app.step]) return;
-      // everything is saved as it happens, so going back to step 1 just closes the project; a friendly
-      // jar has no analytics step, so going back past its templates returns to the jar list
-      if (step === 'upload' || (state.app.ownJar && step === 'insights')) handleReset();
-      else dispatch({ type: 'GO_TO_STEP', payload: step });
-    },
-    [state.app.step, state.app.ownJar, handleReset],
-  );
-
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, handleRafflesChange, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, handleRafflesChange }}
     >
       {children}
     </AppContext.Provider>
