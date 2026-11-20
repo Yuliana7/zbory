@@ -10,6 +10,8 @@ import {
 import { useTranslation } from 'react-i18next';
 import type {
   AppState,
+  ArchiveView,
+  YearRecap,
   RawDonation,
   Donation,
   Withdrawal,
@@ -31,7 +33,7 @@ import type {
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
-import { aggregateDonations } from '../utils/dataAggregator';
+import { aggregateDonations, withAmountsByDay } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
 import { saveSession, updateSessionFriends, clearSession, loadSession } from '../utils/session';
@@ -40,7 +42,7 @@ import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 
 import { makeCard } from '../utils/exportStack';
 import { ownJarAggregates } from '../utils/ownJars';
-import { OWN_JAR_GROUP } from '../utils/templateConfig';
+import { OWN_JAR_GROUP, SUMMARY_GROUP, YEAR_GROUP } from '../utils/templateConfig';
 
 /** Where a project's rows come from and what goes with them; no id = a new project. */
 interface ProjectSource {
@@ -118,6 +120,11 @@ const INITIAL_STATE: FullState = {
 export type AppAction =
   | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; raffles?: Raffle[]; monobankJar?: MonobankJarRef; monobankSyncedAt?: number } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
+  | { type: 'SECTION_CHANGED'; payload: 'active' | 'archive' }
+  | { type: 'ARCHIVE_VIEW'; payload: ArchiveView | null }
+  | { type: 'ARCHIVED_CARDS_OPENED'; payload: ArchiveView }
+  | { type: 'ARCHIVED_YEAR_OPENED'; payload: YearRecap }
+  | { type: 'CLOSE_REQUESTED'; payload: boolean }
   | { type: 'FRIENDS_EDIT_OPENED' }
   | { type: 'FRIENDS_EDIT_DONE' }
   | { type: 'RAFFLES_UPDATED'; payload: Raffle[] }
@@ -285,12 +292,49 @@ function appReducer(state: FullState, action: AppAction): FullState {
     case 'RESET':
       return INITIAL_STATE;
 
+    // the header's «Активні | Архів»: either way starts clean (everything open is already saved)
+    case 'SECTION_CHANGED':
+      return { ...INITIAL_STATE, app: { ...INITIAL_APP_STATE, section: action.payload === 'archive' ? 'archive' : undefined } };
+
+    // a page of the archive; coming back from an archived project's cards drops what they loaded
+    case 'ARCHIVE_VIEW':
+      return state.app.archivedCards || state.app.yearRecap
+        ? { ...INITIAL_STATE, app: { ...INITIAL_APP_STATE, section: 'archive', archiveView: action.payload ?? undefined } }
+        : { ...state, app: { ...state.app, section: 'archive', archiveView: action.payload ?? undefined } };
+
+    // the project is loaded (see handleLoadCampaign); its cards open read-only, straight on the templates
+    case 'ARCHIVED_CARDS_OPENED':
+      return {
+        ...state,
+        app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [SUMMARY_GROUP], gallerySelection: [] },
+      };
+
+    // the year's projects are loaded together (see handleLoadCampaigns); the year's analytics open, then its cards
+    case 'ARCHIVED_YEAR_OPENED':
+      return {
+        ...state,
+        // closed jars have nothing left to raise: a year has no goal
+        app: { ...state.app, goal: undefined, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'insights', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
+      };
+
+    case 'CLOSE_REQUESTED':
+      return { ...state, app: { ...state.app, closeRequested: action.payload } };
+
     default:
       return state;
   }
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
+
+export interface LoadCampaignsOptions {
+  /** go on to the analytics once loaded */
+  proceed?: boolean;
+  /** statements that aren't saved projects (an own jar's), loaded alongside them */
+  extra?: Array<{ dataset: CampaignDataset; goal?: number }>;
+  /** money with no statement behind it, by day (a year's own jars without one): added to the totals and days */
+  extraDays?: Array<{ date: string; amount: number }>;
+}
 
 interface AppContextValue {
   state: FullState;
@@ -302,7 +346,7 @@ interface AppContextValue {
   handleReset: () => void;
   handleRestoreSession: () => Promise<boolean>;
   handleLoadCampaign: (id: string, opts?: { proceed?: boolean }) => Promise<LoadedCampaign | null>;
-  handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
+  handleLoadCampaigns: (ids: string[], opts?: LoadCampaignsOptions) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number | null) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   handleMergeRows: (incoming: RawDonation[], opts?: MergeOptions) => Promise<MergeResult | null>;
@@ -310,7 +354,6 @@ interface AppContextValue {
   handleUndoMerge: () => Promise<void>;
   handleFriendsChange: (friends: FriendJar[]) => Promise<void>;
   handleRafflesChange: (raffles: Raffle[]) => Promise<void>;
-  goToStep: (step: AppState['step']) => void;
 }
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -328,8 +371,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Everything step 2 needs, derived from the loaded rows
   const buildAnalytics = useCallback(
-    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number) => {
-      const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
+    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number, extraDays: Array<{ date: string; amount: number }> = []) => {
+      // money known only by day (a year's own jars with no statement) joins the totals and days, not the donations
+      const aggregates = withAmountsByDay(aggregateDonations(donations, withdrawals, currentBalance), extraDays);
       return {
         aggregates,
         insights: generateInsights(aggregates, tInsights),
@@ -581,8 +625,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Opens several campaigns at once: merged rows drive the normal pipeline,
   // campaignDatasets keeps each jar separate for per-jar/cross analytics.
-  const handleLoadCampaigns = useCallback(async (ids: string[], opts?: { proceed?: boolean }): Promise<boolean> => {
-    if (ids.length === 0) return false;
+  // `extra` adds statements that aren't saved projects (an own jar's), with their goals.
+  const handleLoadCampaigns = useCallback(async (ids: string[], opts?: LoadCampaignsOptions): Promise<boolean> => {
+    const extra = opts?.extra ?? [];
+    if (ids.length + extra.length === 0) return false;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const datasets: CampaignDataset[] = [];
@@ -590,6 +636,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // otherwise the user has to re-type a combined goal from scratch.
       let goalSum = 0;
       let hasAnyGoal = false;
+      for (const { goal } of extra) {
+        if (goal) {
+          goalSum += goal;
+          hasAnyGoal = true;
+        }
+      }
       for (const id of ids) {
         const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
         if (!meta || !data) throw new Error();
@@ -599,6 +651,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           hasAnyGoal = true;
         }
       }
+      for (const { dataset } of extra) datasets.push(dataset);
       let merged: RawDonation[] = [];
       for (const d of datasets) merged = mergeRawDonations(merged, d.rawData).merged;
       const { donations, withdrawals } = normalizeDonations(merged);
@@ -620,15 +673,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
           withdrawals,
           currentBalance,
           goal: hasAnyGoal ? goalSum : undefined,
-          activeCampaignId: ids.length === 1 ? ids[0] : undefined,
-          activeCampaignName: ids.length === 1 ? datasets[0].name : undefined,
+          // one saved project is that project; one own jar's statement only lends its name to the cards
+          activeCampaignId: ids.length === 1 && datasets.length === 1 ? ids[0] : undefined,
+          activeCampaignName: datasets.length === 1 ? datasets[0].name : undefined,
           campaignDatasets: datasets.length > 1 ? datasets : undefined,
         },
       });
       if (opts?.proceed) {
         dispatch({
           type: 'PROCEED_TO_INSIGHTS',
-          payload: { ...buildAnalytics(donations, withdrawals, currentBalance), goal: hasAnyGoal ? goalSum : undefined },
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance, opts.extraDays), goal: hasAnyGoal ? goalSum : undefined },
         });
       }
       return true;
@@ -705,21 +759,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     }
   }, [t]);
 
-  const goToStep = useCallback(
-    (step: AppState['step']) => {
-      const idx: Record<AppState['step'], number> = { upload: 1, insights: 2, gallery: 3, export: 4 };
-      if (idx[step] >= idx[state.app.step]) return;
-      // everything is saved as it happens, so going back to step 1 just closes the project; a friendly
-      // jar has no analytics step, so going back past its templates returns to the jar list
-      if (step === 'upload' || (state.app.ownJar && step === 'insights')) handleReset();
-      else dispatch({ type: 'GO_TO_STEP', payload: step });
-    },
-    [state.app.step, state.app.ownJar, handleReset],
-  );
-
   return (
     <AppContext.Provider
-      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, handleRafflesChange, goToStep }}
+      value={{ state, dispatch, handleFileSelect, handleManualDataProceed, handleTemplateSelect, handleTemplatesSelect, handleReset, handleRestoreSession, handleLoadCampaign, handleLoadCampaigns, handleSaveCampaign, handleMergeFile, handleMergeRows, handleMonobankProject, handleUndoMerge, handleFriendsChange, handleRafflesChange }}
     >
       {children}
     </AppContext.Provider>

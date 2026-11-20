@@ -290,3 +290,18 @@ body {
 .zb-calendar .rdp-caption_label {
   text-transform: capitalize;
 }
+
+/* iOS Safari gives a native date field a minimum width of its own and centres the date, so in a narrow
+   column it spills over its neighbour. Let it shrink to its box, and read from the left like other fields
+   (the native picker still opens on tap). */
+input[type='date'] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+  max-width: 100%;
+  /* without its native look an empty one collapses on iOS */
+  min-height: 2.5em;
+}
+input[type='date']::-webkit-date-and-time-value {
+  text-align: left;
+}

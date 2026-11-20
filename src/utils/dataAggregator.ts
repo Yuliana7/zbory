@@ -168,6 +168,41 @@ export function aggregateDonations(
 }
 
 /**
+ * Adds money known only by day, with no donations behind it (a year's own jars with no statement, read
+ * from the app's own history of their amounts): it joins the totals, the days and the running total,
+ * never the donation counts, sizes or donors.
+ */
+export function withAmountsByDay(aggregates: Aggregates, days: Array<{ date: string; amount: number }>): Aggregates {
+  const extra = days.filter((d) => d.amount > 0);
+  if (extra.length === 0) return aggregates;
+  const byDay = new Map(aggregates.byDay);
+  const byDate = new Map(aggregates.byDate);
+  let added = 0;
+  for (const { date, amount } of extra) {
+    byDay.set(date, (byDay.get(date) ?? 0) + amount);
+    const row = byDate.get(date) ?? { amount: 0, count: 0 };
+    byDate.set(date, { amount: row.amount + amount, count: row.count });
+    added += amount;
+  }
+  const keys = [...byDay.keys()].sort();
+  let running = 0;
+  const cumulative = keys.map((date) => ({ date, total: (running += byDay.get(date)!) }));
+  const noon = (key: string) => new Date(`${key}T12:00:00`);
+  const firstKey = keys[0];
+  const lastKey = keys[keys.length - 1];
+  return {
+    ...aggregates,
+    totalAmount: aggregates.totalAmount + added,
+    totalRaised: aggregates.totalRaised + added,
+    byDay,
+    byDate,
+    cumulative,
+    firstDate: firstKey < formatDateKey(aggregates.firstDate) ? noon(firstKey) : aggregates.firstDate,
+    lastDate: lastKey > formatDateKey(aggregates.lastDate) ? noon(lastKey) : aggregates.lastDate,
+  };
+}
+
+/**
  * True when a donor name is just an anonymity marker rather than a person:
  * empty, or contains no letters/digits at all (🐈, ❤️ and similar).
  */

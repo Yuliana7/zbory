@@ -90,7 +90,15 @@
     "resetSize": "Скинути",
     "remove": "Прибрати",
     "noText": "У цьому елементі немає тексту.",
-    "overflow": "Не вміщається: частину картки обрізано."
+    "overflow": "Не вміщається: частину картки обрізано.",
+    "milestones": "Етапи збору",
+    "supportersHero": "Донори й ті, хто повертався",
+    "bands": "Розмір донатів",
+    "topDonors": "Топ донорів (імена)",
+    "numbersGrid": "Сітка цифр",
+    "yearStats": "Ряд цифр року",
+    "yearMonths": "Місяці року",
+    "yearHighlights": "Найбільший збір і цілі"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -169,7 +177,11 @@
     "donation-stats": "Який донат типовий",
     "raffle-donors": "Учасники розіграшу",
     "raffle-jars": "Банки в розіграші",
-    "raffle-biggest": "Найбільший донат"
+    "raffle-biggest": "Найбільший донат",
+    "archive-journey": "Як ми збирали",
+    "archive-numbers": "Збір у цифрах",
+    "archive-supporters": "Наші донатори",
+    "archive-year": "Мій рік"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -372,6 +384,46 @@
       "tiedLabel": "Підпис рівних донатерів",
       "randomLabel": "Підпис про випадковий вибір",
       "soloLabel": "Підпис, коли лідер один"
+    },
+    "archive-journey": {
+      "title": "Заголовок",
+      "goalLabel": "Мітка «Ціль»",
+      "currencyLabel": "Підпис під сумою (без цілі)",
+      "milestonesLabel": "Підпис над етапами",
+      "dayWord": "Слово «день»"
+    },
+    "archive-supporters": {
+      "title": "Заголовок",
+      "donorsLabel": "Підпис під кількістю донорів",
+      "returningLabel": "Мітка тих, хто повертався",
+      "shareLabel": "Після відсотка",
+      "bandsLabel": "Підпис над розміром донатів",
+      "smallLabel": "Малі донати",
+      "mediumLabel": "Середні донати",
+      "largeLabel": "Великі донати",
+      "topLabel": "Підпис над топом"
+    },
+    "archive-numbers": {
+      "title": "Заголовок",
+      "totalLabel": "Підпис над сумою",
+      "daysLabel": "Мітка «Днів»",
+      "donationsLabel": "Мітка «Донатів»",
+      "donorsLabel": "Мітка «Донорів»",
+      "bestDayLabel": "Мітка рекордного дня",
+      "medianLabel": "Мітка типового донату",
+      "streakLabel": "Мітка днів поспіль"
+    },
+    "archive-year": {
+      "title": "Заголовок",
+      "totalLabel": "Підпис під сумою",
+      "projectsLabel": "Мітка «Зборів»",
+      "donationsLabel": "Мітка «Донатів»",
+      "donorsLabel": "Мітка «Донорів»",
+      "friendsLabel": "Мітка дружніх банок",
+      "busiestLabel": "Перед найактивнішим місяцем",
+      "biggestLabel": "Мітка найбільшого збору",
+      "goalsLabel": "Мітка досягнутих цілей",
+      "thanks": "Слова подяки"
     }
   },
   "friends": {

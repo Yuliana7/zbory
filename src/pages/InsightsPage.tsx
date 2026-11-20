@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
@@ -15,15 +15,26 @@ import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { FriendsPage } from '../components/insights/FriendsPage';
 import { DailyPage } from '../components/insights/DailyPage';
 import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+import { GoalReachedCard } from '../components/archive/GoalReachedCard';
+import { CloseProjectSheet } from '../components/archive/CloseProjectSheet';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
   const { t: tC } = useTranslation('campaigns');
   const { t: tU } = useTranslation('upload');
+  const { t: tA } = useTranslation('archive');
   const { state, dispatch, handleReset } = useAppContext();
   const { app } = state;
   // lives here so a renew carries on, and reports, across the analytics' pages
   const renew = useRenewAll();
+  const [closing, setClosing] = useState(false);
+  // «Закрити збір» from the project list lands here
+  const closeRequested = !!app.closeRequested;
+  useEffect(() => {
+    if (!closeRequested) return;
+    dispatch({ type: 'CLOSE_REQUESTED', payload: false });
+    setClosing(true);
+  }, [closeRequested, dispatch]);
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
   const datasets = app.campaignDatasets;
@@ -38,6 +49,8 @@ export function InsightsPage() {
   }, [datasets, viewId, t]);
 
   const isMerged = !perJar;
+  // a year of the archive: its friendly jars with no statement, day by day from the app's own readings
+  const yearExtra = useMemo(() => app.yearRecap?.unstated.flatMap((j) => j.days) ?? [], [app.yearRecap]);
 
   // Merged multi-jar view: enrich the repeat/top-donor lists with how many
   // of the loaded statements each identity actually donated in — lost once
@@ -61,6 +74,9 @@ export function InsightsPage() {
   );
 
   if (!app.aggregates || !app.insights) return null;
+  // a year of the archive: read-only, back to the archive, and its own jars with no statement noted
+  const year = app.yearRecap;
+  const unstatedTotal = year?.unstated.reduce((s, j) => s + j.amount, 0) ?? 0;
 
   const tokenSheet = renew.askToken && (
     <RenewTokenSheet
@@ -84,6 +100,7 @@ export function InsightsPage() {
         aggregates={perJar?.aggregates ?? app.aggregates}
         donations={perJar?.donations ?? app.donations ?? []}
         withdrawals={perJar?.withdrawals ?? app.withdrawals ?? []}
+        extra={perJar ? undefined : yearExtra}
       />
     );
   }
@@ -91,16 +108,16 @@ export function InsightsPage() {
   return (
     <div>
       <div className="mb-6 flex justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
+        <h2 className="text-2xl font-bold text-gray-900">{year ? tA('yearInsights.title', { year: year.year }) : t('title')}</h2>
         <div className="flex items-center gap-2">
           <button
-            onClick={handleReset}
-            className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+            onClick={year ? () => dispatch({ type: 'ARCHIVE_VIEW', payload: null }) : handleReset}
+            className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-500 hover:text-gray-800
                        bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                        hover:border-gray-300 transition-all"
           >
             <ArrowLeftIcon className="w-4 h-4" />
-            {t('backButton')}
+            {year ? tA('yearInsights.back') : t('backButton')}
           </button>
           <button
             onClick={() => dispatch({ type: 'GO_TO_STEP', payload: 'gallery' })}
@@ -130,8 +147,17 @@ export function InsightsPage() {
         </div>
       )}
 
+      {year && year.unstated.length > 0 && (
+        <p role="status" className="mb-4 rounded-xl border border-indigo-100 bg-indigo-50 px-4 py-3 text-sm text-indigo-900">
+          {tA('yearInsights.unstated', { count: year.unstated.length, amount: new Intl.NumberFormat('uk-UA').format(Math.round(unstatedTotal)) })}
+        </p>
+      )}
       {app.lastMerge && <MergeBanner merge={app.lastMerge} />}
       <RenewReportCard renew={renew} />
+      {/* one saved project that reached its goal: offer to close it */}
+      {!datasets && !year && !app.archivedCards && app.activeCampaignId && !!app.goal && app.aggregates.totalAmount >= app.goal && !closing && (
+        <GoalReachedCard key={app.activeCampaignId} projectId={app.activeCampaignId} onClose={() => setClosing(true)} />
+      )}
       {invalidRows > 0 && (
         <p role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
           {tU('preview.invalidRows', { count: invalidRows })}
@@ -150,11 +176,12 @@ export function InsightsPage() {
         aggregates={perJar?.aggregates ?? app.aggregates}
         commentInsights={perJar?.commentInsights ?? mergedCommentInsights}
         campaignDatasets={isMerged ? datasets : null}
-        friends={isMerged ? (app.friends ?? []) : undefined}
+        friends={isMerged && !year ? (app.friends ?? []) : undefined}
         renew={renew}
+        hideInsightCards={!!year && isMerged}
       />
       {tokenSheet}
-
+      {closing && <CloseProjectSheet renew={renew} onCancel={() => setClosing(false)} />}
     </div>
   );
 }

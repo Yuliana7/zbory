@@ -11,16 +11,18 @@ import { listCampaigns, type CampaignMeta } from '../../../utils/campaignStore';
 import { listOwnJars } from '../../../utils/ownJars';
 import type { OwnJar } from '../../../types';
 import { OwnJarsTab } from '../../ownJars/OwnJarsTab';
-import { SaveIcon, XIcon } from '../../../icons';
+import { isArchived } from '../../../utils/archive';
+import { ArrowLeftIcon, SaveIcon, XIcon } from '../../../icons';
 
-type HomeTab = 'saved' | 'own' | 'new';
+type HomeTab = 'saved' | 'own';
 const TAB_KEY = 'zbory.homeTab';
-const readTab = (): HomeTab => {
+/** null = nothing chosen this visit yet */
+const readTab = (): HomeTab | null => {
   try {
     const v = sessionStorage.getItem(TAB_KEY);
-    return v === 'own' || v === 'new' ? v : 'saved';
+    return v === 'own' || v === 'saved' ? v : null;
   } catch {
-    return 'saved';
+    return null;
   }
 };
 
@@ -30,16 +32,19 @@ interface HomeScreenProps {
   onAction: (campaign: CampaignMeta, action: CampaignAction) => void;
 }
 
-/** Step 1's front page: the autosave restore offer, then saved projects and the ways to start a
- * new one (just the ways to start, for a first run with nothing saved). */
+/** Step 1's front page: the autosave restore offer, then the active projects (with «Новий збір» among
+ * them) and the user's own friendly jars. Closed ones live in the archive. A first run with nothing
+ * saved shows just the ways to start. */
 export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) {
   const { t } = useTranslation('upload');
   const { state, handleFileSelect, handleRestoreSession } = useAppContext();
   const { app, isLoading } = state;
   const [savedSession, setSavedSession] = useState(() => loadSession());
-  // Step 1 has three views: the saved projects, the user's own friendly jars and the ways to start a
-  // new project. The view is remembered for the visit, so coming back from a jar's cards lands on the jars.
-  const [tab, setTabState] = useState<HomeTab>(readTab);
+  // Step 1 has two views: the projects and the user's own friendly jars. The view is remembered for
+  // the visit, so coming back from a jar's cards lands on the jars.
+  const [tab, setTabState] = useState<HomeTab | null>(readTab);
+  // «Новий збір» in the projects view: the ways to start one, in place of the list
+  const [adding, setAdding] = useState(false);
   const setTab = (next: HomeTab) => {
     setTabState(next);
     try {
@@ -51,20 +56,20 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
   const [ownJars, setOwnJars] = useState<OwnJar[] | null>(null);
-  const loadOwnJars = () => listOwnJars().then(setOwnJars).catch(() => setOwnJars([]));
+  const loadOwnJars = () => listOwnJars().then((all) => setOwnJars(all.filter((j) => !isArchived(j)))).catch(() => setOwnJars([]));
 
   // The lists are refetched whenever the loaded data clears (coming back from a project, saving
   // one from the preview), and on the first mount.
   useEffect(() => {
     if (app.donations) return;
-    listCampaigns().then(setCampaigns).catch(() => setCampaigns([]));
+    listCampaigns().then((all) => setCampaigns(all.filter((c) => !isArchived(c)))).catch(() => setCampaigns([]));
     loadOwnJars();
   }, [app.donations]);
 
   const loaded = campaigns !== null && ownJars !== null;
   const hasAnything = loaded && (campaigns.length > 0 || ownJars.length > 0);
-  // with no projects yet the jars are what there is to show
-  const shownTab: HomeTab = tab === 'saved' && loaded && campaigns.length === 0 && ownJars.length > 0 ? 'own' : tab;
+  // until a view is picked: with no projects yet the jars are what there is to show
+  const shownTab: HomeTab = tab ?? (loaded && campaigns.length === 0 && ownJars.length > 0 ? 'own' : 'saved');
 
   return (
     <div className="py-8 sm:py-12">
@@ -108,7 +113,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
       {!loaded ? null : hasAnything || tab === 'own' ? (
         <>
           <div role="tablist" className="max-w-lg mx-auto mb-8 flex p-1 bg-gray-100 rounded-xl">
-            {(['saved', 'own', 'new'] as const).map((key) => (
+            {(['saved', 'own'] as const).map((key) => (
               <button
                 key={key}
                 role="tab"
@@ -126,15 +131,25 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           </div>
           {shownTab === 'own' ? (
             <OwnJarsTab jars={ownJars} onJarsChange={setOwnJars} />
-          ) : shownTab === 'saved' && campaigns.length > 0 ? (
-            <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={onAction} />
+          ) : campaigns.length > 0 && !adding ? (
+            <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={onAction} onNew={() => setAdding(true)} />
           ) : (
-            <NewProjectOptions
-              onFileSelect={handleFileSelect}
-              onMonobankClick={onMonobank}
-              onManualClick={onManual}
-              isLoading={isLoading}
-            />
+            <>
+              {campaigns.length > 0 && (
+                <div className="max-w-3xl mx-auto mb-2">
+                  <button onClick={() => setAdding(false)} className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800">
+                    <ArrowLeftIcon className="w-4 h-4" />
+                    {t('view.saved')}
+                  </button>
+                </div>
+              )}
+              <NewProjectOptions
+                onFileSelect={handleFileSelect}
+                onMonobankClick={onMonobank}
+                onManualClick={onManual}
+                isLoading={isLoading}
+              />
+            </>
           )}
         </>
       ) : (
@@ -146,7 +161,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           isLoading={isLoading}
         />
       )}
-      {loaded && <BackupControls hasProjects={hasAnything} onRestored={setCampaigns} onJarsRestored={loadOwnJars} />}
+      {loaded && <BackupControls hasProjects={hasAnything} onRestored={(all) => setCampaigns(all.filter((c) => !isArchived(c)))} onJarsRestored={loadOwnJars} />}
     </div>
   );
 }

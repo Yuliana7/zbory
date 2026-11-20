@@ -1,5 +1,7 @@
 import type { Donation, FriendJar, Withdrawal } from '../../src/types';
-import { addDays, changePct, cumulativePoints, dayDetail, daysBetween, daysInRange, groupWeeks, previousRange, summarize, weekHourGrid } from '../../src/utils/dailyBreakdown';
+import { addDays, changePct, cumulativePoints, dayDetail, daysBetween, daysInRange, groupBy, groupWeeks, periodDetail, previousRange, summarize, unitsFor, weekHourGrid } from '../../src/utils/dailyBreakdown';
+import { withAmountsByDay, aggregateDonations } from '../../src/utils/dataAggregator';
+import { ownJarDays } from '../../src/utils/ownJars';
 import { forecast, growth, jarDays, jarTimeline, leftToTarget, matchesFilter, stalledDays } from '../../src/utils/friendInsights';
 
 let failures = 0;
@@ -47,6 +49,34 @@ check('map: Monday first (1 March 2026 is a Sunday)', grid[6][9] === 150 && grid
 check('map: outside the range is left out', grid.flat().reduce((a, b) => a + b, 0) === 650);
 const running = cumulativePoints(donations, daysInRange(donations, withdrawals, '2026-03-03', '2026-03-09'));
 check('running total counts what came before the range', running[0].total === 650 && running[running.length - 1].total === 1050);
+
+// ── days, weeks, months ──
+check('units: up to a month in days, weeks from 8 days to ~3 months, months past a month',
+  unitsFor(7).join() === 'day' && unitsFor(31).join() === 'day,week' && unitsFor(32).join() === 'week,month' && unitsFor(98).join() === 'week,month' && unitsFor(99).join() === 'month');
+const long = daysInRange(donations, withdrawals, '2026-03-01', '2026-04-14');
+const cal = groupBy(long, 'week');
+check('weeks: calendar weeks, Monday to Sunday, cut to the range', cal[0].key === '2026-03-01' && cal[0].endKey === '2026-03-01' && cal[1].key === '2026-03-02' && cal[1].endKey === '2026-03-08' && cal[cal.length - 1].endKey === '2026-04-14');
+check('weeks: each day in exactly one', cal.reduce((n, w) => n + daysBetween(w.key, w.endKey!), 0) === long.length && cal.reduce((a, w) => a + w.amount, 0) === 1050);
+const months = groupBy(long, 'month');
+check('months: calendar months, cut to the range', months.length === 2 && months[0].key === '2026-03-01' && months[0].endKey === '2026-03-31' && months[1].endKey === '2026-04-14' && months[0].amount === 1050);
+
+// ── money known only by day ──
+const extra = [{ date: '2026-03-02', amount: 1000 }, { date: '2026-02-20', amount: 70 }];
+const withExtra = daysInRange(donations, withdrawals, '2026-03-01', '2026-03-09', extra);
+check('extra: joins its day as money, not as donations', withExtra[1].amount === 1000 && withExtra[1].count === 0 && withExtra[1].untracked === 1000);
+const sx = summarize(withExtra);
+check('extra: in the total and the active days, not in the average donation', sx.amount === 2050 && sx.activeDays === 4 && sx.avg === 210 && sx.best?.key === '2026-03-02');
+check('extra: before the range counts in the running total', cumulativePoints(donations, withExtra, extra)[0].total === 70 + 450);
+const pd = periodDetail(donations, withdrawals, '2026-03-02', '2026-03-08', extra);
+check('period: totals, its days, best day, and what has no donations', pd.amount === 1200 && pd.untracked === 1000 && pd.count === 1 && pd.days.length === 7 && pd.best?.key === '2026-03-02' && pd.withdrawn === 500 && pd.activeDays === 2);
+const agg = withAmountsByDay(aggregateDonations(donations), extra);
+check('aggregates: extra money in totals, days and running total; counts untouched', agg.totalAmount === 1050 + 1070 && agg.donationCount === 5 && agg.byDay.get('2026-03-02') === 1000 && agg.byDate.get('2026-03-02')?.count === 0 && agg.cumulative[agg.cumulative.length - 1].total === 2120 && agg.firstDate.getDate() === 20);
+
+// ── a friendly jar's days from the app's readings ──
+const T = (d: number) => new Date(2026, 9, d, 12).getTime();
+const jd = ownJarDays({ id: 'j', name: 'j', jarId: '', addedAt: T(1), raised: 900, syncedAt: T(9), history: [{ at: T(1), raised: 300 }, { at: T(4), raised: 250 }, { at: T(5), raised: 700 }] });
+check('jar days: first reading, then each rise, then the rest on the last read', jd.map((d) => `${d.date.slice(8)}:${d.amount}`).join() === '01:300,05:400,09:200', jd.map((d) => `${d.date.slice(8)}:${d.amount}`).join());
+check('jar days: no history — all of it on the day it was last read', ownJarDays({ id: 'k', name: 'k', jarId: '', addedAt: T(2), raised: 500 }).map((d) => d.amount).join() === '500');
 
 // ── helper insights ──
 const DAY = 86_400_000;

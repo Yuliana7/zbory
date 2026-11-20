@@ -1,4 +1,5 @@
 export * from './types';
+export * from './ArchiveIcon';
 export * from './ArrowLeftIcon';
 export * from './ArrowRightIcon';
 export * from './CalendarIcon';
@@ -23,3 +24,5 @@ export * from './WarningIcon';
 export * from './XIcon';
 export * from './UndoIcon';
 export * from './GiftIcon';
+export * from './LockIcon';
+export * from './ChartIcon';

@@ -100,6 +100,15 @@ export interface OwnJar extends FriendJar {
   jarId: string;
   main?: MainJarInfo;
   addedAt: number;
+  /** moved to the archive (ms): read-only from then on, filed under that year */
+  archivedAt?: number;
+  /** the jar's own statement, asked for from the bank's support (Monobank leaves friendly jars out of the
+   * owner's): its donations, donors and dates. Kept with the jar, so backups carry it. */
+  statement?: RawDonation[];
+  /** when the statement was added (ms) */
+  statementAddedAt?: number;
+  /** with no goal set: whether the user said it reached its goal (unset = not said) */
+  goalReached?: boolean;
 }
 
 export type RaffleKind = 'donors' | 'jars' | 'biggest';
@@ -248,7 +257,11 @@ export type TemplateType =
   | 'friends-stats'
   | 'report'
   | 'campaigns-chart'
-  | 'friendly-jar';
+  | 'friendly-jar'
+  | 'archive-journey'
+  | 'archive-supporters'
+  | 'archive-numbers'
+  | 'archive-year';
 
 export interface Template {
   id: TemplateType;
@@ -258,9 +271,48 @@ export interface Template {
   requiresGoal?: boolean;
 }
 
+/** «Мій 2026»: a year of closed projects, as the year card shows it — taken from the saved summaries
+ * when its cards are opened (the year's statements are loaded alongside, for the donors). */
+export interface YearRecap {
+  year: number;
+  total: number;
+  /** closed projects */
+  count: number;
+  donations: number;
+  /** friendly jars: the projects' helpers and the user's own archived jars */
+  friendJars: number;
+  /** closed totals by the month they were closed, January first */
+  byMonth: number[];
+  biggest: { name: string; total: number } | null;
+  /** projects that had a goal, and those that reached it */
+  goals: { set: number; reached: number };
+  /** own jars counted in the year with no statement: their money is in the total, but there are no
+   * donations behind it — the cards made from the year's statements add it to their totals */
+  unstated: Array<{ name: string; amount: number; closedAt: number; days: Array<{ date: string; amount: number }> }>;
+  /** every jar counted in the year: its projects and own jars */
+  jars: number;
+}
+
+/** A page of the archive: a closed project, or one of the user's own friendly jars. */
+export interface ArchiveView {
+  kind: 'project' | 'ownJar';
+  id: string;
+}
+
 // App state
 export interface AppState {
   step: 'upload' | 'insights' | 'gallery' | 'export';
+  /** 'archive' while the archive is showing (the header's «Активні | Архів»); unset = the active projects */
+  section?: 'archive';
+  /** the archive's page for one closed project or jar; unset = the archive's list */
+  archiveView?: ArchiveView;
+  /** cards are being made for an archived project or own jar (with a statement): read-only, and «Назад»
+   * returns to its archive page */
+  archivedCards?: ArchiveView;
+  /** cards are being made for a year of the archive («Мій 2026»); «Назад» returns to the archive's list */
+  yearRecap?: YearRecap;
+  /** closing was asked for from the project list; the analytics opens the close sheet on arrival */
+  closeRequested?: boolean;
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   withdrawals: Withdrawal[] | null;

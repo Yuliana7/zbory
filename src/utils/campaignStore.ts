@@ -33,6 +33,17 @@ export interface CampaignMeta {
   createdAt: number;
   updatedAt: number;
   summary: CampaignSummary;
+  /** closed and moved to the archive (ms): read-only from then on, filed under that year */
+  archivedAt?: number;
+  /** what the archive lists without opening the project, taken when it was archived */
+  archive?: ArchiveSnapshot;
+}
+
+export interface ArchiveSnapshot {
+  /** helper jars the project had */
+  friendsCount: number;
+  /** with no goal set: whether the user said, on closing, that it reached its goal (unset = not said) */
+  goalReached?: boolean;
 }
 
 interface CampaignData {
@@ -105,6 +116,8 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
     createdAt: existingMeta?.createdAt ?? now,
     updatedAt: now,
     summary: computeCampaignSummary(input.rawData),
+    // a save (the cards' style, say) never takes a project out of the archive
+    ...(existingMeta?.archivedAt ? { archivedAt: existingMeta.archivedAt, archive: existingMeta.archive } : null),
   };
 
   await kv.put(DATA_STORE, {
@@ -133,6 +146,53 @@ export async function loadCampaignData(id: string): Promise<{ rawData: RawDonati
   const data = (await getBackend().get(DATA_STORE, id)) as CampaignData | undefined;
   if (!data) return null;
   return { rawData: data.rawData, style: data.style ?? null, friends: data.friends ?? [], raffles: data.raffles ?? [], monobankJar: data.monobankJar ?? null };
+}
+
+/** Closes a project: it moves to the archive under this year, with a few numbers the archive lists
+ * without opening it. Its data stays exactly as it is. */
+export async function archiveCampaign(id: string, now: number = Date.now(), opts: { goalReached?: boolean } = {}): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  const data = (await kv.get(DATA_STORE, id)) as CampaignData | undefined;
+  if (!meta || !data) return null;
+  const archive: ArchiveSnapshot = { friendsCount: data.friends?.length ?? 0, ...(opts.goalReached !== undefined ? { goalReached: opts.goalReached } : null) };
+  const archived: CampaignMeta = { ...meta, archivedAt: now, archive, updatedAt: now };
+  await kv.put(META_STORE, archived);
+  return archived;
+}
+
+/** A closed project with no goal: the user's word on whether it reached its goal (undefined takes it back). */
+export async function setArchivedGoalReached(id: string, goalReached: boolean | undefined, now: number = Date.now()): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  if (!meta?.archive) return null;
+  const { goalReached: _was, ...rest } = meta.archive;
+  const next: CampaignMeta = { ...meta, archive: goalReached === undefined ? rest : { ...rest, goalReached }, updatedAt: now };
+  await kv.put(META_STORE, next);
+  return next;
+}
+
+/** A new name for a saved project (a closed one too: its name isn't part of the record it keeps). */
+export async function renameCampaign(id: string, name: string, now: number = Date.now()): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  const clean = name.trim();
+  if (!meta || !clean) return null;
+  const next: CampaignMeta = { ...meta, name: clean, updatedAt: now };
+  await kv.put(META_STORE, next);
+  return next;
+}
+
+/** «Повернути в активні»: the project is active again, as it was. */
+export async function unarchiveCampaign(id: string, now: number = Date.now()): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  if (!meta) return null;
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { archivedAt, archive, ...rest } = meta;
+  const active: CampaignMeta = { ...rest, updatedAt: now };
+  await kv.put(META_STORE, active);
+  return active;
 }
 
 export async function deleteCampaign(id: string): Promise<void> {
@@ -166,6 +226,16 @@ export async function buildBackup(now: number = Date.now()): Promise<ProjectBack
   }
   const ownJars = await listOwnJars();
   return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: now, projects, ...(ownJars.length ? { ownJars } : null) };
+}
+
+/** One project as a backup file of its own: the archive's «Повна копія збору». «Відновити з копії»
+ * reads it like any other backup. */
+export async function buildProjectBackup(id: string, now: number = Date.now()): Promise<ProjectBackup | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  const data = (await kv.get(DATA_STORE, id)) as CampaignData | undefined;
+  if (!meta || !data) return null;
+  return { format: BACKUP_FORMAT, version: BACKUP_VERSION, exportedAt: now, projects: [{ meta, data }] };
 }
 
 const isRow = (r: unknown) => {

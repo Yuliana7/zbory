@@ -1,6 +1,6 @@
 import { useLayoutEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, OwnJar, Raffle } from '../../types';
+import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, OwnJar, Raffle, YearRecap } from '../../types';
 import { FriendlyJarCard } from '../../components/templates/FriendlyJarCard';
 import { ownJarLink } from '../../utils/ownJars';
 import { ProgressCard } from '../../components/templates/ProgressCard';
@@ -15,6 +15,10 @@ import { SpeedCard } from '../../components/templates/SpeedCard';
 import { DonationStatsCard } from '../../components/templates/DonationStatsCard';
 import { FundsFlowCard } from '../../components/templates/FundsFlowCard';
 import { FinalReportCard } from '../../components/templates/FinalReportCard';
+import { ArchiveJourneyCard } from '../../components/templates/ArchiveJourneyCard';
+import { ArchiveSupportersCard } from '../../components/templates/ArchiveSupportersCard';
+import { ArchiveNumbersCard } from '../../components/templates/ArchiveNumbersCard';
+import { ArchiveYearCard } from '../../components/templates/ArchiveYearCard';
 import { ConcreteAskCard } from '../../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../../components/templates/CommentsCard';
@@ -50,9 +54,11 @@ interface CardCanvasProps {
   activeCampaignName?: string | null;
   /** set when the cards are for one of the user's friendly jars */
   ownJar?: OwnJar;
+  /** set when the cards are for a year of the archive */
+  yearRecap?: YearRecap;
 }
 
-export function CardCanvas({ card, style, aggregates, goal, friends, raffles, donations, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName, ownJar }: CardCanvasProps) {
+export function CardCanvas({ card, style, aggregates, goal, friends, raffles, donations, commentInsights, crossItems, selectedComments, safeZonePad, templateRef, exRef, activeCampaignName, ownJar, yearRecap }: CardCanvasProps) {
   const dims = FORMAT_DIMS[card.format];
   // Image is rendered as a separate overlay (with filter/transform controls),
   // so the template itself gets 'transparent' when an image is active.
@@ -115,6 +121,7 @@ export function CardCanvas({ card, style, aggregates, goal, friends, raffles, do
         selectedComments={selectedComments}
         activeCampaignName={activeCampaignName}
         ownJar={ownJar}
+        yearRecap={yearRecap}
       />
     </div>
   );
@@ -146,11 +153,12 @@ interface RendererProps {
   selectedComments: SelectedComment[];
   activeCampaignName?: string | null;
   ownJar?: OwnJar;
+  yearRecap?: YearRecap;
 }
 
 // Multi-campaign templates keep their own default title — a saved single
 // campaign's name doesn't describe a combined report/comparison across jars.
-const MULTI_CAMPAIGN_TEMPLATES = new Set<TemplateType>(['report', 'campaigns-chart']);
+const MULTI_CAMPAIGN_TEMPLATES = new Set<TemplateType>(['report', 'campaigns-chart', 'archive-year']);
 
 function TemplateRenderer({
   templateId,
@@ -176,6 +184,7 @@ function TemplateRenderer({
   selectedComments,
   activeCampaignName,
   ownJar,
+  yearRecap,
 }: RendererProps) {
   // Default "title" to the saved campaign's name until the user sets their own
   // override for this card — never for multi-campaign templates. Checked with
@@ -198,8 +207,9 @@ function TemplateRenderer({
     return { kind: 'all' };
   }, [periodKey]);
   const report = useMemo(
-    () => (templateId === 'report' && crossItems ? buildReport(crossItems, period) : null),
-    [templateId, crossItems, period],
+    // a year of the archive: its own jars with no statement count in the report's jars and money
+    () => (templateId === 'report' && crossItems ? buildReport(crossItems, period, yearRecap?.unstated) : null),
+    [templateId, crossItems, period, yearRecap],
   );
   const periodLabel =
     period.kind === 'all'
@@ -235,6 +245,10 @@ function TemplateRenderer({
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
     case 'friendly-jar': return ownJar ? <FriendlyJarCard {...shared} jar={ownJar} goal={goal} /> : null;
+    case 'archive-journey': return <ArchiveJourneyCard {...shared} goal={goal} />;
+    case 'archive-supporters': return <ArchiveSupportersCard {...shared} donations={donations ?? []} />;
+    case 'archive-numbers': return <ArchiveNumbersCard {...shared} donations={donations ?? []} />;
+    case 'archive-year': return yearRecap ? <ArchiveYearCard {...shared} recap={yearRecap} /> : null;
     default: {
       // Exhaustiveness check: a new TemplateType that isn't handled above
       // fails the build here instead of silently rendering nothing.

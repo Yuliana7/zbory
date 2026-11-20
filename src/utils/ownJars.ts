@@ -4,7 +4,9 @@
 // jar is: by link, through the public jar read (total, goal, status, no donations), with the app
 // keeping its own history. Each one also follows the main jar it feeds, so cards can name it.
 
-import type { Aggregates, FriendSnapshot, MainJarInfo, OwnJar } from '../types';
+import type { Aggregates, CampaignDataset, FriendSnapshot, MainJarInfo, OwnJar, RawDonation } from '../types';
+import { normalizeDonations } from './csvParser';
+import { dayKey } from './dailyBreakdown';
 import { getBackend } from './db';
 import { jarShareLink, nextHistory } from './friendJars';
 import { generateId } from './id';
@@ -31,7 +33,64 @@ export const sortOwnJars = (jars: OwnJar[]) =>
   [...jars].sort((a, b) => Number(!!a.closed) - Number(!!b.closed) || b.addedAt - a.addedAt);
 
 /** When a jar last changed in any way the user can see: what a backup compares. */
-export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0);
+export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0, j.statementAddedAt ?? 0);
+
+/** A new name for one of the user's jars. */
+export async function renameOwnJar(jar: OwnJar, name: string, now: number = Date.now()): Promise<OwnJar> {
+  const next: OwnJar = { ...jar, name: name.trim() || jar.name, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
+/** A jar with no goal: the user's word on whether it reached its goal (undefined takes it back). */
+export async function setOwnJarGoalReached(jar: OwnJar, goalReached: boolean | undefined, now: number = Date.now()): Promise<OwnJar> {
+  const { goalReached: _was, ...rest } = jar;
+  const next: OwnJar = { ...rest, ...(goalReached === undefined ? null : { goalReached }), updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
+/** Adds the jar's own statement, or (`null`) takes it away. */
+export async function setOwnJarStatement(jar: OwnJar, rows: RawDonation[] | null, now: number = Date.now()): Promise<OwnJar> {
+  const { statement: _rows, statementAddedAt: _at, ...rest } = jar;
+  const next: OwnJar = rows ? { ...rest, statement: rows, statementAddedAt: now } : { ...rest, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
+/** The donations in a jar's statement; none when it has no statement (or one without donations). */
+export const ownJarDonationCount = (jar: OwnJar) => (jar.statement ? normalizeDonations(jar.statement).donations.length : 0);
+
+/** What a jar with no statement raised day by day, as the app saw it: each change of its amount on the
+ * day it was read (the first reading carries everything raised before the app followed it), and anything
+ * after the last reading on the day it was last read. */
+export function ownJarDays(jar: OwnJar): Array<{ date: string; amount: number }> {
+  const days = new Map<string, number>();
+  const add = (at: number, amount: number) => {
+    if (amount <= 0) return;
+    const key = dayKey(new Date(at));
+    days.set(key, (days.get(key) ?? 0) + amount);
+  };
+  let seen = 0;
+  for (const h of [...(jar.history ?? [])].sort((a, b) => a.at - b.at)) {
+    add(h.at, h.raised - seen);
+    seen = Math.max(seen, h.raised);
+  }
+  add(jar.syncedAt ?? jar.archivedAt ?? jar.addedAt, jar.raised - seen);
+  return [...days.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount }));
+}
+
+/** A jar's statement as one of the datasets a set of statements is loaded from (the year's cards). */
+export const ownJarDataset = (jar: OwnJar): CampaignDataset | null =>
+  jar.statement && ownJarDonationCount(jar) > 0 ? { id: `own:${jar.id}`, name: jar.name || '—', rawData: jar.statement } : null;
+
+/** Moves a jar to the archive, or (`null`) back to the active ones. */
+export async function setOwnJarArchived(jar: OwnJar, archivedAt: number | null, now: number = Date.now()): Promise<OwnJar> {
+  const { archivedAt: _was, ...rest } = jar;
+  const next: OwnJar = archivedAt ? { ...rest, archivedAt } : { ...rest, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
 
 /** Brings jars from a backup in: one the device doesn't have is added, one it has is replaced only if
  * the backup's copy is newer. */
