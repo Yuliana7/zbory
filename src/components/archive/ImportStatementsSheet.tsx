@@ -155,11 +155,11 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
                 {!d.skip && (
                   <div className="space-y-2">
                     <div className="grid grid-cols-2 gap-2">
-                      <label className="block">
+                      <label className="block min-w-0">
                         <span className="mb-1 block text-xs text-gray-600">{t('import.closedOn')}</span>
                         <input type="date" value={d.closedOn} disabled={!!busy} onChange={(e) => change(d.key, { closedOn: e.target.value })} className={field} />
                       </label>
-                      <label className="block">
+                      <label className="block min-w-0">
                         <span className="mb-1 block text-xs text-gray-600">{t('import.goal')}</span>
                         <input
                           inputMode="decimal"
