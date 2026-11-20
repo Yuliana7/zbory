@@ -73,7 +73,7 @@ export function ArchivedOwnJar({ id }: { id: string }) {
           <LockIcon className="h-3.5 w-3.5" />
           {t('page.ownBadge', { date: longDate(jar.archivedAt!) })}
         </span>
-        <h2 className="text-2xl font-bold leading-tight text-gray-900">{jar.name || '—'}</h2>
+        <h2 className="text-2xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]">{jar.name || '—'}</h2>
       </div>
 
       <section className={`${card} p-5 space-y-2.5`}>

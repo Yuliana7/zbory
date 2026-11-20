@@ -130,7 +130,7 @@ export function ArchivedProject({ id }: { id: string }) {
           <LockIcon className="h-3.5 w-3.5" />
           {t('page.readOnly', { date: longDate(meta.archivedAt!) })}
         </span>
-        <h2 className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900">{meta.name}</h2>
+        <h2 className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]">{meta.name}</h2>
       </div>
 
       <section className={`${card} p-5 space-y-2.5`}>

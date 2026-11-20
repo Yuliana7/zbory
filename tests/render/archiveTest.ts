@@ -52,6 +52,10 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('search: an empty query matches everything', matchesName('Будь-що', '   '));
   const s = yearSummary(inYear(list, 2026));
   check('summary: total, count, donations and helpers of the year', s.total === 451000 && s.count === 3 && s.donations === 4510 && s.friends === 18);
+  const fedProject = { ...meta('f', 'З банкою', at(2026, 10), 1000, 2), monobankJar: { id: 'L', title: 'З банкою', shortId: 'Main1' } };
+  const own = (id: string, main?: string): OwnJar => ({ id, name: id, raised: 500, jarId: 'X'.repeat(16), addedAt: 0, archivedAt: at(2026, 10), ...(main ? { main: { shortId: main } } : {}) });
+  const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')]);
+  check('summary: own jars count as friendly jars, unless they feed a project already counted', withOwn.friends === 4 && withOwn.total === 1000);
   check('summary: totals by the month they were closed', s.byMonth[9] === 300000 && s.byMonth[7] === 150000 && s.byMonth[0] === 1000);
 
   // ── own jars ──

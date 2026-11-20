@@ -36,8 +36,10 @@ export interface YearSummary {
   byMonth: number[];
 }
 
-/** The year card: what the projects closed that year raised together. */
-export function yearSummary(campaigns: CampaignMeta[]): YearSummary {
+/** The year card: what the projects closed that year raised together. Friendly jars are the projects'
+ * helpers plus the user's own archived jars — except those feeding one of these projects, which the
+ * project's helpers already count. Own jars' money is never added: it lands in some main jar's total. */
+export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearSummary {
   const out: YearSummary = { total: 0, count: 0, donations: 0, friends: 0, byMonth: Array(12).fill(0) };
   for (const c of campaigns) {
     out.total += c.summary.totalAmount;
@@ -46,6 +48,8 @@ export function yearSummary(campaigns: CampaignMeta[]): YearSummary {
     out.friends += c.archive?.friendsCount ?? 0;
     out.byMonth[new Date(c.archivedAt ?? 0).getMonth()] += c.summary.totalAmount;
   }
+  const fed = new Set(campaigns.map((c) => c.monobankJar?.shortId).filter(Boolean));
+  out.friends += ownJars.filter((j) => !j.main?.shortId || !fed.has(j.main.shortId)).length;
   return out;
 }
 

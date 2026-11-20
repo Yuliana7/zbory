@@ -54,7 +54,7 @@ export function ArchiveList() {
 
   const yearCampaigns = inYear(campaigns, shownYear);
   const yearJars = inYear(jars, shownYear);
-  const summary = yearSummary(yearCampaigns);
+  const summary = yearSummary(yearCampaigns, yearJars);
   const foundCampaigns = yearCampaigns.filter((c) => matchesName(c.name, query));
   const foundJars = yearJars.filter((j) => matchesName(j.name, query));
   const shownCampaigns = pageOf(foundCampaigns, page, ARCHIVE_PAGE_SIZE);
@@ -160,7 +160,7 @@ export function ArchiveList() {
                     className="block w-full text-left rounded-2xl border border-gray-200 bg-white p-4 shadow-sm hover:border-indigo-300 transition-colors"
                   >
                     <span className="flex items-baseline justify-between gap-3">
-                      <span className="min-w-0 font-semibold text-gray-900">{c.name}</span>
+                      <span className="min-w-0 font-semibold text-gray-900 [overflow-wrap:anywhere]">{c.name}</span>
                       <span className="shrink-0 whitespace-nowrap font-bold text-gray-900">{fmtUah(c.summary.totalAmount)} ₴</span>
                     </span>
                     {pct !== null && (
