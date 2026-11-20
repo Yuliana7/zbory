@@ -1,7 +1,8 @@
 import type { OwnJar } from '../../src/types';
-import { addOwnJar, applyOwnRead, goalPct, isOwnJar, ownJarAggregates, ownJarLink, ownJarsStale, renewOwnJars, restoreOwnJars, listOwnJars, sortOwnJars } from '../../src/utils/ownJars';
+import { addOwnJar, applyMonoRead, applyOwnRead, attachJarLink, goalPct, likelySameJar, mergeMonoIntoOwn, ownJarFromMono, renewOwnJarsOfficial, isOwnJar, ownJarAggregates, ownJarLink, ownJarsStale, renewOwnJars, restoreOwnJars, listOwnJars, sortOwnJars } from '../../src/utils/ownJars';
 import { buildBackup, parseBackup } from '../../src/utils/campaignStore';
 import { JAR_LOOKUP_URL } from '../../src/utils/monobankJar';
+import { isFriendlyMonoJar, type MonoJar } from '../../src/utils/monobankApi';
 import { offeredFor } from '../../src/utils/templateConfig';
 
 let failures = 0;
@@ -128,6 +129,55 @@ const fetcher = (async (url: string) => {
   void _drop;
   check('backup: an older file without jars still reads', parseBackup(JSON.stringify(older)) !== null);
   check('backup: a broken jar list is refused', parseBackup(JSON.stringify({ ...backup, ownJars: [{ id: 1 }] })) === null);
+
+  // ── the official way: the user's client-info ──
+  const mono = (over: Partial<MonoJar>): MonoJar => ({ id: 'Off' + 'x'.repeat(40), sendId: '', title: 'ЗБІР НА ТРАНСПОРТ', description: '', currencyCode: 980, balance: 1000000, goal: 1000000, ...over });
+  check('kind: an empty send id is a friendly jar, "jar/…" a main one', isFriendlyMonoJar(mono({})) && isFriendlyMonoJar(mono({ sendId: '  ' })) && !isFriendlyMonoJar(mono({ sendId: 'jar/AbCdEf1234' })));
+  const fromMono = ownJarFromMono(mono({}), NOW);
+  check('from client-info: name, amount and goal in hryvnias, no link, tied by id', fromMono.name === 'ЗБІР НА ТРАНСПОРТ' && fromMono.raised === 10000 && fromMono.target === 10000 && fromMono.jarId === '' && fromMono.monoId === mono({}).id && isOwnJar(fromMono));
+  check('from client-info: history starts the day it was added', fromMono.history?.length === 1 && fromMono.history[0].raised === 10000 && fromMono.addedAt === NOW);
+  check('from client-info: no goal → no target', ownJarFromMono(mono({ goal: 0 }), NOW).target === undefined);
+
+  const byLink: OwnJar = { ...jar, name: 'Збір на транспорт ', target: 10000, raised: 500 };
+  check('match: same name (any case, spacing) and goal', likelySameJar(byLink, mono({})));
+  check('match: not with another goal, name, or a jar already tied', !likelySameJar(byLink, mono({ goal: 900000 })) && !likelySameJar({ ...byLink, name: 'Інша' }, mono({})) && !likelySameJar({ ...byLink, monoId: 'tied' }, mono({})));
+  const merged = mergeMonoIntoOwn({ ...byLink, name: 'Мій транспорт' }, mono({}), NOW + DAY);
+  check('merge: the user’s name wins; link, main jar and history stay; numbers official', merged.name === 'Мій транспорт' && merged.jarId === byLink.jarId && merged.shortId === byLink.shortId && merged.main?.shortId === byLink.main?.shortId && merged.monoId === mono({}).id && merged.raised === 10000 && (merged.history?.length ?? 0) > (byLink.history?.length ?? 0));
+  check('read: a nameless jar takes the title; a listed one is open', applyMonoRead({ ...fromMono, name: '', closed: true }, mono({}), NOW).name === 'ЗБІР НА ТРАНСПОРТ' && !applyMonoRead({ ...fromMono, closed: true }, mono({}), NOW).closed);
+
+  // renew: official first, public as the fallback
+  const tiedLinked: OwnJar = { ...merged, id: 'tl', monoId: 'Tied1', raised: 1 };
+  const tiedOnly: OwnJar = { ...fromMono, id: 'to', monoId: 'Tied2', raised: 2 };
+  const publicOnly: OwnJar = { ...jarB, id: 'po' };
+  throttle = new Set();
+  const later2 = NOW + 2 * DAY;
+  calls.length = 0;
+  const ok = await renewOwnJarsOfficial([tiedLinked, tiedOnly, publicOnly], [mono({ id: 'Tied1', balance: 300000 }), mono({ id: 'Tied2', balance: 700000 })], { fetch: fetcher, now: () => later2, sleep: async () => {} });
+  const got = (id: string) => ok.jars.find((j) => j.id === id)!;
+  check('renew: tied jars from client-info, without a public read', got('tl').raised === 3000 && got('to').raised === 7000 && !calls.includes(`read:${tiedLinked.jarId}`));
+  check('renew: the rest through their links', calls.includes(`read:${publicOnly.jarId}`) && !ok.fellBack && ok.unread.length === 0);
+  check('renew: the user’s name kept on a tied jar', got('tl').name === 'Мій транспорт');
+
+  calls.length = 0;
+  const failedRenew = await renewOwnJarsOfficial([tiedLinked, tiedOnly, publicOnly], null, { fetch: fetcher, now: () => later2, sleep: async () => {} });
+  check('fallback: client-info failed → tied jars with a link read publicly', failedRenew.fellBack && calls.includes(`read:${tiedLinked.jarId}`));
+  check('fallback: a tied jar with no link is reported, not read, not changed', failedRenew.unread.map((j) => j.id).join() === 'to' && failedRenew.jars.find((j) => j.id === 'to')!.raised === 2);
+
+  const gone = await renewOwnJarsOfficial([tiedLinked, tiedOnly], [], { fetch: fetcher, now: () => later2, sleep: async () => {} });
+  check('closed: a jar client-info no longer lists is closed', gone.closedNow.length === 2 && gone.jars.every((j) => j.closed));
+  check('closed: one with a link is read once more for its final numbers', gone.jars.find((j) => j.id === 'tl')!.raised === (reads[L('a')].amount as number) / 100 && calls.includes(`read:${L('a')}`));
+  const reopened = await renewOwnJarsOfficial([{ ...tiedOnly, closed: true }], [mono({ id: 'Tied2' })], { fetch: fetcher, now: () => later2, sleep: async () => {} });
+  check('closed: a closed jar isn’t read again (also after «Повернути в активні»)', reopened.jars[0].closed === true && reopened.jars[0].raised === 2);
+  const noPublicId = await renewOwnJars([{ ...fromMono, id: 'np' }], { fetch: fetcher, now: () => later2, sleep: async () => {} });
+  check('public read: a jar without a public id is never read', noPublicId.failed === 0 && noPublicId.jars[0].raised === 10000);
+
+  // a link added later
+  calls.length = 0;
+  const linked = await attachJarLink(fromMono, 'https://send.monobank.ua/jar/Plain0001', [fromMono], { fetch: fetcher, now: NOW });
+  const lj = (linked as { jar: OwnJar }).jar;
+  check('link later: public id and short id kept, official numbers untouched', 'jar' in linked && lj.jarId === L('p') && lj.shortId === 'Plain0001' && lj.raised === 10000 && lj.monoId === fromMono.monoId);
+  check('link later: refused for a link another jar already has', 'error' in (await attachJarLink(fromMono, 'send.monobank.ua/jar/MyJar001', [fromMono, jar], { fetch: fetcher })));
+  check('link later: nonsense is refused', 'error' in (await attachJarLink(fromMono, 'hello', [fromMono], { fetch: fetcher })));
 
   console.log(failures === 0 ? '\nAll own jar checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;
