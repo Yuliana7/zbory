@@ -2,14 +2,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
-import { goalPct, listOwnJars, ownJarDataset, removeOwnJar, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../utils/ownJars';
+import { goalPct, listOwnJars, ownJarDataset, removeOwnJar, renameOwnJar, setOwnJarArchived, setOwnJarStatement } from '../../utils/ownJars';
 import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
-import { archiveYear, isArchived } from '../../utils/archive';
+import { archiveYear, goalOutcome, isArchived } from '../../utils/archive';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
 import { normalizeDonations, parseCSV } from '../../utils/csvParser';
 import { aggregateDonations } from '../../utils/dataAggregator';
 import { GrowthSection, MoneySection, StatsGrid, SupportersSection } from './ArchiveStory';
-import { GoalReachedQuestion } from './GoalReachedQuestion';
+import { GoalStatusPill } from './GoalStatusPill';
+import { EditableTitle } from './EditableTitle';
 import { fmtUah } from '../../utils/friendJars';
 import { CopyJarLink } from '../insights/friendsShared';
 import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
@@ -125,22 +126,23 @@ export function ArchivedOwnJar({ id }: { id: string }) {
       </button>
 
       <div className="space-y-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-          <LockIcon className="h-3.5 w-3.5" />
-          {t('page.ownBadge', { date: longDate(jar.archivedAt!) })}
-        </span>
-        <h2 className="text-2xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]">{jar.name || '—'}</h2>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+            <LockIcon className="h-3.5 w-3.5" />
+            {t('page.ownBadge', { date: longDate(jar.archivedAt!) })}
+          </span>
+          <GoalStatusPill reached={goalOutcome(jar.raised, jar.target, jar.goalReached)} />
+        </div>
+        <EditableTitle
+          name={jar.name}
+          onRename={async (name) => setJar(await renameOwnJar(jar, name))}
+          className="text-2xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]"
+        />
       </div>
 
       <section className={`${card} p-5 space-y-2.5`}>
         <p className="text-sm text-gray-600">{t('page.ownRaised')}</p>
         <p className="text-4xl font-extrabold tracking-tight text-gray-900">{fmtUah(jar.raised)} ₴</p>
-        {/* no goal was set: the user's word on it, for «Мій рік» */}
-        {pct === null && (
-          <div className="border-t border-gray-100 pt-2.5">
-            <GoalReachedQuestion value={jar.goalReached} onChange={(v) => void setOwnJarGoalReached(jar, v).then(setJar)} />
-          </div>
-        )}
         {pct !== null && (
           <>
             <div className="h-2.5 overflow-hidden rounded-full bg-gray-100">

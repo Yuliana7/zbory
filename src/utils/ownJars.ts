@@ -35,6 +35,13 @@ export const sortOwnJars = (jars: OwnJar[]) =>
 /** When a jar last changed in any way the user can see: what a backup compares. */
 export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0, j.statementAddedAt ?? 0);
 
+/** A new name for one of the user's jars. */
+export async function renameOwnJar(jar: OwnJar, name: string, now: number = Date.now()): Promise<OwnJar> {
+  const next: OwnJar = { ...jar, name: name.trim() || jar.name, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
 /** A jar with no goal: the user's word on whether it reached its goal (undefined takes it back). */
 export async function setOwnJarGoalReached(jar: OwnJar, goalReached: boolean | undefined, now: number = Date.now()): Promise<OwnJar> {
   const { goalReached: _was, ...rest } = jar;

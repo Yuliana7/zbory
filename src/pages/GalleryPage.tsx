@@ -101,14 +101,12 @@ export function GalleryPage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
+      <div className="mb-8 flex items-start justify-between gap-3">
+        <div className="min-w-0">
           <h2 className="text-2xl font-bold text-gray-900">{t('title')}</h2>
-          {/* a year counts all its jars, those with no statement too */}
+          {/* several jars together: what the cards are made from, under the title (a year counts all its jars) */}
           {(app.yearRecap ? app.yearRecap.jars : app.campaignDatasets?.length ?? 0) >= 2 && (
-            <span className="text-xs font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded-full px-3 py-1">
-              {tCamp('multiModeBadge', { count: app.yearRecap?.jars ?? app.campaignDatasets!.length })}
-            </span>
+            <p className="mt-1 text-sm text-gray-600">{tCamp('multiModeBadge', { count: app.yearRecap?.jars ?? app.campaignDatasets!.length })}</p>
           )}
         </div>
         <button

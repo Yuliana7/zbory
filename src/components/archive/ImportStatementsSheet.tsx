@@ -118,30 +118,42 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
           <ul className="space-y-3">
             {drafts.map((d) => (
               <li key={d.key} className={`rounded-xl border p-3 space-y-2.5 ${d.skip ? 'border-gray-200 bg-gray-50' : 'border-indigo-200 bg-white'}`}>
-                <label className="flex items-start gap-2.5">
+                <div className="flex items-start gap-2.5">
                   <input
                     type="checkbox"
                     checked={!d.skip}
                     disabled={!!busy}
                     onChange={(e) => change(d.key, { skip: !e.target.checked })}
-                    className="mt-0.5 h-5 w-5 shrink-0 accent-indigo-600"
+                    className="mt-2.5 h-5 w-5 shrink-0 accent-indigo-600"
                     aria-label={t('import.include', { name: d.name || d.fileName })}
                   />
-                  <span className="min-w-0 text-sm">
-                    <span className="block font-semibold text-gray-900">
-                      {fmtUah(d.amount)} ₴ · {t('story.bandCount', { count: d.summary.donationCount })}
-                    </span>
-                    <span className="block text-xs text-gray-600">{formatDateRange(d.summary.firstDate, d.summary.lastDate)}</span>
-                    <span className="block truncate text-xs text-gray-500">{d.fileName}</span>
-                    {d.duplicate && <span className="mt-1 block text-xs font-medium text-amber-700">{t('import.duplicate')}</span>}
-                  </span>
-                </label>
+                  <div className="min-w-0 flex-1 space-y-1.5 text-sm">
+                    {/* the jar's name first: a statement doesn't carry one, so it starts from the file's */}
+                    {d.skip ? (
+                      <p className="pt-2 font-semibold text-gray-700 [overflow-wrap:anywhere]">{d.name || d.fileName}</p>
+                    ) : (
+                      <label className="block">
+                        <span className="sr-only">{t('import.name')}</span>
+                        <input
+                          value={d.name}
+                          disabled={!!busy}
+                          placeholder={t('import.namePlaceholder')}
+                          onChange={(e) => change(d.key, { name: e.target.value })}
+                          className={`${field} font-semibold`}
+                        />
+                        <span className="mt-1 block text-xs text-gray-500">{t('import.nameHint')}</span>
+                      </label>
+                    )}
+                    <p className="text-gray-900">
+                      <span className="font-semibold">{fmtUah(d.amount)} ₴</span> · {t('story.bandCount', { count: d.summary.donationCount })} ·{' '}
+                      <span className="text-gray-600">{formatDateRange(d.summary.firstDate, d.summary.lastDate)}</span>
+                    </p>
+                    <p className="truncate text-xs text-gray-500">{d.fileName}</p>
+                    {d.duplicate && <p className="text-xs font-medium text-amber-700">{t('import.duplicate')}</p>}
+                  </div>
+                </div>
                 {!d.skip && (
                   <div className="space-y-2">
-                    <label className="block">
-                      <span className="mb-1 block text-xs text-gray-600">{t('import.name')}</span>
-                      <input value={d.name} disabled={!!busy} onChange={(e) => change(d.key, { name: e.target.value })} className={field} />
-                    </label>
                     <div className="grid grid-cols-2 gap-2">
                       <label className="block">
                         <span className="mb-1 block text-xs text-gray-600">{t('import.closedOn')}</span>

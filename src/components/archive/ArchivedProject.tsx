@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar, Raffle, RawDonation } from '../../types';
-import { buildProjectBackup, deleteCampaign, getCampaignMeta, listCampaigns, loadCampaignData, setArchivedGoalReached, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
+import { buildProjectBackup, deleteCampaign, getCampaignMeta, listCampaigns, loadCampaignData, renameCampaign, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { normalizeDonations } from '../../utils/csvParser';
 import { aggregateDonations } from '../../utils/dataAggregator';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
@@ -10,9 +10,10 @@ import { saveBlob } from '../../utils/download';
 import { computeFriendStats, fmtUah, friendsToCSV } from '../../utils/friendJars';
 import { biggestDonation, eligibleJars, raffleParticipants } from '../../utils/raffles';
 import { formatDateRange } from '../../utils/dateRange';
-import { archiveYear, isArchived } from '../../utils/archive';
+import { archiveYear, goalOutcome, isArchived } from '../../utils/archive';
 import { CompareSection, GrowthSection, MoneySection, StatsGrid, SupportersSection } from './ArchiveStory';
-import { GoalReachedQuestion } from './GoalReachedQuestion';
+import { GoalStatusPill } from './GoalStatusPill';
+import { EditableTitle } from './EditableTitle';
 import { statementDays } from '../../utils/archiveStats';
 import { CopyJarLink } from '../insights/friendsShared';
 import { ArrowLeftIcon, CalendarIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
@@ -100,11 +101,6 @@ export function ArchivedProject({ id }: { id: string }) {
     if (await handleLoadCampaign(id, { proceed: true })) dispatch({ type: 'ARCHIVED_CARDS_OPENED', payload: { kind: 'project', id } });
   };
 
-  const sayGoal = async (v: boolean | undefined) => {
-    const next = await setArchivedGoalReached(id, v).catch(() => null);
-    if (next) setLoaded((l) => (l && l !== 'error' ? { ...l, meta: next } : l));
-  };
-
   const remove = async () => {
     if (!window.confirm(t('page.deleteConfirm', { name: meta.name }))) return;
     await deleteCampaign(id);
@@ -127,11 +123,22 @@ export function ArchivedProject({ id }: { id: string }) {
       </button>
 
       <div className="space-y-2">
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
-          <LockIcon className="h-3.5 w-3.5" />
-          {t('page.readOnly', { date: longDate(meta.archivedAt!) })}
-        </span>
-        <h2 className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]">{meta.name}</h2>
+        <div className="flex flex-wrap gap-1.5">
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-700">
+            <LockIcon className="h-3.5 w-3.5" />
+            {t('page.readOnly', { date: longDate(meta.archivedAt!) })}
+          </span>
+          {/* the same total the page shows below */}
+          <GoalStatusPill reached={goalOutcome(total, meta.goal, meta.archive?.goalReached)} />
+        </div>
+        <EditableTitle
+          name={meta.name}
+          onRename={async (name) => {
+            const next = await renameCampaign(id, name).catch(() => null);
+            if (next) setLoaded((l) => (l && l !== 'error' ? { ...l, meta: next } : l));
+          }}
+          className="text-2xl sm:text-3xl font-bold leading-tight text-gray-900 [overflow-wrap:anywhere]"
+        />
       </div>
 
       <section className={`${card} p-5 space-y-2.5`}>
@@ -152,12 +159,6 @@ export function ArchivedProject({ id }: { id: string }) {
           <CalendarIcon className="h-4 w-4 shrink-0" />
           {formatDateRange(meta.summary.firstDate, meta.summary.lastDate)} · {t('list.days', { count: days })}
         </p>
-        {/* no goal was set: the user's word on it, for «Мій рік» */}
-        {!meta.goal && (
-          <div className="border-t border-gray-100 pt-2.5">
-            <GoalReachedQuestion value={meta.archive?.goalReached} onChange={(v) => void sayGoal(v)} />
-          </div>
-        )}
       </section>
 
       <StatsGrid aggregates={aggregates} />

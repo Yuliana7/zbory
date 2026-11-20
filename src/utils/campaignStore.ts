@@ -172,6 +172,17 @@ export async function setArchivedGoalReached(id: string, goalReached: boolean | 
   return next;
 }
 
+/** A new name for a saved project (a closed one too: its name isn't part of the record it keeps). */
+export async function renameCampaign(id: string, name: string, now: number = Date.now()): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  const clean = name.trim();
+  if (!meta || !clean) return null;
+  const next: CampaignMeta = { ...meta, name: clean, updatedAt: now };
+  await kv.put(META_STORE, next);
+  return next;
+}
+
 /** «Повернути в активні»: the project is active again, as it was. */
 export async function unarchiveCampaign(id: string, now: number = Date.now()): Promise<CampaignMeta | null> {
   const kv = getBackend();
