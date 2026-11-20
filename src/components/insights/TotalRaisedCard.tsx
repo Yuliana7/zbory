@@ -20,7 +20,8 @@ export function TotalRaisedCard({ aggregates, duration, renew }: TotalRaisedCard
   const { state } = useAppContext();
   const { app } = state;
   const waiting = renew.statementProgress?.waitSeconds ?? 0;
-  const raised = aggregates.currentBalance + aggregates.totalWithdrawn;
+  // balance + withdrawn, as worked out by the aggregator — plus, for a year of the archive, its friendly jars with no statement
+  const raised = aggregates.totalAmount;
   const fmt = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
   const goal = app.goal && app.goal > 0 ? app.goal : null;
   const left = goal ? Math.max(0, goal - raised) : 0;

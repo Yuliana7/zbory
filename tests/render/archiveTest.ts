@@ -1,7 +1,7 @@
 import { buildReport } from '../../src/utils/campaignAnalytics';
-import { renameCampaign, setArchivedGoalReached, saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
+import { buildBackup, deleteCampaign, restoreBackup, renameCampaign, setArchivedGoalReached, saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
 import { archiveYear, archiveYears, goalsUnsaid, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
-import { listOwnJars, renameOwnJar, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../src/utils/ownJars';
+import { listOwnJars, removeOwnJar, renameOwnJar, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
 import { draftFromStatement, importToArchive, knownSignatures, nameFromFile } from '../../src/utils/archiveImport';
 
@@ -135,6 +135,21 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('import: as a main jar, it is an archived project', projYears.join() === '2025' && !!proj && isArchived(proj) && archiveYear(proj) === 2025);
   const knownNow = knownSignatures(await listCampaigns(), await listOwnJars());
   check('import: once in, the same statement is known', draftFromStatement('again.csv', other, knownNow)?.duplicate === true);
+
+  // ── a copy of everything, to another device ──
+  const beforeCampaigns = await listCampaigns();
+  const beforeJars = await listOwnJars();
+  const copy = parseBackup(JSON.stringify(await buildBackup(at(2026, 12))));
+  for (const c of beforeCampaigns) await deleteCampaign(c.id);
+  for (const j of beforeJars) await removeOwnJar(j.id);
+  check('copy: a fresh device starts empty', (await listCampaigns()).length === 0 && (await listOwnJars()).length === 0);
+  await restoreBackup(copy!);
+  const afterCampaigns = await listCampaigns();
+  const afterJars = await listOwnJars();
+  const sig = (c: { id: string; name: string; archivedAt?: number; archive?: unknown }) => JSON.stringify([c.id, c.name, c.archivedAt ?? null, c.archive ?? null]);
+  check('copy: every project back, closed ones with their date, goal word and name', afterCampaigns.length === beforeCampaigns.length && beforeCampaigns.every((b) => afterCampaigns.some((a) => sig(a) === sig(b))) && afterCampaigns.some((c) => c.archive?.goalReached !== undefined || c.archivedAt));
+  const ojSig = (j: OwnJar) => JSON.stringify([j.id, j.name, j.archivedAt ?? null, j.goalReached ?? null, j.statement?.length ?? 0, j.raised]);
+  check('copy: own jars back with their archive, statements and goal word', afterJars.length === beforeJars.length && beforeJars.every((b) => afterJars.some((a) => ojSig(a) === ojSig(b))) && afterJars.some((j) => (j.statement?.length ?? 0) > 0));
 
   console.log(failures === 0 ? '\nAll archive checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;

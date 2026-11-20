@@ -72,7 +72,7 @@ export function RangeBars({
                 {r.amount > 0 && (
                   <span className="flex flex-col overflow-hidden rounded-t" style={{ height: `${Math.max(2, (r.amount / maxAmount) * 100)}%` }}>
                     {(r.untracked ?? 0) > 0 && (
-                      <span className={`block ${isSelected ? 'bg-indigo-400' : 'bg-indigo-200'}`} style={{ height: `${((r.untracked ?? 0) / r.amount) * 100}%` }} />
+                      <span className={`block ${isSelected ? 'bg-indigo-300' : 'bg-indigo-200'}`} style={{ height: `${((r.untracked ?? 0) / r.amount) * 100}%` }} />
                     )}
                     <span
                       className={`block flex-1 transition-colors ${isSelected ? 'bg-indigo-700' : r === best ? 'bg-green-500' : 'bg-indigo-400 group-hover:bg-indigo-500'}`}

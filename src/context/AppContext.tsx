@@ -313,7 +313,8 @@ function appReducer(state: FullState, action: AppAction): FullState {
     case 'ARCHIVED_YEAR_OPENED':
       return {
         ...state,
-        app: { ...state.app, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'insights', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
+        // closed jars have nothing left to raise: a year has no goal
+        app: { ...state.app, goal: undefined, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'insights', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
       };
 
     case 'CLOSE_REQUESTED':

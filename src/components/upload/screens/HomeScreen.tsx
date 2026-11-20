@@ -161,7 +161,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           isLoading={isLoading}
         />
       )}
-      {loaded && <BackupControls hasProjects={hasAnything} onRestored={setCampaigns} onJarsRestored={loadOwnJars} />}
+      {loaded && <BackupControls hasProjects={hasAnything} onRestored={(all) => setCampaigns(all.filter((c) => !isArchived(c)))} onJarsRestored={loadOwnJars} />}
     </div>
   );
 }

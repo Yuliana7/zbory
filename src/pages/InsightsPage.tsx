@@ -178,6 +178,7 @@ export function InsightsPage() {
         campaignDatasets={isMerged ? datasets : null}
         friends={isMerged && !year ? (app.friends ?? []) : undefined}
         renew={renew}
+        hideInsightCards={!!year && isMerged}
       />
       {tokenSheet}
       {closing && <CloseProjectSheet renew={renew} onCancel={() => setClosing(false)} />}

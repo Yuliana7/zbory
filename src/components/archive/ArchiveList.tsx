@@ -10,6 +10,7 @@ import { ArchiveIcon, ChartIcon, LockIcon, PlusIcon, SpinnerIcon } from '../../i
 import { Pager, SearchBox } from '../ListControls';
 import { ImportStatementsSheet } from './ImportStatementsSheet';
 import { YearGoalsSheet, type UnsaidGoal } from './YearGoalsSheet';
+import { BackupControls } from '../upload/BackupControls';
 
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 const daysBetween = (first: string, last: string) =>
@@ -71,6 +72,8 @@ export function ArchiveList() {
           </button>
         </div>
         {importSheet}
+        {/* a new device: bring everything back from a copy */}
+        <BackupControls hasProjects={false} onRestored={load} onJarsRestored={load} />
       </div>
     );
   }
@@ -289,6 +292,8 @@ export function ArchiveList() {
       )}
 
       {yearCampaigns.length + yearJars.length === 0 && <p className="py-6 text-center text-sm text-gray-500">{t('list.nothingThisYear')}</p>}
+      {/* one file with everything, the archive and the active jars, to restore on another device */}
+      <BackupControls hasProjects onRestored={load} onJarsRestored={load} />
       {importSheet}
       {askingGoals && shownYear !== null && (
         <YearGoalsSheet year={shownYear} items={askingGoals} onDone={(a) => void goalsAnswered(a)} onCancel={() => setAskingGoals(null)} />

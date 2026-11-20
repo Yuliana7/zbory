@@ -19,9 +19,12 @@ interface InsightsPanelProps {
   // Helper jars of the main campaign — shown under the hero total; omit for a per-jar view
   friends?: FriendJar[];
   renew: RenewAll;
+  /** leave out the insight cards (typical donation, best day, time of day, duration): a year of the
+   * archive, whose friendly jars may have no donations behind their money */
+  hideInsightCards?: boolean;
 }
 
-export function InsightsPanel({ insights, aggregates, commentInsights, campaignDatasets, friends, renew }: InsightsPanelProps) {
+export function InsightsPanel({ insights, aggregates, commentInsights, campaignDatasets, friends, renew, hideInsightCards }: InsightsPanelProps) {
   const { t } = useTranslation('insights');
 
   const msPerDay = 1000 * 60 * 60 * 24;
@@ -64,7 +67,7 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
         <CampaignCharts aggregates={aggregates} onExpand={() => dispatch({ type: 'INSIGHTS_VIEW', payload: 'daily' })} />
 
         {/* Regular insight cards */}
-        {insights.slice(1).map((insight, i) => (
+        {!hideInsightCards && insights.slice(1).map((insight, i) => (
           <div
             key={i}
             className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-start gap-3"
