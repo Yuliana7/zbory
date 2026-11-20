@@ -1,6 +1,6 @@
 import { saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
 import { archiveYear, archiveYears, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
-import { ownJarStamp, setOwnJarArchived } from '../../src/utils/ownJars';
+import { ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarStatement } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
 
 let failures = 0;
@@ -55,7 +55,12 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const fedProject = { ...meta('f', 'З банкою', at(2026, 10), 1000, 2), monobankJar: { id: 'L', title: 'З банкою', shortId: 'Main1' } };
   const own = (id: string, main?: string): OwnJar => ({ id, name: id, raised: 500, jarId: 'X'.repeat(16), addedAt: 0, archivedAt: at(2026, 10), ...(main ? { main: { shortId: main } } : {}) });
   const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')]);
-  check('summary: own jars count as friendly jars, unless they feed a project already counted', withOwn.friends === 4 && withOwn.total === 1000);
+  check('summary: own jars count as friendly jars, unless they feed a project already counted', withOwn.friends === 4);
+  check('summary: own jars’ money joins the year, except a jar feeding one of its projects', withOwn.total === 2000 && withOwn.byMonth[9] === 2000, `${withOwn.total}`);
+  const withStatement = { ...own('stated', 'Other'), statement: raw, statementAddedAt: 1 };
+  check('summary: an own jar’s statement brings its donations', yearSummary([], [withStatement]).donations === raw.length);
+  const ownRecap = yearRecap(2026, [], [{ ...own('big'), raised: 9000, target: 5000 }, own('small')]);
+  check('recap: own jars alone — the biggest, goals, no projects', ownRecap.count === 0 && ownRecap.total === 9500 && ownRecap.biggest?.name === 'big' && ownRecap.goals.reached === 1 && ownRecap.goals.set === 1);
   const recap = yearRecap(2026, [{ ...list[0], goal: 250000 }, { ...list[1], goal: 200000 }, list[4]]);
   check('recap: the year, its biggest project, and goals reached of goals set', recap.year === 2026 && recap.biggest?.name === 'На авто для евакуації' && recap.goals.set === 2 && recap.goals.reached === 1 && recap.total === 451000);
   check('recap: an empty year has no biggest project', yearRecap(2024, []).biggest === null && yearRecap(2024, []).count === 0);
@@ -70,6 +75,11 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('own: an archived jar is no longer offered with its project', ownJarsFeeding([archivedJar], 'Main1').length === 0);
   const activeAgain = await setOwnJarArchived(archivedJar, null, at(2026, 8));
   check('own: back to active drops the stamp and counts as a change', !activeAgain.archivedAt && activeAgain.updatedAt === at(2026, 8));
+  const stated = await setOwnJarStatement(archivedJar, raw, at(2026, 9));
+  check('statement: kept with the jar, and a backup sees it as newer', stated.statement?.length === 2 && ownJarStamp(stated) > ownJarStamp(archivedJar) && stated.archivedAt === archivedJar.archivedAt);
+  check('statement: the jar’s statement as a dataset for cards', ownJarDataset(stated)?.id === 'own:j' && ownJarDataset(stated)?.rawData === raw && ownJarDataset(archivedJar) === null);
+  const unstated = await setOwnJarStatement(stated, null, at(2026, 10));
+  check('statement: taken away, and that counts as a change', !unstated.statement && !unstated.statementAddedAt && unstated.updatedAt === at(2026, 10));
 
   console.log(failures === 0 ? '\nAll archive checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;

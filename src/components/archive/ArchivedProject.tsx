@@ -11,7 +11,8 @@ import { computeFriendStats, fmtUah, friendsToCSV } from '../../utils/friendJars
 import { biggestDonation, eligibleJars, raffleParticipants } from '../../utils/raffles';
 import { formatDateRange } from '../../utils/dateRange';
 import { archiveYear, isArchived } from '../../utils/archive';
-import { CompareSection, GrowthSection, MoneySection, SupportersSection } from './ArchiveStory';
+import { CompareSection, GrowthSection, MoneySection, StatsGrid, SupportersSection } from './ArchiveStory';
+import { statementDays } from '../../utils/archiveStats';
 import { CopyJarLink } from '../insights/friendsShared';
 import { ArrowLeftIcon, CalendarIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
 
@@ -49,8 +50,8 @@ export function ArchivedProject({ id }: { id: string }) {
     const { donations, withdrawals, currentBalance } = normalizeDonations(loaded.rawData);
     if (donations.length === 0) return null;
     const aggregates = aggregateDonations(donations, withdrawals, currentBalance);
-    const days = Math.max(1, aggregates.byDay.size && Math.round((aggregates.lastDate.getTime() - aggregates.firstDate.getTime()) / 864e5) + 1);
-    return { donations, aggregates, days, bestDay: Math.max(0, ...aggregates.byDay.values()) };
+    const days = statementDays(aggregates);
+    return { donations, aggregates, days };
   }, [loaded]);
 
   const back = () => dispatch({ type: 'ARCHIVE_VIEW', payload: null });
@@ -66,7 +67,7 @@ export function ArchivedProject({ id }: { id: string }) {
   }
 
   const { meta, rawData, friends, raffles } = loaded;
-  const { aggregates, days, bestDay, donations } = numbers;
+  const { aggregates, days, donations } = numbers;
   const total = aggregates.totalAmount;
   const pct = meta.goal ? Math.round((total / meta.goal) * 100) : null;
   const ranked = [...friends].sort((a, b) => b.raised - a.raised);
@@ -74,14 +75,6 @@ export function ArchivedProject({ id }: { id: string }) {
   const topRaised = Math.max(1, ...ranked.map((f) => f.raised));
   const stem = fileStem(meta.name);
 
-  const stats = [
-    { label: t('page.donations'), value: fmtUah(aggregates.donationCount) },
-    { label: t('page.donors'), value: fmtUah(aggregates.uniqueDonors) },
-    { label: t('page.median'), value: `${fmtUah(aggregates.medianDonation)} ₴` },
-    { label: t('page.max'), value: `${fmtUah(aggregates.maxDonation)} ₴` },
-    { label: t('page.bestDay'), value: `${fmtUah(bestDay)} ₴` },
-    { label: t('page.perDay'), value: `${fmtUah(Math.round(total / days))} ₴` },
-  ];
 
   const downloads = [
     {
@@ -103,7 +96,7 @@ export function ArchivedProject({ id }: { id: string }) {
   ];
 
   const makeCards = async () => {
-    if (await handleLoadCampaign(id, { proceed: true })) dispatch({ type: 'ARCHIVED_CARDS_OPENED', payload: id });
+    if (await handleLoadCampaign(id, { proceed: true })) dispatch({ type: 'ARCHIVED_CARDS_OPENED', payload: { kind: 'project', id } });
   };
 
   const unarchive = async () => {
@@ -149,14 +142,7 @@ export function ArchivedProject({ id }: { id: string }) {
         </p>
       </section>
 
-      <section className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-        {stats.map((s) => (
-          <div key={s.label} className={`${card} px-3 py-2.5`}>
-            <p className="text-xs text-gray-600">{s.label}</p>
-            <p className="mt-0.5 text-lg font-bold text-gray-900">{s.value}</p>
-          </div>
-        ))}
-      </section>
+      <StatsGrid aggregates={aggregates} />
 
       <GrowthSection aggregates={aggregates} donations={donations} goal={meta.goal} />
       <SupportersSection donations={donations} />

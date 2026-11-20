@@ -116,7 +116,7 @@ export function GalleryPage() {
             app.yearRecap
               ? dispatch({ type: 'ARCHIVE_VIEW', payload: null })
               : app.archivedCards
-              ? dispatch({ type: 'ARCHIVE_VIEW', payload: { kind: 'project', id: app.archivedCards } })
+              ? dispatch({ type: 'ARCHIVE_VIEW', payload: app.archivedCards })
               : app.ownJar
                 ? handleReset()
                 : dispatch({ type: 'GO_TO_STEP', payload: 'insights' })

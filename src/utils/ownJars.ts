@@ -4,7 +4,8 @@
 // jar is: by link, through the public jar read (total, goal, status, no donations), with the app
 // keeping its own history. Each one also follows the main jar it feeds, so cards can name it.
 
-import type { Aggregates, FriendSnapshot, MainJarInfo, OwnJar } from '../types';
+import type { Aggregates, CampaignDataset, FriendSnapshot, MainJarInfo, OwnJar, RawDonation } from '../types';
+import { normalizeDonations } from './csvParser';
 import { getBackend } from './db';
 import { jarShareLink, nextHistory } from './friendJars';
 import { generateId } from './id';
@@ -31,7 +32,22 @@ export const sortOwnJars = (jars: OwnJar[]) =>
   [...jars].sort((a, b) => Number(!!a.closed) - Number(!!b.closed) || b.addedAt - a.addedAt);
 
 /** When a jar last changed in any way the user can see: what a backup compares. */
-export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0);
+export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0, j.statementAddedAt ?? 0);
+
+/** Adds the jar's own statement, or (`null`) takes it away. */
+export async function setOwnJarStatement(jar: OwnJar, rows: RawDonation[] | null, now: number = Date.now()): Promise<OwnJar> {
+  const { statement: _rows, statementAddedAt: _at, ...rest } = jar;
+  const next: OwnJar = rows ? { ...rest, statement: rows, statementAddedAt: now } : { ...rest, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
+/** The donations in a jar's statement; none when it has no statement (or one without donations). */
+export const ownJarDonationCount = (jar: OwnJar) => (jar.statement ? normalizeDonations(jar.statement).donations.length : 0);
+
+/** A jar's statement as one of the datasets a set of statements is loaded from (the year's cards). */
+export const ownJarDataset = (jar: OwnJar): CampaignDataset | null =>
+  jar.statement && ownJarDonationCount(jar) > 0 ? { id: `own:${jar.id}`, name: jar.name || '—', rawData: jar.statement } : null;
 
 /** Moves a jar to the archive, or (`null`) back to the active ones. */
 export async function setOwnJarArchived(jar: OwnJar, archivedAt: number | null, now: number = Date.now()): Promise<OwnJar> {

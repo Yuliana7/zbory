@@ -13,6 +13,7 @@ import {
   milestones,
   rhythm,
   sizeBands,
+  statementDays,
   type Milestone,
   type SizeBandKey,
 } from '../../utils/archiveStats';
@@ -33,6 +34,30 @@ interface GrowthProps {
   aggregates: Aggregates;
   donations: Donation[];
   goal?: number;
+}
+
+/** Six numbers from a statement: donations, donors, the typical and the biggest donation, the best day, per day. */
+export function StatsGrid({ aggregates }: { aggregates: Aggregates }) {
+  const { t } = useTranslation('archive');
+  const bestDay = Math.max(0, ...aggregates.byDay.values());
+  const stats = [
+    { label: t('page.donations'), value: fmtUah(aggregates.donationCount) },
+    { label: t('page.donors'), value: fmtUah(aggregates.uniqueDonors) },
+    { label: t('page.median'), value: `${fmtUah(aggregates.medianDonation)} ₴` },
+    { label: t('page.max'), value: `${fmtUah(aggregates.maxDonation)} ₴` },
+    { label: t('page.bestDay'), value: `${fmtUah(bestDay)} ₴` },
+    { label: t('page.perDay'), value: `${fmtUah(Math.round(aggregates.totalAmount / statementDays(aggregates)))} ₴` },
+  ];
+  return (
+    <section className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+      {stats.map((s) => (
+        <div key={s.label} className={`${card} px-3 py-2.5`}>
+          <p className="text-xs text-gray-600">{s.label}</p>
+          <p className="mt-0.5 text-lg font-bold text-gray-900">{s.value}</p>
+        </div>
+      ))}
+    </section>
+  );
 }
 
 /** «Як збиралося»: the running total with the quarters of the goal marked, the record moments and the weekly rhythm. */

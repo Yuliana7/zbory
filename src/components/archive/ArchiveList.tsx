@@ -3,8 +3,8 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
 import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
-import { listOwnJars, goalPct } from '../../utils/ownJars';
-import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, yearRecap, yearSummary } from '../../utils/archive';
+import { listOwnJars, goalPct, ownJarDataset } from '../../utils/ownJars';
+import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
 import { ArchiveIcon, ImageIcon, LockIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
@@ -56,6 +56,12 @@ export function ArchiveList() {
   const yearCampaigns = inYear(campaigns, shownYear);
   const yearJars = inYear(jars, shownYear);
   const summary = yearSummary(yearCampaigns, yearJars);
+  // own jars' statements join the year's projects in its cards (not those feeding one of them: their
+  // donations are already in that project's statement)
+  const yearStatements = ownJarsOnTheirOwn(yearCampaigns, yearJars).flatMap((j) => {
+    const dataset = ownJarDataset(j);
+    return dataset ? [{ dataset, goal: j.target }] : [];
+  });
   const foundCampaigns = yearCampaigns.filter((c) => matchesName(c.name, query));
   const foundJars = yearJars.filter((j) => matchesName(j.name, query));
   const shownCampaigns = pageOf(foundCampaigns, page, ARCHIVE_PAGE_SIZE);
@@ -74,7 +80,7 @@ export function ArchiveList() {
   const makeYearCards = async () => {
     if (shownYear === null || opening) return;
     setOpening(true);
-    const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), { proceed: true });
+    const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), { proceed: true, extra: yearStatements });
     setOpening(false);
     if (ok) dispatch({ type: 'ARCHIVED_YEAR_OPENED', payload: yearRecap(shownYear, yearCampaigns, yearJars) });
   };
@@ -96,7 +102,7 @@ export function ArchiveList() {
         )}
       </div>
 
-      {yearCampaigns.length > 0 && (
+      {yearCampaigns.length + yearJars.length > 0 && (
         <section className="rounded-2xl bg-gradient-to-br from-indigo-900 to-indigo-600 p-5 text-white space-y-4">
           <p className="text-sm text-indigo-200">{shownYear === null ? t('list.allCard') : t('list.yearCard', { year: shownYear })}</p>
           <p className="text-4xl font-extrabold tracking-tight">{fmtUah(summary.total)} ₴</p>
@@ -128,6 +134,7 @@ export function ArchiveList() {
                   <span key={m}>{m}</span>
                 ))}
               </div>
+              {yearCampaigns.length + yearStatements.length > 0 && (
               <button
                 onClick={() => void makeYearCards()}
                 disabled={opening}
@@ -136,6 +143,7 @@ export function ArchiveList() {
                 <ImageIcon className="h-4 w-4" />
                 {opening ? t('list.yearCardsOpening') : t('list.yearCards', { year: shownYear })}
               </button>
+              )}
             </div>
           )}
         </section>

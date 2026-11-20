@@ -131,7 +131,7 @@ check('No lone ₴ artifacts', allCards.every((h) => !/>\s*₴\s*</.test(h.repla
   check('Journey: chart and milestones can be removed', !renderToStaticMarkup(<ArchiveJourneyCard aggregates={agg} goal={25000} hidden={new Set(['chart', 'milestones'])} />).match(/<svg|Коли зібрали/));
 
   const sup = text(renderToStaticMarkup(<ArchiveSupportersCard aggregates={agg} donations={long.donations} format="story" />));
-  check('Supporters: donors, returning share, size bands, top names', sup.includes('людей підтримали збір') && sup.includes('поверталися знову') && sup.includes('78%') && sup.includes('94%') && sup.includes('Марина Тищенко'), sup.slice(0, 400));
+  check('Supporters: donors, returning share, size bands, top names', sup.includes('людей підтримали збір') && sup.includes('поверталися знову') && sup.includes('75%') && sup.includes('94%') && sup.includes('Марина Тищенко'), sup.slice(0, 400));
   check('Supporters: an empty size band is left out', !sup.includes('понад 1 000 ₴'));
   const noNames = renderToStaticMarkup(<ArchiveSupportersCard aggregates={agg} donations={long.donations} hidden={new Set(['top'])} />);
   check('Supporters: names can be hidden', !noNames.includes('Марина Тищенко') && !noNames.includes('Найбільше задонатили'));

@@ -566,7 +566,7 @@ const without = (ids: TemplateType[]) => (g: TemplateGroup) => ({ ...g, ids: g.i
 
 /** Whose cards these are: a project's, one of the user's friendly jars', a closed project's, or a year of the archive's. */
 export type CardsMode = 'project' | 'ownJar' | 'archive' | 'year';
-export const cardsModeOf = (app: { ownJar?: unknown; archivedCards?: string; yearRecap?: unknown }): CardsMode =>
+export const cardsModeOf = (app: { ownJar?: unknown; archivedCards?: unknown; yearRecap?: unknown }): CardsMode =>
   app.ownJar ? 'ownJar' : app.yearRecap ? 'year' : app.archivedCards ? 'archive' : 'project';
 
 /** What a card for one of the user's friendly jars can show: there are only the jar's total and goal,

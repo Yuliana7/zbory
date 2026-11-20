@@ -36,7 +36,7 @@ export const ArchiveYearCard = forwardRef<HTMLDivElement, ArchiveYearCardProps>(
     const busiest = recap.byMonth.some((v) => v > 0) ? recap.byMonth.indexOf(Math.max(...recap.byMonth)) : null;
 
     const stats = [
-      { n: recap.count, label: tx('projectsLabel') },
+      ...(recap.count > 0 ? [{ n: recap.count, label: tx('projectsLabel') }] : []),
       { n: recap.donations, label: tx('donationsLabel') },
       ...(aggregates && aggregates.uniqueDonors > 0 ? [{ n: aggregates.uniqueDonors, label: tx('donorsLabel') }] : []),
       ...(recap.friendJars > 0 ? [{ n: recap.friendJars, label: tx('friendsLabel') }] : []),

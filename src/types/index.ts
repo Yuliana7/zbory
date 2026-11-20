@@ -102,6 +102,11 @@ export interface OwnJar extends FriendJar {
   addedAt: number;
   /** moved to the archive (ms): read-only from then on, filed under that year */
   archivedAt?: number;
+  /** the jar's own statement, asked for from the bank's support (Monobank leaves friendly jars out of the
+   * owner's): its donations, donors and dates. Kept with the jar, so backups carry it. */
+  statement?: RawDonation[];
+  /** when the statement was added (ms) */
+  statementAddedAt?: number;
 }
 
 export type RaffleKind = 'donors' | 'jars' | 'biggest';
@@ -294,8 +299,9 @@ export interface AppState {
   section?: 'archive';
   /** the archive's page for one closed project or jar; unset = the archive's list */
   archiveView?: ArchiveView;
-  /** cards are being made for an archived project (its id): read-only, and «Назад» returns to its archive page */
-  archivedCards?: string;
+  /** cards are being made for an archived project or own jar (with a statement): read-only, and «Назад»
+   * returns to its archive page */
+  archivedCards?: ArchiveView;
   /** cards are being made for a year of the archive («Мій 2026»); «Назад» returns to the archive's list */
   yearRecap?: YearRecap;
   /** closing was asked for from the project list; the analytics opens the close sheet on arrival */

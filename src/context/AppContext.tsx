@@ -122,7 +122,7 @@ export type AppAction =
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
   | { type: 'SECTION_CHANGED'; payload: 'active' | 'archive' }
   | { type: 'ARCHIVE_VIEW'; payload: ArchiveView | null }
-  | { type: 'ARCHIVED_CARDS_OPENED'; payload: string }
+  | { type: 'ARCHIVED_CARDS_OPENED'; payload: ArchiveView }
   | { type: 'ARCHIVED_YEAR_OPENED'; payload: YearRecap }
   | { type: 'CLOSE_REQUESTED'; payload: boolean }
   | { type: 'FRIENDS_EDIT_OPENED' }
@@ -326,6 +326,13 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
 // ─── Context ──────────────────────────────────────────────────────────────────
 
+export interface LoadCampaignsOptions {
+  /** go on to the analytics once loaded */
+  proceed?: boolean;
+  /** statements that aren't saved projects (an own jar's), loaded alongside them */
+  extra?: Array<{ dataset: CampaignDataset; goal?: number }>;
+}
+
 interface AppContextValue {
   state: FullState;
   dispatch: Dispatch<AppAction>;
@@ -336,7 +343,7 @@ interface AppContextValue {
   handleReset: () => void;
   handleRestoreSession: () => Promise<boolean>;
   handleLoadCampaign: (id: string, opts?: { proceed?: boolean }) => Promise<LoadedCampaign | null>;
-  handleLoadCampaigns: (ids: string[], opts?: { proceed?: boolean }) => Promise<boolean>;
+  handleLoadCampaigns: (ids: string[], opts?: LoadCampaignsOptions) => Promise<boolean>;
   handleSaveCampaign: (name: string, goalOverride?: number | null) => Promise<CampaignMeta | null>;
   handleMergeFile: (file: File) => Promise<MergeResult | null>;
   handleMergeRows: (incoming: RawDonation[], opts?: MergeOptions) => Promise<MergeResult | null>;
@@ -615,8 +622,10 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Opens several campaigns at once: merged rows drive the normal pipeline,
   // campaignDatasets keeps each jar separate for per-jar/cross analytics.
-  const handleLoadCampaigns = useCallback(async (ids: string[], opts?: { proceed?: boolean }): Promise<boolean> => {
-    if (ids.length === 0) return false;
+  // `extra` adds statements that aren't saved projects (an own jar's), with their goals.
+  const handleLoadCampaigns = useCallback(async (ids: string[], opts?: LoadCampaignsOptions): Promise<boolean> => {
+    const extra = opts?.extra ?? [];
+    if (ids.length + extra.length === 0) return false;
     dispatch({ type: 'SET_LOADING', payload: true });
     try {
       const datasets: CampaignDataset[] = [];
@@ -624,6 +633,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       // otherwise the user has to re-type a combined goal from scratch.
       let goalSum = 0;
       let hasAnyGoal = false;
+      for (const { goal } of extra) {
+        if (goal) {
+          goalSum += goal;
+          hasAnyGoal = true;
+        }
+      }
       for (const id of ids) {
         const [meta, data] = await Promise.all([getCampaignMeta(id), loadCampaignData(id)]);
         if (!meta || !data) throw new Error();
@@ -633,6 +648,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
           hasAnyGoal = true;
         }
       }
+      for (const { dataset } of extra) datasets.push(dataset);
       let merged: RawDonation[] = [];
       for (const d of datasets) merged = mergeRawDonations(merged, d.rawData).merged;
       const { donations, withdrawals } = normalizeDonations(merged);
@@ -654,8 +670,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
           withdrawals,
           currentBalance,
           goal: hasAnyGoal ? goalSum : undefined,
-          activeCampaignId: ids.length === 1 ? ids[0] : undefined,
-          activeCampaignName: ids.length === 1 ? datasets[0].name : undefined,
+          // one saved project is that project; one own jar's statement only lends its name to the cards
+          activeCampaignId: ids.length === 1 && datasets.length === 1 ? ids[0] : undefined,
+          activeCampaignName: datasets.length === 1 ? datasets[0].name : undefined,
           campaignDatasets: datasets.length > 1 ? datasets : undefined,
         },
       });

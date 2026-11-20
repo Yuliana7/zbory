@@ -1,6 +1,7 @@
 import type { Donation } from '../../src/types';
 import type { CampaignMeta } from '../../src/utils/campaignStore';
 import { aggregateDonations } from '../../src/utils/dataAggregator';
+import { SELF_DONATION } from '../../src/utils/csvParser';
 import { bestMoments, compareToOthers, loyalty, milestones, rhythm, sizeBands } from '../../src/utils/archiveStats';
 
 let failures = 0;
@@ -56,6 +57,7 @@ const aggregates = aggregateDonations(donations);
   check('loyalty: the same name, any case or spacing, is one donor who came back', l.returning === 1 && l.mostLoyal?.count === 3 && l.mostLoyal.amount === 1300);
   check('loyalty: the returning donors’ share of the money', l.returningShare === 1300 / total);
   check('loyalty: top donors by amount', l.top.map((p) => p.amount).join() === '2000,1300,200');
+  check('loyalty: the owner’s own top-ups are money, not a donor', loyalty([don(1, 100, SELF_DONATION), don(2, 100, SELF_DONATION), don(3, 100, 'А')]).named === 1 && loyalty([don(1, 100, SELF_DONATION), don(2, 100, SELF_DONATION)]).mostLoyal === null);
   check('loyalty: nobody came back → no most loyal', loyalty([don(1, 100, 'А'), don(2, 100, 'Б')]).mostLoyal === null);
 }
 

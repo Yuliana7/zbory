@@ -1,6 +1,7 @@
 import type { Aggregates, Donation } from '../types';
 import type { CampaignMeta } from './campaignStore';
 import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
+import { SELF_DONATION } from './csvParser';
 
 /** The story of a finished project, from its statement: how it grew, who gave, when. Shared by the
  * archive page and the «Підсумок» cards. Donor names come from the statement's «Від:» field, so
@@ -11,6 +12,9 @@ const dayKey = (d: Date) =>
 const noon = (key: string) => new Date(`${key}T12:00:00`).getTime();
 /** whole days between two YYYY-MM-DD keys (DST-safe: noon to noon, rounded) */
 export const daysApart = (from: string, to: string) => Math.round((noon(to) - noon(from)) / 864e5);
+
+/** The days a statement covers, first to last, both counted. */
+export const statementDays = (a: Aggregates) => Math.max(1, Math.round((a.lastDate.getTime() - a.firstDate.getTime()) / 864e5) + 1);
 
 // ─── Growth ───────────────────────────────────────────────────────────────────
 
@@ -151,13 +155,14 @@ export interface Loyalty {
   top: Supporter[];
 }
 
-/** Who gave, by the names in the statement. */
+/** Who gave, by the names in the statement. The jar owner's own top-ups count in the money, not as a donor. */
 export function loyalty(donations: Donation[]): Loyalty {
   const people = new Map<string, Supporter>();
   let anonymous = 0;
   let total = 0;
   for (const d of donations) {
     total += d.amount;
+    if (d.donor === SELF_DONATION) continue;
     if (isAnonymousDonor(d.donor)) {
       anonymous += 1;
       continue;

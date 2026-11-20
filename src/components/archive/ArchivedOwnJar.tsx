@@ -1,25 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
-import { goalPct, listOwnJars, setOwnJarArchived } from '../../utils/ownJars';
+import { goalPct, listOwnJars, ownJarDataset, setOwnJarArchived, setOwnJarStatement } from '../../utils/ownJars';
 import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
 import { archiveYear, isArchived } from '../../utils/archive';
-import { downloadCSV } from '../../utils/csvExporter';
+import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
+import { normalizeDonations, parseCSV } from '../../utils/csvParser';
+import { aggregateDonations } from '../../utils/dataAggregator';
+import { GrowthSection, MoneySection, StatsGrid, SupportersSection } from './ArchiveStory';
 import { fmtUah } from '../../utils/friendJars';
 import { CopyJarLink } from '../insights/friendsShared';
-import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, LockIcon } from '../../icons';
+import { ArrowLeftIcon, ArrowRightIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
 
 const longDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', year: 'numeric' });
 const shortDay = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 
 /** One of the user's own friendly jars, closed: what it raised against its own goal, the main jar it fed
- * (opening that project's archive page when it is archived too), how the amount grew, and its history. */
+ * (opening that project's archive page when it is archived too), how the amount grew, and its history.
+ * With the jar's statement (asked for from the bank's support) it tells the same story a project does,
+ * and makes cards. */
 export function ArchivedOwnJar({ id }: { id: string }) {
   const { t } = useTranslation('archive');
-  const { dispatch } = useAppContext();
+  const { dispatch, handleLoadCampaigns } = useAppContext();
   const [jar, setJar] = useState<OwnJar | null | 'missing'>(null);
   const [mainProject, setMainProject] = useState<CampaignMeta | null>(null);
+  const [reading, setReading] = useState(false);
+  const [statementError, setStatementError] = useState<string | null>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     listOwnJars()
@@ -31,6 +39,13 @@ export function ArchivedOwnJar({ id }: { id: string }) {
       })
       .catch(() => setJar('missing'));
   }, [id]);
+
+  // the statement's numbers, when there is one
+  const told = useMemo(() => {
+    if (!jar || jar === 'missing' || !jar.statement) return null;
+    const { donations, withdrawals, currentBalance } = normalizeDonations(jar.statement);
+    return donations.length ? { donations, aggregates: aggregateDonations(donations, withdrawals, currentBalance) } : null;
+  }, [jar]);
 
   const back = () => dispatch({ type: 'ARCHIVE_VIEW', payload: null });
   if (jar === null) return null;
@@ -55,6 +70,40 @@ export function ArchivedOwnJar({ id }: { id: string }) {
     const rows = [['Дата', 'Зібрано, ₴'], ...history.map((h) => [new Date(h.at).toLocaleDateString('uk-UA'), h.raised.toFixed(2)])];
     return downloadCSV(rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n'), `${(jar.name || 'banka').replace(/[\\/:*?"<>|]+/g, ' ')} — історія.csv`);
   };
+  const addStatement = async (file: File | undefined) => {
+    if (!file) return;
+    setStatementError(null);
+    setReading(true);
+    try {
+      const rows = await parseCSV(file);
+      if (normalizeDonations(rows).donations.length === 0) setStatementError(t('statement.noDonations'));
+      else setJar(await setOwnJarStatement(jar, rows));
+    } catch {
+      setStatementError(t('statement.readError'));
+    } finally {
+      setReading(false);
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  };
+  const removeStatement = async () => {
+    if (!window.confirm(t('statement.removeConfirm'))) return;
+    setJar(await setOwnJarStatement(jar, null));
+  };
+  const makeCards = async () => {
+    const dataset = ownJarDataset(jar);
+    if (!dataset) return;
+    if (await handleLoadCampaigns([], { proceed: true, extra: [{ dataset, goal: jar.target }] })) {
+      dispatch({ type: 'ARCHIVED_CARDS_OPENED', payload: { kind: 'ownJar', id: jar.id } });
+    }
+  };
+  const stem = (jar.name || 'banka').replace(/[\\/:*?"<>|]+/g, ' ').trim() || 'banka';
+  // the statement's total next to what the jar showed: a statement for part of the time reads short
+  const statementTotal = told?.aggregates.totalAmount ?? 0;
+  const mismatch = told && Math.abs(statementTotal - jar.raised) > Math.max(1, jar.raised * 0.01);
+  const fileInput = (
+    <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => void addStatement(e.target.files?.[0])} />
+  );
+
   const unarchive = async () => {
     if (!window.confirm(t('page.unarchiveConfirm', { name: jar.name || '—' }))) return;
     await setOwnJarArchived(jar, null);
@@ -110,7 +159,35 @@ export function ArchivedOwnJar({ id }: { id: string }) {
         </button>
       )}
 
-      {history.length > 1 && (
+      {told ? (
+        <>
+          <StatsGrid aggregates={told.aggregates} />
+          {mismatch && (
+            <p role="status" className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              {t('statement.mismatch', { statement: fmtUah(statementTotal), raised: fmtUah(jar.raised) })}
+            </p>
+          )}
+          <GrowthSection aggregates={told.aggregates} donations={told.donations} goal={jar.target} />
+          <SupportersSection donations={told.donations} />
+          <MoneySection aggregates={told.aggregates} />
+        </>
+      ) : (
+        <section className={`${card} p-4 space-y-3`}>
+          <h3 className="text-sm font-semibold text-gray-900">{t('statement.title')}</h3>
+          <p className="text-sm leading-relaxed text-gray-600">{t('statement.addText')}</p>
+          {statementError && (
+            <p role="alert" className="text-sm text-red-700">
+              {statementError}
+            </p>
+          )}
+          <button onClick={() => fileRef.current?.click()} disabled={reading} className="btn-secondary flex w-full items-center justify-center gap-2">
+            {reading ? t('statement.reading') : t('statement.add')}
+          </button>
+          {fileInput}
+        </section>
+      )}
+
+      {!told && history.length > 1 && (
         <section className={`${card} p-4 space-y-2`}>
           <h3 className="text-sm font-semibold text-gray-900">{t('page.growth')}</h3>
           <div role="img" aria-label={t('page.growth')} className="flex h-24 items-end gap-1">
@@ -125,8 +202,23 @@ export function ArchivedOwnJar({ id }: { id: string }) {
         </section>
       )}
 
-      {history.length > 0 && (
+      {(history.length > 0 || told) && (
         <section className={`${card} overflow-hidden`}>
+          {told && (
+            <button
+              onClick={() => void downloadCSV(manualRowsToCSVString(rawDonationsToManualRows(jar.statement!)), `${stem}.csv`)}
+              className="flex w-full items-center gap-3 border-b border-gray-100 px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
+                <DownloadIcon className="h-4 w-4" />
+              </span>
+              <span>
+                <span className="block text-sm font-semibold text-gray-900">{t('statement.title')}</span>
+                <span className="block text-xs text-gray-600">{t('page.statementNote', { count: told.aggregates.donationCount })}</span>
+              </span>
+            </button>
+          )}
+          {history.length > 0 && (
           <button onClick={() => void downloadHistory()} className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-gray-50 transition-colors">
             <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
               <DownloadIcon className="h-4 w-4" />
@@ -136,11 +228,36 @@ export function ArchivedOwnJar({ id }: { id: string }) {
               <span className="block text-xs text-gray-600">{t('page.historyNote')}</span>
             </span>
           </button>
+          )}
         </section>
+      )}
+
+      {told && (
+        <button onClick={() => void makeCards()} className="btn-primary flex w-full items-center justify-center gap-2">
+          <ImageIcon className="h-4 w-4" />
+          {t('page.cards')}
+        </button>
       )}
 
       <div className="flex flex-col items-center gap-1 pt-1">
         {jar.shortId && <CopyJarLink shortId={jar.shortId} />}
+        {told && (
+          <div className="flex items-center gap-1 text-sm">
+            <button onClick={() => fileRef.current?.click()} disabled={reading} className="px-2 py-2 font-medium text-gray-600 underline hover:text-gray-900">
+              {reading ? t('statement.reading') : t('statement.replace')}
+            </button>
+            <span className="text-gray-300" aria-hidden="true">·</span>
+            <button onClick={() => void removeStatement()} className="px-2 py-2 font-medium text-gray-600 underline hover:text-gray-900">
+              {t('statement.remove')}
+            </button>
+            {fileInput}
+          </div>
+        )}
+        {statementError && told && (
+          <p role="alert" className="text-sm text-red-700">
+            {statementError}
+          </p>
+        )}
         <button onClick={() => void unarchive()} className="px-2 py-2 text-sm font-medium text-gray-600 underline hover:text-gray-900">
           {t('page.unarchive')}
         </button>
