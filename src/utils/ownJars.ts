@@ -31,7 +31,15 @@ export const sortOwnJars = (jars: OwnJar[]) =>
   [...jars].sort((a, b) => Number(!!a.closed) - Number(!!b.closed) || b.addedAt - a.addedAt);
 
 /** When a jar last changed in any way the user can see: what a backup compares. */
-export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0);
+export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0);
+
+/** Moves a jar to the archive, or (`null`) back to the active ones. */
+export async function setOwnJarArchived(jar: OwnJar, archivedAt: number | null, now: number = Date.now()): Promise<OwnJar> {
+  const { archivedAt: _was, ...rest } = jar;
+  const next: OwnJar = archivedAt ? { ...rest, archivedAt } : { ...rest, updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
 
 /** Brings jars from a backup in: one the device doesn't have is added, one it has is replaced only if
  * the backup's copy is newer. */

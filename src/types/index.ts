@@ -100,6 +100,8 @@ export interface OwnJar extends FriendJar {
   jarId: string;
   main?: MainJarInfo;
   addedAt: number;
+  /** moved to the archive (ms): read-only from then on, filed under that year */
+  archivedAt?: number;
 }
 
 export type RaffleKind = 'donors' | 'jars' | 'biggest';
