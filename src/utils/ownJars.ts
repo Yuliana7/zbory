@@ -305,6 +305,11 @@ export function applyMonoRead(jar: OwnJar, mono: MonoJar, now: number): OwnJar {
 export const likelySameJar = (jar: OwnJar, mono: MonoJar) =>
   !jar.monoId && friendNameKey(jar.name) === friendNameKey(mono.title) && Math.round((jar.target ?? 0) * 100) === Math.round(mono.goal);
 
+/** The other way round: a jar just read by link that is probably one already known through the user's
+ * token and not yet linked (same name and goal). */
+export const likelySameAsTied = (read: OwnJar, known: OwnJar) =>
+  !!known.monoId && !known.jarId && friendNameKey(read.name) === friendNameKey(known.name) && Math.round((read.target ?? 0) * 100) === Math.round((known.target ?? 0) * 100);
+
 /** One jar from two: a jar tracked by link takes the client-info id and its numbers; its name, link,
  * main jar and history stay. */
 export const mergeMonoIntoOwn = (jar: OwnJar, mono: MonoJar, now: number): OwnJar => applyMonoRead(jar, mono, now);

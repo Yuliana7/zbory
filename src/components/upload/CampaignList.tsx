@@ -8,6 +8,7 @@ import { pageOf } from '../../utils/friendJars';
 import { ArrowRightIcon, CheckIcon, GlobeIcon, PlusIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 import { CampaignActionsSheet, type CampaignAction } from './CampaignActionsSheet';
+import { RenewProjectsBar } from './RenewProjectsBar';
 
 const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -19,7 +20,7 @@ interface CampaignListProps {
   onCampaignsChange: (campaigns: CampaignMeta[]) => void;
   /** "Редагувати" → one of the actions in the menu; the page opens the matching screen */
   onAction: (campaign: CampaignMeta, action: CampaignAction) => void;
-  /** «Новий збір»: the ways to start a project */
+  /** «Додати банку»: the ways a jar comes in */
   onNew: () => void;
 }
 
@@ -81,6 +82,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction, onNew }: 
           {t('new')}
         </button>
       </div>
+      <RenewProjectsBar campaigns={campaigns} onCampaignsChange={onCampaignsChange} />
       {found.length === 0 && <p className="py-6 text-center text-sm text-gray-500">{tCommon('list.nothingFound', { query: query.trim() })}</p>}
       <ul className="space-y-3">
         {shown.items.map((campaign) => (

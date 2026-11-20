@@ -13,18 +13,7 @@ import type { OwnJar } from '../../../types';
 import { OwnJarsTab } from '../../ownJars/OwnJarsTab';
 import { isArchived } from '../../../utils/archive';
 import { ArrowLeftIcon, SaveIcon, XIcon } from '../../../icons';
-
-type HomeTab = 'saved' | 'own';
-const TAB_KEY = 'zbory.homeTab';
-/** null = nothing chosen this visit yet */
-const readTab = (): HomeTab | null => {
-  try {
-    const v = sessionStorage.getItem(TAB_KEY);
-    return v === 'own' || v === 'saved' ? v : null;
-  } catch {
-    return null;
-  }
-};
+import { readHomeTab, rememberHomeTab, type HomeTab } from '../../../utils/homeTab';
 
 interface HomeScreenProps {
   onMonobank: () => void;
@@ -42,17 +31,14 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
   const [savedSession, setSavedSession] = useState(() => loadSession());
   // Step 1 has two views: the projects and the user's own friendly jars. The view is remembered for
   // the visit, so coming back from a jar's cards lands on the jars.
-  const [tab, setTabState] = useState<HomeTab | null>(readTab);
-  // «Новий збір» in the projects view: the ways to start one, in place of the list
+  const [tab, setTabState] = useState<HomeTab | null>(readHomeTab);
+  // «Додати банку» (either view): the ways a jar comes in, in place of the list
   const [adding, setAdding] = useState(false);
   const setTab = (next: HomeTab) => {
     setTabState(next);
-    try {
-      sessionStorage.setItem(TAB_KEY, next);
-    } catch {
-      /* only the memory of the tab is lost */
-    }
+    rememberHomeTab(next);
   };
+
   // null = not loaded yet (avoids flashing the empty state before we know)
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
   const [ownJars, setOwnJars] = useState<OwnJar[] | null>(null);
@@ -67,6 +53,20 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
   }, [app.donations]);
 
   const loaded = campaigns !== null && ownJars !== null;
+  // «Додати банку»: the same ways in from either view; a jar added by link lands in the friendly jars
+  const options = (
+    <NewProjectOptions
+      onFileSelect={handleFileSelect}
+      onMonobankClick={onMonobank}
+      onManualClick={onManual}
+      isLoading={isLoading}
+      onLinkAdded={() => {
+        loadOwnJars();
+        setAdding(false);
+        setTab('own');
+      }}
+    />
+  );
   const hasAnything = loaded && (campaigns.length > 0 || ownJars.length > 0);
   // until a view is picked: with no projects yet the jars are what there is to show
   const shownTab: HomeTab = tab ?? (loaded && campaigns.length === 0 && ownJars.length > 0 ? 'own' : 'saved');
@@ -129,37 +129,27 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
               </button>
             ))}
           </div>
-          {shownTab === 'own' ? (
-            <OwnJarsTab jars={ownJars} onJarsChange={setOwnJars} />
-          ) : campaigns.length > 0 && !adding ? (
+          {adding ? (
+            <>
+              <div className="max-w-md mx-auto mb-4 flex items-center justify-between gap-3">
+                <h2 className="text-xl font-bold text-gray-900">{t('addJarTitle')}</h2>
+                <button onClick={() => setAdding(false)} className="flex shrink-0 items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800">
+                  <ArrowLeftIcon className="w-4 h-4" />
+                  {t(`view.${shownTab}`)}
+                </button>
+              </div>
+              {options}
+            </>
+          ) : shownTab === 'own' ? (
+            <OwnJarsTab jars={ownJars} onJarsChange={setOwnJars} onAdd={() => setAdding(true)} />
+          ) : campaigns.length > 0 ? (
             <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={onAction} onNew={() => setAdding(true)} />
           ) : (
-            <>
-              {campaigns.length > 0 && (
-                <div className="max-w-3xl mx-auto mb-2">
-                  <button onClick={() => setAdding(false)} className="flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800">
-                    <ArrowLeftIcon className="w-4 h-4" />
-                    {t('view.saved')}
-                  </button>
-                </div>
-              )}
-              <NewProjectOptions
-                onFileSelect={handleFileSelect}
-                onMonobankClick={onMonobank}
-                onManualClick={onManual}
-                isLoading={isLoading}
-              />
-            </>
+            options
           )}
         </>
       ) : (
-        <EmptyState
-          onFileSelect={handleFileSelect}
-          onManualClick={onManual}
-          onMonobankClick={onMonobank}
-          onOwnJarsClick={() => setTab('own')}
-          isLoading={isLoading}
-        />
+        <EmptyState options={options} />
       )}
       {loaded && <BackupControls hasProjects={hasAnything} onRestored={(all) => setCampaigns(all.filter((c) => !isArchived(c)))} onJarsRestored={loadOwnJars} />}
     </div>
