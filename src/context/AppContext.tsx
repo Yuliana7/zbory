@@ -41,7 +41,7 @@ import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 
 import { makeCard } from '../utils/exportStack';
 import { ownJarAggregates } from '../utils/ownJars';
-import { OWN_JAR_GROUP } from '../utils/templateConfig';
+import { OWN_JAR_GROUP, SUMMARY_GROUP } from '../utils/templateConfig';
 
 /** Where a project's rows come from and what goes with them; no id = a new project. */
 interface ProjectSource {
@@ -302,7 +302,10 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     // the project is loaded (see handleLoadCampaign); its cards open read-only, straight on the templates
     case 'ARCHIVED_CARDS_OPENED':
-      return { ...state, app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery' } };
+      return {
+        ...state,
+        app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [SUMMARY_GROUP], gallerySelection: [] },
+      };
 
     case 'CLOSE_REQUESTED':
       return { ...state, app: { ...state.app, closeRequested: action.payload } };

@@ -20,6 +20,7 @@ import {
   TEMPLATE_REMOVABLE_ELEMENTS,
   offeredFor,
   groupsFor,
+  cardsModeOf,
 } from '../../utils/templateConfig';
 import {
   ArrowLeftIcon,
@@ -113,7 +114,7 @@ function ExportPageInner() {
   const [addOpen, setAddOpen] = useState(false);
   // Picker categories mirror the gallery; first one open by default
   const [addGroupsOpen, setAddGroupsOpen] = useState<Set<string>>(
-    () => new Set([groupsFor(!!app.ownJar)[0].id]),
+    () => new Set([groupsFor(cardsModeOf(app))[0].id]),
   );
   // Sidebar sections — which <Collapsible> panels are expanded
   const [openSections, setOpenSections] = useState<Set<string>>(() => new Set(['format']));
@@ -262,9 +263,10 @@ function ExportPageInner() {
   // Same categories as the template gallery, with data-gated templates hidden
   const hasFriends = (app.friends ?? []).some((f) => f.raised > 0);
   const hasClosedFriends = (app.friends ?? []).some((f) => f.closed && f.raised > 0);
+  const mode = cardsModeOf(app);
   const addableGroups = useMemo(() => {
     const available = (id: TemplateType) => {
-      if (!offeredFor(id, !!app.ownJar)) return false;
+      if (!offeredFor(id, mode)) return false;
       if (app.ownJar) return true;
       if (id === 'emoji-cloud') return (commentInsights?.topEmojis.length ?? 0) > 0;
       if (id === 'comments') return personalComments.length > 0;
@@ -275,10 +277,10 @@ function ExportPageInner() {
       if (raffleKind) return hasRaffle(app.raffles, raffleKind);
       return true;
     };
-    return groupsFor(!!app.ownJar).map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
+    return groupsFor(mode).map((g) => ({ ...g, ids: g.ids.filter(available) })).filter(
       (g) => g.ids.length > 0,
     );
-  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends, app.raffles, app.ownJar]);
+  }, [commentInsights, personalComments, crossItems, hasFriends, hasClosedFriends, app.raffles, app.ownJar, mode]);
 
   // Ceil, not round: previewClipRef clips the scaled-down card at exactly
   // these pixel dimensions. Rounding down even by a fraction of a pixel made
@@ -292,7 +294,7 @@ function ExportPageInner() {
   // a friendly jar has one total and no donations to pick a period from
   const supportsDateRange = TEMPLATE_SUPPORTS_DATE_RANGE[templateId] && !app.ownJar;
   const requiresGoal = TEMPLATE_REQUIRES_GOAL[templateId];
-  const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report' || templateId === 'friendly-jar';
+  const showGoal = requiresGoal || templateId === 'progress' || templateId === 'final-report' || templateId === 'friendly-jar' || templateId === 'archive-journey';
 
   const removableElements = TEMPLATE_REMOVABLE_ELEMENTS[templateId];
   const cardRaffleKind = raffleKindOf(templateId);

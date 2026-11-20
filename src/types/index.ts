@@ -250,7 +250,10 @@ export type TemplateType =
   | 'friends-stats'
   | 'report'
   | 'campaigns-chart'
-  | 'friendly-jar';
+  | 'friendly-jar'
+  | 'archive-journey'
+  | 'archive-supporters'
+  | 'archive-numbers';
 
 export interface Template {
   id: TemplateType;

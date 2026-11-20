@@ -113,8 +113,8 @@ const fetcher = (async (url: string) => {
   check('aggregates: dates from the first record to the last read', agg.firstDate.getTime() === NOW - 3 * DAY && agg.lastDate.getTime() === NOW);
 
   // ── templates ──
-  check('templates: a jar gets only its own set', offeredFor('friendly-jar', true) && offeredFor('urgency', true) && !offeredFor('top-donors', true) && !offeredFor('daily-activity', true));
-  check('templates: a project never gets the jar card', !offeredFor('friendly-jar', false) && offeredFor('top-donors', false));
+  check('templates: a jar gets only its own set', offeredFor('friendly-jar', 'ownJar') && offeredFor('urgency', 'ownJar') && !offeredFor('top-donors', 'ownJar') && !offeredFor('daily-activity', 'ownJar'));
+  check('templates: a project never gets the jar card', !offeredFor('friendly-jar', 'project') && offeredFor('top-donors', 'project'));
 
   // ── backup ──
   const first = await restoreOwnJars([jar, { ...jarB, id: 'b2' }]);

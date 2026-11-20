@@ -15,6 +15,9 @@ import { SpeedCard } from '../../components/templates/SpeedCard';
 import { DonationStatsCard } from '../../components/templates/DonationStatsCard';
 import { FundsFlowCard } from '../../components/templates/FundsFlowCard';
 import { FinalReportCard } from '../../components/templates/FinalReportCard';
+import { ArchiveJourneyCard } from '../../components/templates/ArchiveJourneyCard';
+import { ArchiveSupportersCard } from '../../components/templates/ArchiveSupportersCard';
+import { ArchiveNumbersCard } from '../../components/templates/ArchiveNumbersCard';
 import { ConcreteAskCard } from '../../components/templates/ConcreteAskCard';
 import { EmojiCloudCard } from '../../components/templates/EmojiCloudCard';
 import { CommentsCard, type SelectedComment } from '../../components/templates/CommentsCard';
@@ -235,6 +238,9 @@ function TemplateRenderer({
     case 'report': return report ? <ReportCard {...shared} report={report} periodLabel={periodLabel} /> : null;
     case 'campaigns-chart': return crossItems ? <CampaignsChartCard {...shared} items={crossItems} /> : null;
     case 'friendly-jar': return ownJar ? <FriendlyJarCard {...shared} jar={ownJar} goal={goal} /> : null;
+    case 'archive-journey': return <ArchiveJourneyCard {...shared} goal={goal} />;
+    case 'archive-supporters': return <ArchiveSupportersCard {...shared} donations={donations ?? []} />;
+    case 'archive-numbers': return <ArchiveNumbersCard {...shared} donations={donations ?? []} />;
     default: {
       // Exhaustiveness check: a new TemplateType that isn't handled above
       // fails the build here instead of silently rendering nothing.

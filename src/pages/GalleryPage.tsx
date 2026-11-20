@@ -26,8 +26,11 @@ import { ReportCard } from '../components/templates/ReportCard';
 import { CampaignsChartCard } from '../components/templates/CampaignsChartCard';
 import { buildReport, datasetsToItems } from '../utils/campaignAnalytics';
 import { getPersonalComments } from '../utils/commentAnalyzer';
-import { groupsFor, offeredFor } from '../utils/templateConfig';
+import { cardsModeOf, groupsFor, offeredFor } from '../utils/templateConfig';
 import { FriendlyJarCard } from '../components/templates/FriendlyJarCard';
+import { ArchiveJourneyCard } from '../components/templates/ArchiveJourneyCard';
+import { ArchiveSupportersCard } from '../components/templates/ArchiveSupportersCard';
+import { ArchiveNumbersCard } from '../components/templates/ArchiveNumbersCard';
 import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, XIcon } from '../icons';
 
 const NATIVE = 1080;
@@ -40,7 +43,8 @@ export function GalleryPage() {
   // Selection (series, insertion order = export order) and open groups live in
   // app state so they survive the gallery ⇄ export round trip
   const selection = app.gallerySelection;
-  const GROUPS = groupsFor(!!app.ownJar);
+  const mode = cardsModeOf(app);
+  const GROUPS = groupsFor(mode);
   const openGroups = useMemo(() => new Set(app.galleryOpenGroups), [app.galleryOpenGroups]);
 
   const setSelection = (next: TemplateType[]) =>
@@ -75,7 +79,7 @@ export function GalleryPage() {
   const isMulti = (app.campaignDatasets?.length ?? 0) >= 2;
   const visibleIds = (ids: TemplateType[]) =>
     ids.filter((id) => {
-      if (!offeredFor(id, !!app.ownJar)) return false;
+      if (!offeredFor(id, mode)) return false;
       if (app.ownJar) return true;
       if (id === 'emoji-cloud') return hasEmojis;
       if (id === 'comments') return previewComments.length > 0;
@@ -315,6 +319,9 @@ function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, co
           {id === 'report' && previewReport && <ReportCard report={previewReport} periodLabel={tCamp('report.labelAll')} format="post" />}
           {id === 'campaigns-chart' && crossItems && <CampaignsChartCard items={crossItems} format="post" />}
           {id === 'friendly-jar' && ownJar && <FriendlyJarCard jar={ownJar} goal={goal} format="post" />}
+          {id === 'archive-journey' && <ArchiveJourneyCard aggregates={aggregates} goal={goal} format="post" />}
+          {id === 'archive-supporters' && <ArchiveSupportersCard aggregates={aggregates} donations={donations} format="post" />}
+          {id === 'archive-numbers' && <ArchiveNumbersCard aggregates={aggregates} donations={donations} format="post" />}
         </div>
       )}
     </div>

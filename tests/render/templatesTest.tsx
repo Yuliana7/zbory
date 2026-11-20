@@ -14,6 +14,10 @@ import { TopDonorsCard } from '../../src/components/templates/TopDonorsCard';
 import { DonorsCountCard } from '../../src/components/templates/DonorsCountCard';
 import { ThankYouCard } from '../../src/components/templates/ThankYouCard';
 import { DonationStatsCard } from '../../src/components/templates/DonationStatsCard';
+import { ArchiveJourneyCard } from '../../src/components/templates/ArchiveJourneyCard';
+import { ArchiveSupportersCard } from '../../src/components/templates/ArchiveSupportersCard';
+import { ArchiveNumbersCard } from '../../src/components/templates/ArchiveNumbersCard';
+import { groupsFor, offeredFor, SUMMARY_GROUP } from '../../src/utils/templateConfig';
 
 const rawData = loadRawDonations('tests/data/Zbir_short.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
@@ -111,6 +115,35 @@ for (const [name, el] of [
 // ── ₴ never separated: every ₴ preceded by nowrap context ──
 const allCards = [bySum, byCount];
 check('No lone ₴ artifacts', allCards.every((h) => !/>\s*₴\s*</.test(h.replace(/logoGradient[^"]*/g, '').replace(/>₴<\/div>/g, '')) || true));
+
+// ── «Підсумок»: a closed project's cards ──
+{
+  const long = normalizeDonations(loadRawDonations('tests/data/Zbir_long.csv'));
+  const agg = aggregateDonations(long.donations, long.withdrawals, long.currentBalance);
+  const text = (h: string) => strip(h).replace(/\u00A0/g, ' ');
+
+  const journey = text(renderToStaticMarkup(<ArchiveJourneyCard aggregates={agg} goal={25000} format="story" />));
+  check('Journey: goal, percent and the four quarters', journey.includes('Ціль') && journey.includes('108%') && ['25%', '50%', '75%', '100%'].every((q) => journey.includes(q)) && journey.includes('41-й день'), journey.slice(0, 300));
+  const noGoal = text(renderToStaticMarkup(<ArchiveJourneyCard aggregates={agg} format="post" />));
+  check('Journey: no goal → quarters of the final total, no goal line', !noGoal.includes('Ціль') && noGoal.includes('гривень зібрано') && noGoal.includes('100%'));
+  check('Journey: chart and milestones can be removed', !renderToStaticMarkup(<ArchiveJourneyCard aggregates={agg} goal={25000} hidden={new Set(['chart', 'milestones'])} />).match(/<svg|Коли зібрали/));
+
+  const sup = text(renderToStaticMarkup(<ArchiveSupportersCard aggregates={agg} donations={long.donations} format="story" />));
+  check('Supporters: donors, returning share, size bands, top names', sup.includes('людей підтримали збір') && sup.includes('поверталися знову') && sup.includes('78%') && sup.includes('94%') && sup.includes('Марина Тищенко'), sup.slice(0, 400));
+  check('Supporters: an empty size band is left out', !sup.includes('понад 1 000 ₴'));
+  const noNames = renderToStaticMarkup(<ArchiveSupportersCard aggregates={agg} donations={long.donations} hidden={new Set(['top'])} />);
+  check('Supporters: names can be hidden', !noNames.includes('Марина Тищенко') && !noNames.includes('Найбільше задонатили'));
+
+  const story = text(renderToStaticMarkup(<ArchiveNumbersCard aggregates={agg} donations={long.donations} format="story" />));
+  const post = text(renderToStaticMarkup(<ArchiveNumbersCard aggregates={agg} donations={long.donations} format="post" />));
+  check('Numbers: six tiles in a story, the record day and the run of days', story.includes('рекордний день') && story.includes('3 020 ₴') && story.includes('днів поспіль із донатами'));
+  check('Numbers: four tiles in a square post', post.includes('рекордний день') && !post.includes('типовий донат') && !post.includes('днів поспіль'));
+
+  check('Modes: «Підсумок» leads a closed project’s gallery', groupsFor('archive')[0].id === SUMMARY_GROUP);
+  check('Modes: its cards aren’t repeated in the other groups', groupsFor('archive').slice(1).every((g) => !g.ids.includes('final-report') && !g.ids.includes('archive-journey')));
+  check('Modes: the summary cards are for closed projects only', offeredFor('archive-journey', 'archive') && !offeredFor('archive-journey', 'project') && !offeredFor('archive-numbers', 'ownJar'));
+  check('Modes: a closed project gets no calls to give', !offeredFor('urgency', 'archive') && !offeredFor('concrete-ask', 'archive') && offeredFor('thank-you', 'archive'));
+}
 
 console.log(failures === 0 ? '\nAll template checks passed.' : `\n${failures} check(s) FAILED`);
 process.exitCode = failures === 0 ? 0 : 1;

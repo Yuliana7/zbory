@@ -1,244 +1,272 @@
 {
-    "progress": {
-        "title": "Збори",
-        "collectedLabel": "Зібрано",
-        "currencyLabel": "гривень",
-        "goalLabel": "Ціль",
-        "friendsLabel": "з них через друзів",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший",
-        "targetSurplus": "— мету перевиконано! 🎉"
-    },
-    "daily-activity": {
-        "title": "Збори",
-        "totalLabel": "Загальна сума",
-        "chartLabel": "Прогрес збору",
-        "barsLabel": "Останні 14 днів",
-        "bestDayLabel": "Найкращий день",
-        "statDonations": "Донатів",
-        "statAverage": "Середній"
-    },
-    "thank-you": {
-        "title": "Дякуємо",
-        "amountLabel": "зібрано разом",
-        "message": "",
-        "donorsLabel": "Донатів:",
-        "branding": "ЗБОРИ"
-    },
-    "milestone": {
-        "title": "Збори",
-        "ongoingLabel": "Збір триває!",
-        "achievedLabel": "Збір триває!",
-        "achievedLabel_noGoal": "Збір триває!",
-        "achievedLabel_100": "Ціль досягнуто! 🎉",
-        "achievedLabel_75": "Ми на фінішній прямій!",
-        "achievedLabel_50": "Половину пройдено!",
-        "achievedLabel_25": "Вже чверть шляху!",
-        "achievedLabel_0": "Збір розпочато!",
-        "collectedLabel": "Зібрано",
-        "goalLabel": "Ціль",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший"
-    },
-    "top-donors": {
-        "title": "Топ донатери",
-        "donationsLabel": "донати",
-        "totalDonorsLabel": "Усього донатів:",
-        "noDataLabel": "Немає даних про донорів"
-    },
-    "top-donors-count": {
-        "title": "Найвідданіші донатери",
-        "donationsLabel": "донатів",
-        "totalDonorsLabel": "Усього донатів:",
-        "noDataLabel": "Немає даних про донорів"
-    },
-    "donors-count": {
-        "title": "Наша спільнота",
-        "donorsLabel": "людей підтримали збір",
-        "anonymousLabel": "анонімних донатів",
-        "avgLabel": "Медіана",
-        "maxLabel": "Найбільший",
-        "totalLabel": "Зібрано",
-        "smallLabel": "до 100 ₴",
-        "mediumLabel": "100–1000 ₴",
-        "largeLabel": "понад 1000 ₴"
-    },
-    "urgency": {
-        "title": "Збори",
-        "remainingLabel": "Залишилось до цілі",
-        "ctaNoGoal": "Підтримай збір!",
-        "currencyLabel": "гривень",
-        "linkUrl": "",
-        "collectedLabel": "Зібрано:",
-        "goalLabel": "Ціль:",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший"
-    },
-    "weekly-recap": {
-        "title": "Тижневий звіт",
-        "thisWeekLabel": "Цей тиждень",
-        "prevWeekLabel": "vs минулий тиждень",
-        "bestDayLabel": "Найкращий день тижня",
-        "donationsLabel": "Донатів за тиждень",
-        "totalCampaignLabel": "Всього за збір",
-        "insufficientData": "Недостатньо даних",
-        "days": [
-            "Нд",
-            "Пн",
-            "Вт",
-            "Ср",
-            "Чт",
-            "Пт",
-            "Сб"
-        ]
-    },
-    "raffle-common": {
-        "fromDonation": "Донат від {{amount}} ₴",
-        "fromRaised": "Зібрано від {{amount}} ₴",
-        "allJars": "Усі банки друзів",
-        "noRaffle": "Розіграш ще не додано"
-    },
-    "raffle-donors": {
-        "title": "Розіграш",
-        "prizeLabel": "Приз",
-        "heroLabel": "Учасників уже"
-    },
-    "raffle-jars": {
-        "title": "Розіграш серед банок друзів",
-        "prizeLabel": "Приз",
-        "heroLabel": "Банок змагаються"
-    },
-    "raffle-biggest": {
-        "title": "Приз за найбільший донат",
-        "prizeLabel": "Приз",
-        "heroLabel": "Найбільша сума зараз",
-        "tiedLabel": "Рівних за сумою донатерів",
-        "randomLabel": "Переможця оберемо випадково",
-        "soloLabel": "Поки що лідер один. Хто більше?"
-    },
-    "donation-stats": {
-        "title": "Який донат типовий",
-        "heroLabel": "Типовий донат (медіана)",
-        "modeLabel": "Найчастіший",
-        "meanLabel": "Середній",
-        "maxLabel": "Найбільший",
-        "minLabel": "Найменший",
-        "rangeLabel": "Половина всіх донатів",
-        "rangeValue": "від {{from}} до {{to}} ₴",
-        "sizesLabel": "За сумою",
-        "small": "до 100 ₴",
-        "medium": "100–1 000 ₴",
-        "large": "понад 1 000 ₴"
-    },
-    "speed": {
-        "title": "Активність збору",
-        "totalLabel": "Зібрано за 7 днів",
-        "donationsLabel": "донатів",
-        "totalCampaignLabel": "Всього за збір",
-        "donationsCountLabel": "Донатів",
-        "peakLabel": "Пік активності",
-        "hourlyLabel": "Погодинна активність"
-    },
-    "funds-flow": {
-        "title": "Надходження і витрати",
-        "raisedLabel": "Зібрано",
-        "spentLabel": "Витрачено",
-        "balanceLabel": "На рахунку",
-        "refundsLabel": "Повернуто",
-        "currencyLabel": "гривень",
-        "noWithdrawalsNote": "Кошти ще не витрачались",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший"
-    },
-    "final-report": {
-        "title": "Збір завершено 💙💛",
-        "currencyLabel": "гривень зібрано",
-        "daysLabel": "Днів",
-        "donationsLabel": "Донатів",
-        "bestDayLabel": "Найкращий день",
-        "spentLabel": "Витрачено:",
-        "balanceLabel": "На рахунку:",
-        "message": "Дякуємо кожному, хто долучився. Разом ми — сила! 💙💛",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший"
-    },
-    "concrete-ask": {
-        "title": "Збори",
-        "askPrefix": "Ще",
-        "donationsWord": "донатів",
-        "unitPrefix": "по",
-        "closingLine": "— і збір закрито 🎯",
-        "remainingLabel": "Залишилось зібрати:",
-        "unitAmount": "",
-        "linkUrl": "",
-        "goalReached": "Мету досягнуто! 🎉",
-        "noGoal": "Підтримай збір! 💙💛",
-        "statCollected": "Зібрано",
-        "statMedian": "Медіана",
-        "statMax": "Найбільший"
-    },
-    "emoji-cloud": {
-        "title": "Емоції нашого збору",
-        "fromCommentsLabel": "З особистих коментарів донатерів:",
-        "noDataLabel": "У коментарях поки немає емоджі"
-    },
-    "comments": {
-        "title": "Слова підтримки",
-        "emptyHint": "Оберіть коментарі у панелі праворуч — вони з'являться тут",
-        "noDataLabel": "Немає коментарів"
-    },
-    "report": {
-        "title": "Загальний звіт",
-        "campaigns": "Зборів",
-        "donations": "Донатів",
-        "donors": "Донатерів",
-        "topTitle": "Топ 3 збори",
-        "thanks": "Дякуємо кожному, хто долучився! 💙💛"
-    },
-    "campaigns-chart": {
-        "title": "Динаміка зборів"
-    },
-    "friends-leaderboard": {
-        "title": "Друзі збору",
-        "totalLabel": "Разом через друзів",
-        "targetLabel": "ціль",
-        "reachedLabel": "Досягли цілі",
-        "reachedOf": "{{reached}} з {{total}}",
-        "more": "+ ще {{n}}",
-        "closedLabel": "закрита"
-    },
-    "friendly-jar": {
-        "title": "Моя дружня банка",
-        "collectedLabel": "Зібрано в моїй банці",
-        "goalLabel": "Моя ціль",
-        "leftLabel": "Лишилось зібрати",
-        "reachedLabel": "Ціль зібрано, дякую! 💙💛",
-        "mainLabel": "Допомагаю збору",
-        "mainRaisedLabel": "Разом зібрано",
-        "ofLabel": "з"
-    },
-    "friends-stats": {
-        "title": "Банки друзів",
-        "heroLabel": "Зібрали друзі",
-        "jarsLabel": "Банок друзів",
-        "targetLabel": "Спільна ціль"
-    },
-    "friends-closed": {
-        "title": "Банки друзів завершено",
-        "heroLabel": "зібрали друзі",
-        "targetLabel": "ціль",
-        "reachedLabel": "Досягли цілі",
-        "reachedOf": "{{reached}} з {{total}}",
-        "more": "+ ще {{n}}",
-        "thanks": "Дякуємо кожному, хто долучився 💙💛",
-        "closedCount_one": "Закрито {{count}} банку",
-        "closedCount_few": "Закрито {{count}} банки",
-        "closedCount_many": "Закрито {{count}} банок",
-        "closedCount_other": "Закрито {{count}} банок"
-    }
+  "progress": {
+    "title": "Збори",
+    "collectedLabel": "Зібрано",
+    "currencyLabel": "гривень",
+    "goalLabel": "Ціль",
+    "friendsLabel": "з них через друзів",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший",
+    "targetSurplus": "— мету перевиконано! 🎉"
+  },
+  "daily-activity": {
+    "title": "Збори",
+    "totalLabel": "Загальна сума",
+    "chartLabel": "Прогрес збору",
+    "barsLabel": "Останні 14 днів",
+    "bestDayLabel": "Найкращий день",
+    "statDonations": "Донатів",
+    "statAverage": "Середній"
+  },
+  "thank-you": {
+    "title": "Дякуємо",
+    "amountLabel": "зібрано разом",
+    "message": "",
+    "donorsLabel": "Донатів:",
+    "branding": "ЗБОРИ"
+  },
+  "milestone": {
+    "title": "Збори",
+    "ongoingLabel": "Збір триває!",
+    "achievedLabel": "Збір триває!",
+    "achievedLabel_noGoal": "Збір триває!",
+    "achievedLabel_100": "Ціль досягнуто! 🎉",
+    "achievedLabel_75": "Ми на фінішній прямій!",
+    "achievedLabel_50": "Половину пройдено!",
+    "achievedLabel_25": "Вже чверть шляху!",
+    "achievedLabel_0": "Збір розпочато!",
+    "collectedLabel": "Зібрано",
+    "goalLabel": "Ціль",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший"
+  },
+  "top-donors": {
+    "title": "Топ донатери",
+    "donationsLabel": "донати",
+    "totalDonorsLabel": "Усього донатів:",
+    "noDataLabel": "Немає даних про донорів"
+  },
+  "top-donors-count": {
+    "title": "Найвідданіші донатери",
+    "donationsLabel": "донатів",
+    "totalDonorsLabel": "Усього донатів:",
+    "noDataLabel": "Немає даних про донорів"
+  },
+  "donors-count": {
+    "title": "Наша спільнота",
+    "donorsLabel": "людей підтримали збір",
+    "anonymousLabel": "анонімних донатів",
+    "avgLabel": "Медіана",
+    "maxLabel": "Найбільший",
+    "totalLabel": "Зібрано",
+    "smallLabel": "до 100 ₴",
+    "mediumLabel": "100–1000 ₴",
+    "largeLabel": "понад 1000 ₴"
+  },
+  "urgency": {
+    "title": "Збори",
+    "remainingLabel": "Залишилось до цілі",
+    "ctaNoGoal": "Підтримай збір!",
+    "currencyLabel": "гривень",
+    "linkUrl": "",
+    "collectedLabel": "Зібрано:",
+    "goalLabel": "Ціль:",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший"
+  },
+  "weekly-recap": {
+    "title": "Тижневий звіт",
+    "thisWeekLabel": "Цей тиждень",
+    "prevWeekLabel": "vs минулий тиждень",
+    "bestDayLabel": "Найкращий день тижня",
+    "donationsLabel": "Донатів за тиждень",
+    "totalCampaignLabel": "Всього за збір",
+    "insufficientData": "Недостатньо даних",
+    "days": [
+      "Нд",
+      "Пн",
+      "Вт",
+      "Ср",
+      "Чт",
+      "Пт",
+      "Сб"
+    ]
+  },
+  "raffle-common": {
+    "fromDonation": "Донат від {{amount}} ₴",
+    "fromRaised": "Зібрано від {{amount}} ₴",
+    "allJars": "Усі банки друзів",
+    "noRaffle": "Розіграш ще не додано"
+  },
+  "raffle-donors": {
+    "title": "Розіграш",
+    "prizeLabel": "Приз",
+    "heroLabel": "Учасників уже"
+  },
+  "raffle-jars": {
+    "title": "Розіграш серед банок друзів",
+    "prizeLabel": "Приз",
+    "heroLabel": "Банок змагаються"
+  },
+  "raffle-biggest": {
+    "title": "Приз за найбільший донат",
+    "prizeLabel": "Приз",
+    "heroLabel": "Найбільша сума зараз",
+    "tiedLabel": "Рівних за сумою донатерів",
+    "randomLabel": "Переможця оберемо випадково",
+    "soloLabel": "Поки що лідер один. Хто більше?"
+  },
+  "donation-stats": {
+    "title": "Який донат типовий",
+    "heroLabel": "Типовий донат (медіана)",
+    "modeLabel": "Найчастіший",
+    "meanLabel": "Середній",
+    "maxLabel": "Найбільший",
+    "minLabel": "Найменший",
+    "rangeLabel": "Половина всіх донатів",
+    "rangeValue": "від {{from}} до {{to}} ₴",
+    "sizesLabel": "За сумою",
+    "small": "до 100 ₴",
+    "medium": "100–1 000 ₴",
+    "large": "понад 1 000 ₴"
+  },
+  "speed": {
+    "title": "Активність збору",
+    "totalLabel": "Зібрано за 7 днів",
+    "donationsLabel": "донатів",
+    "totalCampaignLabel": "Всього за збір",
+    "donationsCountLabel": "Донатів",
+    "peakLabel": "Пік активності",
+    "hourlyLabel": "Погодинна активність"
+  },
+  "funds-flow": {
+    "title": "Надходження і витрати",
+    "raisedLabel": "Зібрано",
+    "spentLabel": "Витрачено",
+    "balanceLabel": "На рахунку",
+    "refundsLabel": "Повернуто",
+    "currencyLabel": "гривень",
+    "noWithdrawalsNote": "Кошти ще не витрачались",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший"
+  },
+  "final-report": {
+    "title": "Збір завершено 💙💛",
+    "currencyLabel": "гривень зібрано",
+    "daysLabel": "Днів",
+    "donationsLabel": "Донатів",
+    "bestDayLabel": "Найкращий день",
+    "spentLabel": "Витрачено:",
+    "balanceLabel": "На рахунку:",
+    "message": "Дякуємо кожному, хто долучився. Разом ми — сила! 💙💛",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший"
+  },
+  "concrete-ask": {
+    "title": "Збори",
+    "askPrefix": "Ще",
+    "donationsWord": "донатів",
+    "unitPrefix": "по",
+    "closingLine": "— і збір закрито 🎯",
+    "remainingLabel": "Залишилось зібрати:",
+    "unitAmount": "",
+    "linkUrl": "",
+    "goalReached": "Мету досягнуто! 🎉",
+    "noGoal": "Підтримай збір! 💙💛",
+    "statCollected": "Зібрано",
+    "statMedian": "Медіана",
+    "statMax": "Найбільший"
+  },
+  "emoji-cloud": {
+    "title": "Емоції нашого збору",
+    "fromCommentsLabel": "З особистих коментарів донатерів:",
+    "noDataLabel": "У коментарях поки немає емоджі"
+  },
+  "comments": {
+    "title": "Слова підтримки",
+    "emptyHint": "Оберіть коментарі у панелі праворуч — вони з'являться тут",
+    "noDataLabel": "Немає коментарів"
+  },
+  "report": {
+    "title": "Загальний звіт",
+    "campaigns": "Зборів",
+    "donations": "Донатів",
+    "donors": "Донатерів",
+    "topTitle": "Топ 3 збори",
+    "thanks": "Дякуємо кожному, хто долучився! 💙💛"
+  },
+  "campaigns-chart": {
+    "title": "Динаміка зборів"
+  },
+  "friends-leaderboard": {
+    "title": "Друзі збору",
+    "totalLabel": "Разом через друзів",
+    "targetLabel": "ціль",
+    "reachedLabel": "Досягли цілі",
+    "reachedOf": "{{reached}} з {{total}}",
+    "more": "+ ще {{n}}",
+    "closedLabel": "закрита"
+  },
+  "friendly-jar": {
+    "title": "Моя дружня банка",
+    "collectedLabel": "Зібрано в моїй банці",
+    "goalLabel": "Моя ціль",
+    "leftLabel": "Лишилось зібрати",
+    "reachedLabel": "Ціль зібрано, дякую! 💙💛",
+    "mainLabel": "Допомагаю збору",
+    "mainRaisedLabel": "Разом зібрано",
+    "ofLabel": "з"
+  },
+  "friends-stats": {
+    "title": "Банки друзів",
+    "heroLabel": "Зібрали друзі",
+    "jarsLabel": "Банок друзів",
+    "targetLabel": "Спільна ціль"
+  },
+  "friends-closed": {
+    "title": "Банки друзів завершено",
+    "heroLabel": "зібрали друзі",
+    "targetLabel": "ціль",
+    "reachedLabel": "Досягли цілі",
+    "reachedOf": "{{reached}} з {{total}}",
+    "more": "+ ще {{n}}",
+    "thanks": "Дякуємо кожному, хто долучився 💙💛",
+    "closedCount_one": "Закрито {{count}} банку",
+    "closedCount_few": "Закрито {{count}} банки",
+    "closedCount_many": "Закрито {{count}} банок",
+    "closedCount_other": "Закрито {{count}} банок"
+  },
+  "archive-journey": {
+    "title": "Як ми збирали",
+    "goalLabel": "Ціль",
+    "currencyLabel": "гривень зібрано",
+    "milestonesLabel": "Коли зібрали",
+    "dayWord": "день"
+  },
+  "archive-supporters": {
+    "title": "Наші донатори",
+    "donorsLabel": "людей підтримали збір",
+    "returningLabel": "поверталися знову",
+    "shareLabel": "суми",
+    "bandsLabel": "Частка суми за розміром донату",
+    "smallLabel": "до 100 ₴",
+    "mediumLabel": "100–1 000 ₴",
+    "largeLabel": "понад 1 000 ₴",
+    "topLabel": "Найбільше задонатили"
+  },
+  "archive-numbers": {
+    "title": "Збір у цифрах",
+    "totalLabel": "Разом зібрали",
+    "daysLabel": "днів збору",
+    "donationsLabel": "донатів",
+    "donorsLabel": "донорів",
+    "bestDayLabel": "рекордний день",
+    "medianLabel": "типовий донат",
+    "streakLabel": "днів поспіль із донатами"
+  }
 }
