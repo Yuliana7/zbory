@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
@@ -8,6 +8,7 @@ import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, ownJa
 import { fmtUah, pageOf } from '../../utils/friendJars';
 import { ArchiveIcon, ImageIcon, LockIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
+import { ImportStatementsSheet } from './ImportStatementsSheet';
 
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 const daysBetween = (first: string, last: string) =>
@@ -27,11 +28,24 @@ export function ArchiveList() {
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [jarPage, setJarPage] = useState(0);
+  const [importing, setImporting] = useState(false);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     listCampaigns().then((all) => setCampaigns(all.filter(isArchived))).catch(() => setCampaigns([]));
     listOwnJars().then((all) => setJars(all.filter(isArchived))).catch(() => setJars([]));
   }, []);
+  useEffect(load, [load]);
+
+  // jars added from statements: show the newest year they went under
+  const imported = (added: number[]) => {
+    setImporting(false);
+    load();
+    if (added.length) setYear(Math.max(...added));
+    setQuery('');
+    setPage(0);
+    setJarPage(0);
+  };
+  const importSheet = importing && <ImportStatementsSheet onClose={() => setImporting(false)} onImported={imported} />;
 
   const years = useMemo(() => archiveYears([...(campaigns ?? []), ...(jars ?? [])]), [campaigns, jars]);
   const shownYear = year === undefined ? (years[0] ?? null) : year;
@@ -46,9 +60,15 @@ export function ArchiveList() {
         </span>
         <h2 className="text-xl font-bold text-gray-900">{t('list.empty')}</h2>
         <p className="mt-2 text-sm leading-relaxed text-gray-600">{t('list.emptyText')}</p>
-        <button onClick={() => dispatch({ type: 'SECTION_CHANGED', payload: 'active' })} className="btn-primary mt-6">
-          {t('list.toActive')}
-        </button>
+        <div className="mt-6 flex flex-col items-center gap-2">
+          <button onClick={() => dispatch({ type: 'SECTION_CHANGED', payload: 'active' })} className="btn-primary">
+            {t('list.toActive')}
+          </button>
+          <button onClick={() => setImporting(true)} className="px-3 py-2 text-sm font-medium text-indigo-600 hover:text-indigo-800">
+            {t('import.fromEmpty')}
+          </button>
+        </div>
+        {importSheet}
       </div>
     );
   }
@@ -87,7 +107,15 @@ export function ArchiveList() {
 
   return (
     <div className="max-w-3xl mx-auto py-6 sm:py-8 space-y-5 animate-fade-in">
-      <h2 className="text-2xl font-bold text-gray-900">{t('list.title')}</h2>
+      <div className="flex items-center justify-between gap-3">
+        <h2 className="text-2xl font-bold text-gray-900">{t('list.title')}</h2>
+        <button
+          onClick={() => setImporting(true)}
+          className="shrink-0 whitespace-nowrap rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:border-indigo-300 transition-colors"
+        >
+          {t('import.open')}
+        </button>
+      </div>
 
       <div role="tablist" aria-label={t('list.yearLabel')} className="flex flex-wrap gap-2">
         {years.map((y) => (
@@ -233,6 +261,7 @@ export function ArchiveList() {
       )}
 
       {yearCampaigns.length + yearJars.length === 0 && <p className="py-6 text-center text-sm text-gray-500">{t('list.nothingThisYear')}</p>}
+      {importSheet}
     </div>
   );
 }

@@ -1,7 +1,8 @@
 import { saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
 import { archiveYear, archiveYears, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
-import { ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarStatement } from '../../src/utils/ownJars';
+import { listOwnJars, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarStatement } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
+import { draftFromStatement, importToArchive, knownSignatures, nameFromFile } from '../../src/utils/archiveImport';
 
 let failures = 0;
 const check = (label: string, ok: boolean) => {
@@ -80,6 +81,30 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('statement: the jar’s statement as a dataset for cards', ownJarDataset(stated)?.id === 'own:j' && ownJarDataset(stated)?.rawData === raw && ownJarDataset(archivedJar) === null);
   const unstated = await setOwnJarStatement(stated, null, at(2026, 10));
   check('statement: taken away, and that counts as a change', !unstated.statement && !unstated.statementAddedAt && unstated.updatedAt === at(2026, 10));
+
+  // ── closed jars from statements ──
+  check('import: a name to edit from the file name', nameFromFile('Jar_statement_31.08.2026_185648.csv') === 'Jar statement 31.08.2026 185648');
+  const known = knownSignatures(await listCampaigns(), await listOwnJars());
+  const again = draftFromStatement('dup.csv', raw, known);
+  check('import: a statement the app already holds is marked and left out', again?.duplicate === true && again.skip === true);
+  const other: RawDonation[] = raw.map((r) => ({ ...r, date: r.date.replace('07.2026', '03.2025') }));
+  const fresh = draftFromStatement('Banka_dlia_Oli.csv', other, known)!;
+  check('import: a new statement is taken, closed on its last donation', !fresh.duplicate && !fresh.skip && fresh.closedOn === '2025-03-03' && fresh.summary.donationCount === 2);
+  check('import: a file without donations is no draft', draftFromStatement('x.csv', [], known) === null);
+  const years = await importToArchive(
+    [{ ...fresh, name: '  Банка для Олі  ', goal: '1 000' }, { ...fresh, key: 'p', name: 'Старий збір', closedOn: '2024-12-30' }, { ...again!, name: 'skipped' }],
+    'ownJar',
+    at(2026, 11),
+  );
+  const jars = (await listOwnJars()).filter((j) => j.name === 'Банка для Олі' || j.name === 'Старий збір');
+  const olia = jars.find((j) => j.name === 'Банка для Олі');
+  check('import: own jars filed under the closing year, skipped ones not added', years.join() === '2025,2024' && jars.length === 2 && !(await listOwnJars()).some((j) => j.name === 'skipped'));
+  check('import: an imported jar is closed, unlinked, carries its statement, goal and amount', !!olia && olia.closed === true && olia.jarId === '' && olia.statement === other && olia.target === 1000 && olia.raised === 500 && archiveYear(olia) === 2025);
+  const projYears = await importToArchive([{ ...fresh, key: 'q', name: 'Минулий збір' }], 'project', at(2026, 11));
+  const proj = (await listCampaigns()).find((c) => c.name === 'Минулий збір');
+  check('import: as a main jar, it is an archived project', projYears.join() === '2025' && !!proj && isArchived(proj) && archiveYear(proj) === 2025);
+  const knownNow = knownSignatures(await listCampaigns(), await listOwnJars());
+  check('import: once in, the same statement is known', draftFromStatement('again.csv', other, knownNow)?.duplicate === true);
 
   console.log(failures === 0 ? '\nAll archive checks passed.' : `\n${failures} check(s) FAILED`);
   process.exitCode = failures === 0 ? 0 : 1;
