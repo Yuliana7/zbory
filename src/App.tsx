@@ -5,6 +5,7 @@ import type { AppState } from './types'
 import { UploadPage } from './pages/UploadPage'
 import { InsightsPage } from './pages/InsightsPage'
 import { GalleryPage } from './pages/GalleryPage'
+import { ArchivePage } from './pages/ArchivePage'
 import { ExportPage } from './pages/ExportPage'
 import { SafeAreaTopBar } from './components/SafeAreaTopBar'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
@@ -22,13 +23,16 @@ const STEP_KEYS: AppState['step'][] = ['upload', 'insights', 'gallery', 'export'
 
 function App() {
   const { t } = useTranslation('common')
-  const { state, handleReset, goToStep } = useAppContext()
+  const { state, dispatch, handleReset, goToStep } = useAppContext()
   const { app, error } = state
   const currentStepIdx = STEP_INDEX[app.step]
+  const section = app.section === 'archive' ? 'archive' : 'active'
+  // an archived project's cards use the steps' pages, but stay in the archive
+  const showArchive = section === 'archive' && !app.archivedCards
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
-  }, [app.step, app.insightsView])
+  }, [app.step, app.insightsView, app.section, app.archiveView])
 
   const stepLabels = [
     t('steps.upload'),
@@ -45,7 +49,8 @@ function App() {
       {/* Leaves room for the OS status bar / notch that SafeAreaTopBar paints */}
       <header className="bg-white border-b border-gray-200 shadow-sm" style={{ paddingTop: 'var(--safe-top)' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          {/* phone: the logo and «Активні | Архів» on one line, the steps under them; wider: all on one line */}
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
             <button
               onClick={handleReset}
               className="flex items-center space-x-3 group cursor-pointer"
@@ -56,11 +61,28 @@ function App() {
               </div>
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">{t('appName')}</h1>
-                <p className="text-sm text-gray-500">{t('appSubtitle')}</p>
+                <p className="hidden sm:block text-sm text-gray-500">{t('appSubtitle')}</p>
               </div>
             </button>
 
-            <div className="flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
+            <div role="tablist" aria-label={t('section.label')} className="sm:order-last flex p-1 gap-0.5 rounded-full bg-indigo-50">
+              {(['active', 'archive'] as const).map((key) => (
+                <button
+                  key={key}
+                  role="tab"
+                  aria-selected={section === key}
+                  onClick={() => (section === key && !app.archiveView && !app.archivedCards ? undefined : dispatch({ type: 'SECTION_CHANGED', payload: key }))}
+                  className={`px-3.5 sm:px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                    section === key ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-700 hover:bg-indigo-100'
+                  }`}
+                >
+                  {t(`section.${key}`)}
+                </button>
+              ))}
+            </div>
+
+            {section === 'active' && (
+            <div className="w-full sm:w-auto flex items-center space-x-1 sm:space-x-2 text-xs sm:text-sm">
               {stepLabels.map((label, idx) => {
                 const stepNum = idx + 1
                 const isActive = stepNum === currentStepIdx
@@ -98,6 +120,7 @@ function App() {
                 )
               })}
             </div>
+            )}
           </div>
         </div>
       </header>
@@ -110,10 +133,16 @@ function App() {
         )}
 
         <div className="animate-fade-in">
-          {app.step === 'upload' && <UploadPage />}
-          {app.step === 'insights' && <InsightsPage />}
-          {app.step === 'gallery' && <GalleryPage />}
-          {app.step === 'export' && <ExportPage />}
+          {showArchive ? (
+            <ArchivePage />
+          ) : (
+            <>
+              {app.step === 'upload' && <UploadPage />}
+              {app.step === 'insights' && <InsightsPage />}
+              {app.step === 'gallery' && <GalleryPage />}
+              {app.step === 'export' && <ExportPage />}
+            </>
+          )}
         </div>
       </main>
 

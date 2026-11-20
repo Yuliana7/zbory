@@ -10,6 +10,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type {
   AppState,
+  ArchiveView,
   RawDonation,
   Donation,
   Withdrawal,
@@ -118,6 +119,10 @@ const INITIAL_STATE: FullState = {
 export type AppAction =
   | { type: 'FILE_PARSED'; payload: { rawData: RawDonation[]; donations: Donation[]; withdrawals: Withdrawal[]; currentBalance: number; originalFileName?: string; goal?: number; activeCampaignId?: string; activeCampaignName?: string; campaignDatasets?: CampaignDataset[]; style?: SharedStyle; friends?: FriendJar[]; raffles?: Raffle[]; monobankJar?: MonobankJarRef; monobankSyncedAt?: number } }
   | { type: 'FRIENDS_UPDATED'; payload: FriendJar[] }
+  | { type: 'SECTION_CHANGED'; payload: 'active' | 'archive' }
+  | { type: 'ARCHIVE_VIEW'; payload: ArchiveView | null }
+  | { type: 'ARCHIVED_CARDS_OPENED'; payload: string }
+  | { type: 'CLOSE_REQUESTED'; payload: boolean }
   | { type: 'FRIENDS_EDIT_OPENED' }
   | { type: 'FRIENDS_EDIT_DONE' }
   | { type: 'RAFFLES_UPDATED'; payload: Raffle[] }
@@ -284,6 +289,23 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     case 'RESET':
       return INITIAL_STATE;
+
+    // the header's «Активні | Архів»: either way starts clean (everything open is already saved)
+    case 'SECTION_CHANGED':
+      return { ...INITIAL_STATE, app: { ...INITIAL_APP_STATE, section: action.payload === 'archive' ? 'archive' : undefined } };
+
+    // a page of the archive; coming back from an archived project's cards drops what they loaded
+    case 'ARCHIVE_VIEW':
+      return state.app.archivedCards
+        ? { ...INITIAL_STATE, app: { ...INITIAL_APP_STATE, section: 'archive', archiveView: action.payload ?? undefined } }
+        : { ...state, app: { ...state.app, section: 'archive', archiveView: action.payload ?? undefined } };
+
+    // the project is loaded (see handleLoadCampaign); its cards open read-only, straight on the templates
+    case 'ARCHIVED_CARDS_OPENED':
+      return { ...state, app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery' } };
+
+    case 'CLOSE_REQUESTED':
+      return { ...state, app: { ...state.app, closeRequested: action.payload } };
 
     default:
       return state;

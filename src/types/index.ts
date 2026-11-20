@@ -260,9 +260,23 @@ export interface Template {
   requiresGoal?: boolean;
 }
 
+/** A page of the archive: a closed project, or one of the user's own friendly jars. */
+export interface ArchiveView {
+  kind: 'project' | 'ownJar';
+  id: string;
+}
+
 // App state
 export interface AppState {
   step: 'upload' | 'insights' | 'gallery' | 'export';
+  /** 'archive' while the archive is showing (the header's «Активні | Архів»); unset = the active projects */
+  section?: 'archive';
+  /** the archive's page for one closed project or jar; unset = the archive's list */
+  archiveView?: ArchiveView;
+  /** cards are being made for an archived project (its id): read-only, and «Назад» returns to its archive page */
+  archivedCards?: string;
+  /** closing was asked for from the project list; the analytics opens the close sheet on arrival */
+  closeRequested?: boolean;
   rawData: RawDonation[] | null;
   donations: Donation[] | null;
   withdrawals: Withdrawal[] | null;

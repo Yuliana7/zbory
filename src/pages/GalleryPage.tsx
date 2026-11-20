@@ -106,14 +106,20 @@ export function GalleryPage() {
           )}
         </div>
         <button
-          // a friendly jar has no analytics: back is the jar list
-          onClick={() => (app.ownJar ? handleReset() : dispatch({ type: 'GO_TO_STEP', payload: 'insights' }))}
+          // a friendly jar has no analytics: back is the jar list; an archived project's cards go back to its archive page
+          onClick={() =>
+            app.archivedCards
+              ? dispatch({ type: 'ARCHIVE_VIEW', payload: { kind: 'project', id: app.archivedCards } })
+              : app.ownJar
+                ? handleReset()
+                : dispatch({ type: 'GO_TO_STEP', payload: 'insights' })
+          }
           className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          {app.ownJar ? t('backToJars') : t('backButton')}
+          {app.archivedCards ? t('backToArchive') : app.ownJar ? t('backToJars') : t('backButton')}
         </button>
       </div>
 

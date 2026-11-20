@@ -5,19 +5,24 @@ import { useAppContext } from '../../context/AppContext';
 import { fmtUah } from '../../utils/friendJars';
 import { formatWhen } from '../../utils/friendsRefresh';
 import { forecast, growth } from '../../utils/friendInsights';
-import { addOwnJar, goalPct, ownJarsStale, removeOwnJar, renewOwnJars, saveOwnJar, sortOwnJars } from '../../utils/ownJars';
+import { addOwnJar, goalPct, ownJarsStale, removeOwnJar, renewOwnJars, saveOwnJar, setOwnJarArchived, sortOwnJars } from '../../utils/ownJars';
+import { ARCHIVE_PAGE_SIZE, matchesName } from '../../utils/archive';
+import { pageOf } from '../../utils/friendJars';
+import { Pager, SearchBox } from '../ListControls';
 import type { JarErrorKind } from '../../utils/monobankJar';
 import { CopyJarLink } from '../insights/friendsShared';
 import { JarChartModal } from '../insights/JarChartModal';
-import { ImageIcon, PlusIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
+import { ArchiveIcon, ImageIcon, PlusIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
 
 const GROWTH_DAYS = 7;
 
 /** «Мої дружні банки»: the user's own friendly jars, which Monobank leaves out of their statement.
- * Added by link, read from the jar's public numbers, renewed together; each opens the templates. */
+ * Added by link, read from the jar's public numbers, renewed together; each opens the templates.
+ * Only active jars are here: «В архів» files one under the year it was closed. */
 export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChange: (jars: OwnJar[]) => void }) {
   const { t } = useTranslation('upload');
   const { t: tExport } = useTranslation('export');
+  const { t: tCommon } = useTranslation();
   const { dispatch } = useAppContext();
   const [input, setInput] = useState('');
   const [adding, setAdding] = useState(false);
@@ -25,6 +30,8 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
   const [renewing, setRenewing] = useState(false);
   const [renewError, setRenewError] = useState<JarErrorKind | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [page, setPage] = useState(0);
   const [now] = useState(() => Date.now());
   const jarsRef = useRef(jars);
   jarsRef.current = jars;
@@ -89,6 +96,14 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
     await removeOwnJar(jar.id);
     onJarsChange(jarsRef.current.filter((j) => j.id !== jar.id));
   };
+
+  const archive = async (jar: OwnJar) => {
+    await setOwnJarArchived(jar, Date.now());
+    onJarsChange(jarsRef.current.filter((j) => j.id !== jar.id));
+  };
+
+  const found = jars.filter((j) => matchesName(j.name, query));
+  const shown = pageOf(found, page, ARCHIVE_PAGE_SIZE);
 
   const asOf = jars.filter((j) => !j.closed && j.syncedAt).map((j) => j.syncedAt!);
   const chartJar = jars.find((j) => j.id === chartId);
@@ -158,29 +173,46 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
         </div>
       )}
 
+      {jars.length > ARCHIVE_PAGE_SIZE / 2 && (
+        <div className="mb-3">
+          <SearchBox
+            value={query}
+            onChange={(q) => {
+              setQuery(q);
+              setPage(0);
+            }}
+          />
+        </div>
+      )}
       {jars.length === 0 ? (
         <p className="mt-6 text-center text-sm text-gray-400">{t('ownJars.empty')}</p>
+      ) : found.length === 0 ? (
+        <p className="mt-6 text-center text-sm text-gray-500">{tCommon('list.nothingFound', { query: query.trim() })}</p>
       ) : (
         <ul className="space-y-3">
-          {jars.map((jar) => (
+          {shown.items.map((jar) => (
             <OwnJarItem
               key={jar.id}
               jar={jar}
               now={now}
               onChart={() => setChartId(jar.id)}
               onCards={() => dispatch({ type: 'OWN_JAR_OPENED', payload: jar })}
+              onArchive={() => void archive(jar)}
               onRemove={() => void remove(jar)}
             />
           ))}
         </ul>
       )}
+      <div className="mt-4">
+        <Pager page={shown.page} pages={shown.pages} size={ARCHIVE_PAGE_SIZE} shown={shown.items.length} total={found.length} onPage={setPage} />
+      </div>
 
       {chartJar && <JarChartModal friend={chartJar} now={now} onClose={closeChart} />}
     </div>
   );
 }
 
-function OwnJarItem({ jar, now, onChart, onCards, onRemove }: { jar: OwnJar; now: number; onChart: () => void; onCards: () => void; onRemove: () => void }) {
+function OwnJarItem({ jar, now, onChart, onCards, onArchive, onRemove }: { jar: OwnJar; now: number; onChart: () => void; onCards: () => void; onArchive: () => void; onRemove: () => void }) {
   const { t } = useTranslation('upload');
   const pct = goalPct(jar.raised, jar.target);
   const left = jar.target ? Math.max(0, jar.target - jar.raised) : 0;
@@ -249,6 +281,14 @@ function OwnJarItem({ jar, now, onChart, onCards, onRemove }: { jar: OwnJar; now
           {t('ownJars.cards')}
         </button>
         {jar.shortId && <CopyJarLink shortId={jar.shortId} />}
+        {/* a jar that is done says so: closed on Monobank or past its goal */}
+        <button
+          onClick={onArchive}
+          className={`${action} ${jar.closed || (pct ?? 0) >= 100 ? 'text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-3' : 'text-gray-500 hover:text-gray-800 hover:bg-gray-100'}`}
+        >
+          <ArchiveIcon className="w-3.5 h-3.5" />
+          {t('ownJars.toArchive')}
+        </button>
         <button onClick={onRemove} title={t('ownJars.remove')} aria-label={t('ownJars.remove')} className={`${action} ml-auto text-gray-400 hover:text-red-600 hover:bg-red-50`}>
           <TrashIcon className="w-3.5 h-3.5" />
         </button>
