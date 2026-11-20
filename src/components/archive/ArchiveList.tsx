@@ -4,9 +4,9 @@ import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
 import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
 import { listOwnJars, goalPct } from '../../utils/ownJars';
-import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, yearSummary } from '../../utils/archive';
+import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
-import { ArchiveIcon, LockIcon } from '../../icons';
+import { ArchiveIcon, ImageIcon, LockIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
@@ -19,7 +19,8 @@ const MONTHS = ['січ', 'квіт', 'лип', 'жовт', 'груд'];
 export function ArchiveList() {
   const { t } = useTranslation('archive');
   const { t: tCommon } = useTranslation();
-  const { dispatch } = useAppContext();
+  const { dispatch, handleLoadCampaigns } = useAppContext();
+  const [opening, setOpening] = useState(false);
   const [campaigns, setCampaigns] = useState<CampaignMeta[] | null>(null);
   const [jars, setJars] = useState<OwnJar[] | null>(null);
   const [year, setYear] = useState<number | null | undefined>(undefined); // undefined = the newest year, once loaded
@@ -69,6 +70,14 @@ export function ArchiveList() {
   const chip = (on: boolean) =>
     `px-4 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
   const open = (kind: 'project' | 'ownJar', id: string) => dispatch({ type: 'ARCHIVE_VIEW', payload: { kind, id } });
+  // «Мій рік»: the year's statements load together (for the donors and the reports across them), then its cards open
+  const makeYearCards = async () => {
+    if (shownYear === null || opening) return;
+    setOpening(true);
+    const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), { proceed: true });
+    setOpening(false);
+    if (ok) dispatch({ type: 'ARCHIVED_YEAR_OPENED', payload: yearRecap(shownYear, yearCampaigns, yearJars) });
+  };
 
   return (
     <div className="max-w-3xl mx-auto py-6 sm:py-8 space-y-5 animate-fade-in">
@@ -119,6 +128,14 @@ export function ArchiveList() {
                   <span key={m}>{m}</span>
                 ))}
               </div>
+              <button
+                onClick={() => void makeYearCards()}
+                disabled={opening}
+                className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-white/15 px-4 py-2.5 text-sm font-semibold text-white hover:bg-white/25 disabled:opacity-60 transition-colors"
+              >
+                <ImageIcon className="h-4 w-4" />
+                {opening ? t('list.yearCardsOpening') : t('list.yearCards', { year: shownYear })}
+              </button>
             </div>
           )}
         </section>

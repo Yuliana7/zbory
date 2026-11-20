@@ -253,7 +253,8 @@ export type TemplateType =
   | 'friendly-jar'
   | 'archive-journey'
   | 'archive-supporters'
-  | 'archive-numbers';
+  | 'archive-numbers'
+  | 'archive-year';
 
 export interface Template {
   id: TemplateType;
@@ -261,6 +262,23 @@ export interface Template {
   description: string;
   format: 'post' | 'post-4-5' | 'story'; // post: 1080x1080, post-4-5: 1080x1350, story: 1080x1920
   requiresGoal?: boolean;
+}
+
+/** «Мій 2026»: a year of closed projects, as the year card shows it — taken from the saved summaries
+ * when its cards are opened (the year's statements are loaded alongside, for the donors). */
+export interface YearRecap {
+  year: number;
+  total: number;
+  /** closed projects */
+  count: number;
+  donations: number;
+  /** friendly jars: the projects' helpers and the user's own archived jars */
+  friendJars: number;
+  /** closed totals by the month they were closed, January first */
+  byMonth: number[];
+  biggest: { name: string; total: number } | null;
+  /** projects that had a goal, and those that reached it */
+  goals: { set: number; reached: number };
 }
 
 /** A page of the archive: a closed project, or one of the user's own friendly jars. */
@@ -278,6 +296,8 @@ export interface AppState {
   archiveView?: ArchiveView;
   /** cards are being made for an archived project (its id): read-only, and «Назад» returns to its archive page */
   archivedCards?: string;
+  /** cards are being made for a year of the archive («Мій 2026»); «Назад» returns to the archive's list */
+  yearRecap?: YearRecap;
   /** closing was asked for from the project list; the analytics opens the close sheet on arrival */
   closeRequested?: boolean;
   rawData: RawDonation[] | null;

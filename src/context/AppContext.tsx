@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import type {
   AppState,
   ArchiveView,
+  YearRecap,
   RawDonation,
   Donation,
   Withdrawal,
@@ -41,7 +42,7 @@ import { mergeRawDonations, type MergeResult } from '../utils/mergeDonations';
 
 import { makeCard } from '../utils/exportStack';
 import { ownJarAggregates } from '../utils/ownJars';
-import { OWN_JAR_GROUP, SUMMARY_GROUP } from '../utils/templateConfig';
+import { OWN_JAR_GROUP, SUMMARY_GROUP, YEAR_GROUP } from '../utils/templateConfig';
 
 /** Where a project's rows come from and what goes with them; no id = a new project. */
 interface ProjectSource {
@@ -122,6 +123,7 @@ export type AppAction =
   | { type: 'SECTION_CHANGED'; payload: 'active' | 'archive' }
   | { type: 'ARCHIVE_VIEW'; payload: ArchiveView | null }
   | { type: 'ARCHIVED_CARDS_OPENED'; payload: string }
+  | { type: 'ARCHIVED_YEAR_OPENED'; payload: YearRecap }
   | { type: 'CLOSE_REQUESTED'; payload: boolean }
   | { type: 'FRIENDS_EDIT_OPENED' }
   | { type: 'FRIENDS_EDIT_DONE' }
@@ -296,7 +298,7 @@ function appReducer(state: FullState, action: AppAction): FullState {
 
     // a page of the archive; coming back from an archived project's cards drops what they loaded
     case 'ARCHIVE_VIEW':
-      return state.app.archivedCards
+      return state.app.archivedCards || state.app.yearRecap
         ? { ...INITIAL_STATE, app: { ...INITIAL_APP_STATE, section: 'archive', archiveView: action.payload ?? undefined } }
         : { ...state, app: { ...state.app, section: 'archive', archiveView: action.payload ?? undefined } };
 
@@ -305,6 +307,13 @@ function appReducer(state: FullState, action: AppAction): FullState {
       return {
         ...state,
         app: { ...state.app, section: 'archive', archivedCards: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [SUMMARY_GROUP], gallerySelection: [] },
+      };
+
+    // the year's projects are loaded together (see handleLoadCampaigns); «Мій рік» and the year's cards open
+    case 'ARCHIVED_YEAR_OPENED':
+      return {
+        ...state,
+        app: { ...state.app, section: 'archive', yearRecap: action.payload, archiveView: undefined, step: 'gallery', galleryOpenGroups: [YEAR_GROUP], gallerySelection: [] },
       };
 
     case 'CLOSE_REQUESTED':

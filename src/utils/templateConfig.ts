@@ -196,6 +196,18 @@ export const TEMPLATE_TEXT_FIELDS: Record<TemplateType, TextFieldDef[]> = {
     { key: 'largeLabel' },
     { key: 'topLabel' },
   ],
+  'archive-year': [
+    { key: 'title' },
+    { key: 'totalLabel' },
+    { key: 'projectsLabel' },
+    { key: 'donationsLabel' },
+    { key: 'donorsLabel' },
+    { key: 'friendsLabel' },
+    { key: 'busiestLabel' },
+    { key: 'biggestLabel' },
+    { key: 'goalsLabel' },
+    { key: 'thanks', multiline: true },
+  ],
   'archive-numbers': [
     { key: 'title' },
     { key: 'totalLabel' },
@@ -237,6 +249,7 @@ export const TEMPLATE_SUPPORTS_DATE_RANGE: Record<TemplateType, boolean> = {
   'archive-journey': false, // a closed project is told whole
   'archive-supporters': false,
   'archive-numbers': false,
+  'archive-year': false, // a whole year
 };
 
 export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
@@ -268,6 +281,7 @@ export const TEMPLATE_REQUIRES_GOAL: Record<TemplateType, boolean> = {
   'archive-journey': false,
   'archive-supporters': false,
   'archive-numbers': false,
+  'archive-year': false,
 };
 
 // Stories are the primary sharing format for volunteers — every template
@@ -301,6 +315,7 @@ export const TEMPLATE_DEFAULT_FORMAT: Record<TemplateType, 'post' | 'story'> = {
   'archive-journey': 'story',
   'archive-supporters': 'story',
   'archive-numbers': 'story',
+  'archive-year': 'story',
 };
 
 // Elements the tap-to-remove editor can hide, per template. `id` matches the
@@ -500,6 +515,16 @@ export const TEMPLATE_REMOVABLE_ELEMENTS: Record<TemplateType, RemovableElement[
   'archive-journey': [HEADER, el('hero', 'layout.hero'), el('chart', 'layout.chart'), el('milestones', 'layout.milestones'), UA_FLAG, GLOW],
   'archive-supporters': [HEADER, el('hero', 'layout.supportersHero'), el('bands', 'layout.bands'), el('top', 'layout.topDonors'), UA_FLAG, GLOW],
   'archive-numbers': [HEADER, el('hero', 'layout.hero'), el('grid', 'layout.numbersGrid'), UA_FLAG, GLOW],
+  'archive-year': [
+    HEADER,
+    el('hero', 'layout.hero'),
+    el('stats', 'layout.yearStats'),
+    el('months', 'layout.yearMonths'),
+    el('highlights', 'layout.yearHighlights'),
+    el('thanks', 'layout.thanksLine', true),
+    UA_FLAG,
+    GLOW,
+  ],
 };
 
 // Gallery categories — also used by the editor's "add template" picker
@@ -512,10 +537,16 @@ export interface TemplateGroup {
 
 export const OWN_JAR_GROUP = 'own-jar';
 export const SUMMARY_GROUP = 'summary';
+export const YEAR_GROUP = 'year';
 
 /** The «Підсумок» set, offered only for a closed project's cards — they lead its gallery. */
 export const SUMMARY_TEMPLATES: TemplateType[] = ['final-report', 'archive-journey', 'archive-numbers', 'archive-supporters', 'friends-leaderboard', 'funds-flow'];
-const ARCHIVE_ONLY: TemplateType[] = ['archive-journey', 'archive-supporters', 'archive-numbers'];
+/** A year of the archive: its own card first, then the reports across its projects and the cards that
+ * read well for many projects at once. */
+export const YEAR_TEMPLATES: TemplateType[] = ['archive-year', 'report', 'campaigns-chart', 'archive-numbers', 'archive-supporters'];
+const ARCHIVE_ONLY: TemplateType[] = ['archive-journey', 'archive-supporters', 'archive-numbers', 'archive-year'];
+/** One project's wrap-up: for a closed project, not for a year of them. */
+const ONE_PROJECT: TemplateType[] = ['final-report', 'archive-journey', 'funds-flow', 'progress', 'milestone'];
 /** Calls to give that make no sense once a project is closed. */
 const NOT_FOR_ARCHIVE: TemplateType[] = ['urgency', 'concrete-ask', 'weekly-recap'];
 
@@ -530,11 +561,13 @@ export const TEMPLATE_GROUPS: TemplateGroup[] = [
 ];
 
 const SUMMARY: TemplateGroup = { id: SUMMARY_GROUP, labelKey: 'groups.summary', icon: '🏁', ids: SUMMARY_TEMPLATES };
+const YEAR: TemplateGroup = { id: YEAR_GROUP, labelKey: 'groups.year', icon: '🗓️', ids: YEAR_TEMPLATES };
+const without = (ids: TemplateType[]) => (g: TemplateGroup) => ({ ...g, ids: g.ids.filter((id) => !ids.includes(id)) });
 
-/** Whose cards these are: a project's, one of the user's friendly jars', or a closed project's. */
-export type CardsMode = 'project' | 'ownJar' | 'archive';
-export const cardsModeOf = (app: { ownJar?: unknown; archivedCards?: string }): CardsMode =>
-  app.ownJar ? 'ownJar' : app.archivedCards ? 'archive' : 'project';
+/** Whose cards these are: a project's, one of the user's friendly jars', a closed project's, or a year of the archive's. */
+export type CardsMode = 'project' | 'ownJar' | 'archive' | 'year';
+export const cardsModeOf = (app: { ownJar?: unknown; archivedCards?: string; yearRecap?: unknown }): CardsMode =>
+  app.ownJar ? 'ownJar' : app.yearRecap ? 'year' : app.archivedCards ? 'archive' : 'project';
 
 /** What a card for one of the user's friendly jars can show: there are only the jar's total and goal,
  * no donations, so only these templates (and the footer-less versions of them) make sense. */
@@ -544,16 +577,19 @@ export const OWN_JAR_TEMPLATES: TemplateType[] = ['friendly-jar', 'progress', 'm
  * project gets «Підсумок» first (and those cards aren't repeated in the other groups). */
 export function groupsFor(mode: CardsMode): TemplateGroup[] {
   if (mode === 'ownJar') return [...TEMPLATE_GROUPS].sort((a, b) => Number(b.id === OWN_JAR_GROUP) - Number(a.id === OWN_JAR_GROUP));
-  if (mode === 'archive') return [SUMMARY, ...TEMPLATE_GROUPS.map((g) => ({ ...g, ids: g.ids.filter((id) => !SUMMARY_TEMPLATES.includes(id)) }))];
+  if (mode === 'archive') return [SUMMARY, ...TEMPLATE_GROUPS.map(without(SUMMARY_TEMPLATES))];
+  if (mode === 'year') return [YEAR, ...TEMPLATE_GROUPS.map(without(YEAR_TEMPLATES))];
   return TEMPLATE_GROUPS;
 }
 
 /** Whether a template is offered: a friendly jar's cards get only OWN_JAR_TEMPLATES, a project never gets
- * the friendly-jar one, the «Підсумок» cards are a closed project's alone, and a closed project gets no
- * calls to give. */
+ * the friendly-jar one, the «Підсумок» cards are a closed project's alone, a closed project gets no calls
+ * to give, and a year gets its own card plus what reads well across many projects. */
 export function offeredFor(id: TemplateType, mode: CardsMode): boolean {
   if (mode === 'ownJar') return OWN_JAR_TEMPLATES.includes(id);
   if (id === 'friendly-jar') return false;
+  if (mode === 'year') return !NOT_FOR_ARCHIVE.includes(id) && !ONE_PROJECT.includes(id) && (!ARCHIVE_ONLY.includes(id) || YEAR_TEMPLATES.includes(id));
+  if (id === 'archive-year') return false;
   if (mode === 'archive') return !NOT_FOR_ARCHIVE.includes(id);
   return !ARCHIVE_ONLY.includes(id);
 }

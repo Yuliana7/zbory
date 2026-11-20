@@ -95,7 +95,10 @@
     "supportersHero": "Донори й ті, хто повертався",
     "bands": "Розмір донатів",
     "topDonors": "Топ донорів (імена)",
-    "numbersGrid": "Сітка цифр"
+    "numbersGrid": "Сітка цифр",
+    "yearStats": "Ряд цифр року",
+    "yearMonths": "Місяці року",
+    "yearHighlights": "Найбільший збір і цілі"
   },
   "requiredField": "Обов'язкове поле",
   "dateRange": {
@@ -177,7 +180,8 @@
     "raffle-biggest": "Найбільший донат",
     "archive-journey": "Як ми збирали",
     "archive-numbers": "Збір у цифрах",
-    "archive-supporters": "Наші донатори"
+    "archive-supporters": "Наші донатори",
+    "archive-year": "Мій рік"
   },
   "refundsPanel": {
     "title": "Виявлено можливі повернення",
@@ -408,6 +412,18 @@
       "bestDayLabel": "Мітка рекордного дня",
       "medianLabel": "Мітка типового донату",
       "streakLabel": "Мітка днів поспіль"
+    },
+    "archive-year": {
+      "title": "Заголовок",
+      "totalLabel": "Підпис під сумою",
+      "projectsLabel": "Мітка «Зборів»",
+      "donationsLabel": "Мітка «Донатів»",
+      "donorsLabel": "Мітка «Донорів»",
+      "friendsLabel": "Мітка дружніх банок",
+      "busiestLabel": "Перед найактивнішим місяцем",
+      "biggestLabel": "Мітка найбільшого збору",
+      "goalsLabel": "Мітка досягнутих цілей",
+      "thanks": "Слова подяки"
     }
   },
   "friends": {

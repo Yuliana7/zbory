@@ -1,5 +1,5 @@
 import { saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
-import { archiveYear, archiveYears, inYear, matchesName, yearSummary, ownJarsFeeding, isArchived } from '../../src/utils/archive';
+import { archiveYear, archiveYears, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
 import { ownJarStamp, setOwnJarArchived } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
 
@@ -56,6 +56,9 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const own = (id: string, main?: string): OwnJar => ({ id, name: id, raised: 500, jarId: 'X'.repeat(16), addedAt: 0, archivedAt: at(2026, 10), ...(main ? { main: { shortId: main } } : {}) });
   const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')]);
   check('summary: own jars count as friendly jars, unless they feed a project already counted', withOwn.friends === 4 && withOwn.total === 1000);
+  const recap = yearRecap(2026, [{ ...list[0], goal: 250000 }, { ...list[1], goal: 200000 }, list[4]]);
+  check('recap: the year, its biggest project, and goals reached of goals set', recap.year === 2026 && recap.biggest?.name === 'На авто для евакуації' && recap.goals.set === 2 && recap.goals.reached === 1 && recap.total === 451000);
+  check('recap: an empty year has no biggest project', yearRecap(2024, []).biggest === null && yearRecap(2024, []).count === 0);
   check('summary: totals by the month they were closed', s.byMonth[9] === 300000 && s.byMonth[7] === 150000 && s.byMonth[0] === 1000);
 
   // ── own jars ──

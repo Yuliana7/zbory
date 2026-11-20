@@ -27,8 +27,8 @@ function App() {
   const { app, error } = state
   const currentStepIdx = STEP_INDEX[app.step]
   const section = app.section === 'archive' ? 'archive' : 'active'
-  // an archived project's cards use the steps' pages, but stay in the archive
-  const showArchive = section === 'archive' && !app.archivedCards
+  // an archived project's (or a year's) cards use the steps' pages, but stay in the archive
+  const showArchive = section === 'archive' && !app.archivedCards && !app.yearRecap
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' })
@@ -71,7 +71,7 @@ function App() {
                   key={key}
                   role="tab"
                   aria-selected={section === key}
-                  onClick={() => (section === key && !app.archiveView && !app.archivedCards ? undefined : dispatch({ type: 'SECTION_CHANGED', payload: key }))}
+                  onClick={() => (section === key && !app.archiveView && !app.archivedCards && !app.yearRecap ? undefined : dispatch({ type: 'SECTION_CHANGED', payload: key }))}
                   className={`px-3.5 sm:px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
                     section === key ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-700 hover:bg-indigo-100'
                   }`}

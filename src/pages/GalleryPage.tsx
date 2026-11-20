@@ -1,7 +1,7 @@
 import { useRef, useEffect, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
-import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar, Donation, OwnJar, Raffle } from '../types';
+import type { Aggregates, CommentInsights, TemplateType, CampaignDataset, FriendJar, Donation, OwnJar, Raffle, YearRecap } from '../types';
 import { ProgressCard } from '../components/templates/ProgressCard';
 import { DailyActivityCard } from '../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../components/templates/ThankYouCard';
@@ -31,6 +31,7 @@ import { FriendlyJarCard } from '../components/templates/FriendlyJarCard';
 import { ArchiveJourneyCard } from '../components/templates/ArchiveJourneyCard';
 import { ArchiveSupportersCard } from '../components/templates/ArchiveSupportersCard';
 import { ArchiveNumbersCard } from '../components/templates/ArchiveNumbersCard';
+import { ArchiveYearCard } from '../components/templates/ArchiveYearCard';
 import { ArrowLeftIcon, CheckIcon, ChevronDownIcon, XIcon } from '../icons';
 
 const NATIVE = 1080;
@@ -112,18 +113,20 @@ export function GalleryPage() {
         <button
           // a friendly jar has no analytics: back is the jar list; an archived project's cards go back to its archive page
           onClick={() =>
-            app.archivedCards
+            app.yearRecap
+              ? dispatch({ type: 'ARCHIVE_VIEW', payload: null })
+              : app.archivedCards
               ? dispatch({ type: 'ARCHIVE_VIEW', payload: { kind: 'project', id: app.archivedCards } })
               : app.ownJar
                 ? handleReset()
                 : dispatch({ type: 'GO_TO_STEP', payload: 'insights' })
           }
-          className="flex items-center gap-2 text-sm font-medium text-gray-500 hover:text-gray-800
+          className="flex shrink-0 items-center gap-2 whitespace-nowrap text-sm font-medium text-gray-500 hover:text-gray-800
                      bg-white border border-gray-200 rounded-lg px-3 py-2 shadow-sm
                      hover:border-gray-300 transition-all"
         >
           <ArrowLeftIcon className="w-4 h-4" />
-          {app.archivedCards ? t('backToArchive') : app.ownJar ? t('backToJars') : t('backButton')}
+          {app.archivedCards || app.yearRecap ? t('backToArchive') : app.ownJar ? t('backToJars') : t('backButton')}
         </button>
       </div>
 
@@ -189,6 +192,7 @@ export function GalleryPage() {
                             previewComments={previewComments}
                             campaignDatasets={app.campaignDatasets}
                             ownJar={app.ownJar}
+                            yearRecap={app.yearRecap}
                           />
                           <div className="p-4 flex flex-col gap-1.5 flex-1">
                             <p className="font-semibold text-gray-900 text-sm">{t(`templates.${id}.name`)}</p>
@@ -252,9 +256,10 @@ interface TemplatePreviewProps {
   previewComments: SelectedComment[];
   campaignDatasets: CampaignDataset[] | null;
   ownJar?: OwnJar;
+  yearRecap?: YearRecap;
 }
 
-function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, commentInsights, previewComments, campaignDatasets, ownJar }: TemplatePreviewProps) {
+function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, commentInsights, previewComments, campaignDatasets, ownJar, yearRecap }: TemplatePreviewProps) {
   const { t: tCamp } = useTranslation('campaigns');
   const containerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(0);
@@ -322,6 +327,7 @@ function TemplatePreview({ id, aggregates, goal, friends, raffles, donations, co
           {id === 'archive-journey' && <ArchiveJourneyCard aggregates={aggregates} goal={goal} format="post" />}
           {id === 'archive-supporters' && <ArchiveSupportersCard aggregates={aggregates} donations={donations} format="post" />}
           {id === 'archive-numbers' && <ArchiveNumbersCard aggregates={aggregates} donations={donations} format="post" />}
+          {id === 'archive-year' && yearRecap && <ArchiveYearCard recap={yearRecap} aggregates={aggregates} format="post" />}
         </div>
       )}
     </div>

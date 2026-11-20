@@ -232,13 +232,14 @@ function ExportPageInner() {
   // template's own default title text.
   const textDefaultFor = useCallback(
     (key: string): string => {
+      if (templateId === 'archive-year' && app.yearRecap) return t(`templates:archive-year.${key}`, { year: app.yearRecap.year });
       if (key === 'title' && app.activeCampaignName) return app.activeCampaignName;
       if (key === 'linkUrl' && app.ownJar?.shortId) return ownJarLink(app.ownJar.shortId);
       if (key === 'achievedLabel' && templateId === 'milestone') return t(`templates:milestone.${milestoneAchievedKey}`);
       if (key === 'dateRange') return `${formatUkrainianDate(filteredAggregates.firstDate)} — ${formatUkrainianDate(filteredAggregates.lastDate)}`;
       return t(`templates:${templateId}.${key}`);
     },
-    [app.activeCampaignName, app.ownJar, templateId, milestoneAchievedKey, filteredAggregates, t],
+    [app.activeCampaignName, app.ownJar, app.yearRecap, templateId, milestoneAchievedKey, filteredAggregates, t],
   );
 
   const handleExport = async () => {
@@ -322,6 +323,7 @@ function ExportPageInner() {
       selectedComments={overrides?.selectedComments ?? commentsFor(c)}
       activeCampaignName={app.activeCampaignName}
       ownJar={app.ownJar}
+      yearRecap={app.yearRecap}
       safeZonePad={showSafeZones}
       {...refs}
     />

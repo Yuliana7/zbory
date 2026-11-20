@@ -1,7 +1,7 @@
 // The archive: closed projects and the user's own friendly jars, filed by the year they were closed.
 // Nothing here reads a project's rows: the list works from what each project's meta holds.
 
-import type { OwnJar } from '../types';
+import type { OwnJar, YearRecap } from '../types';
 import type { CampaignMeta } from './campaignStore';
 
 export const isArchived = (item: { archivedAt?: number }) => !!item.archivedAt;
@@ -51,6 +51,23 @@ export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): 
   const fed = new Set(campaigns.map((c) => c.monobankJar?.shortId).filter(Boolean));
   out.friends += ownJars.filter((j) => !j.main?.shortId || !fed.has(j.main.shortId)).length;
   return out;
+}
+
+/** «Мій рік»: the year card's numbers plus the biggest project and how many reached their goal. */
+export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearRecap {
+  const s = yearSummary(campaigns, ownJars);
+  const biggest = [...campaigns].sort((a, b) => b.summary.totalAmount - a.summary.totalAmount)[0];
+  const withGoal = campaigns.filter((c) => c.goal);
+  return {
+    year,
+    total: s.total,
+    count: s.count,
+    donations: s.donations,
+    friendJars: s.friends,
+    byMonth: s.byMonth,
+    biggest: biggest ? { name: biggest.name, total: biggest.summary.totalAmount } : null,
+    goals: { set: withGoal.length, reached: withGoal.filter((c) => c.summary.totalAmount >= c.goal!).length },
+  };
 }
 
 /** The user's own friendly jars that feed this project's main jar: the close sheet offers to archive them too. */

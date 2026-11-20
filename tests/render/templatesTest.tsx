@@ -17,7 +17,9 @@ import { DonationStatsCard } from '../../src/components/templates/DonationStatsC
 import { ArchiveJourneyCard } from '../../src/components/templates/ArchiveJourneyCard';
 import { ArchiveSupportersCard } from '../../src/components/templates/ArchiveSupportersCard';
 import { ArchiveNumbersCard } from '../../src/components/templates/ArchiveNumbersCard';
-import { groupsFor, offeredFor, SUMMARY_GROUP } from '../../src/utils/templateConfig';
+import { ArchiveYearCard } from '../../src/components/templates/ArchiveYearCard';
+import type { YearRecap } from '../../src/types';
+import { groupsFor, offeredFor, SUMMARY_GROUP, YEAR_GROUP } from '../../src/utils/templateConfig';
 
 const rawData = loadRawDonations('tests/data/Zbir_short.csv');
 const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
@@ -142,6 +144,19 @@ check('No lone ₴ artifacts', allCards.every((h) => !/>\s*₴\s*</.test(h.repla
   check('Modes: «Підсумок» leads a closed project’s gallery', groupsFor('archive')[0].id === SUMMARY_GROUP);
   check('Modes: its cards aren’t repeated in the other groups', groupsFor('archive').slice(1).every((g) => !g.ids.includes('final-report') && !g.ids.includes('archive-journey')));
   check('Modes: the summary cards are for closed projects only', offeredFor('archive-journey', 'archive') && !offeredFor('archive-journey', 'project') && !offeredFor('archive-numbers', 'ownJar'));
+  const recap: YearRecap = {
+    year: 2026, total: 451000, count: 3, donations: 4510, friendJars: 18,
+    byMonth: [1000, 0, 0, 0, 0, 0, 0, 150000, 0, 300000, 0, 0],
+    biggest: { name: 'На авто для евакуації', total: 300000 }, goals: { set: 2, reached: 1 },
+  };
+  const year = text(renderToStaticMarkup(<ArchiveYearCard recap={recap} aggregates={agg} format="story" />));
+  check('Year: its title, total, projects, donors and friendly jars', year.includes('Мій 2026') && year.includes('451 000 ₴') && year.includes('зборів') && year.includes('22') && year.includes('дружніх банок'), year.slice(0, 300));
+  check('Year: the busiest month, the biggest project, goals reached', year.includes('жовтень') && year.includes('На авто для евакуації') && year.includes('1 / 2'));
+  check('Year: thanks in a story, not in a square post', year.includes('Дякую кожному') && !text(renderToStaticMarkup(<ArchiveYearCard recap={recap} format="post" />)).includes('Дякую кожному'));
+  const quiet = text(renderToStaticMarkup(<ArchiveYearCard recap={{ ...recap, friendJars: 0, goals: { set: 0, reached: 0 } }} format="story" />));
+  check('Year: no friendly jars, no goals → those are left out', !quiet.includes('дружніх банок') && !quiet.includes('Цілей досягнуто'));
+  check('Modes: a year leads with its own card, and gets no single-project wrap-ups', groupsFor('year')[0].id === YEAR_GROUP && offeredFor('archive-year', 'year') && !offeredFor('final-report', 'year') && !offeredFor('archive-journey', 'year') && offeredFor('report', 'year'));
+  check('Modes: the year card is for a year only', !offeredFor('archive-year', 'archive') && !offeredFor('archive-year', 'project'));
   check('Modes: a closed project gets no calls to give', !offeredFor('urgency', 'archive') && !offeredFor('concrete-ask', 'archive') && offeredFor('thank-you', 'archive'));
 }
 

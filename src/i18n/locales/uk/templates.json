@@ -268,5 +268,17 @@
     "bestDayLabel": "рекордний день",
     "medianLabel": "типовий донат",
     "streakLabel": "днів поспіль із донатами"
+  },
+  "archive-year": {
+    "title": "Мій {{year}}",
+    "totalLabel": "зібрали разом за рік",
+    "projectsLabel": "зборів",
+    "donationsLabel": "донатів",
+    "donorsLabel": "донорів",
+    "friendsLabel": "дружніх банок",
+    "busiestLabel": "Найактивніший місяць —",
+    "biggestLabel": "Найбільший збір",
+    "goalsLabel": "Цілей досягнуто",
+    "thanks": "Дякую кожному, хто був поруч цього року 💙💛"
   }
 }
