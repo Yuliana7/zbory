@@ -2,13 +2,14 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
-import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
-import { listOwnJars, goalPct, ownJarDataset } from '../../utils/ownJars';
-import { ARCHIVE_PAGE_SIZE, archiveYears, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
+import { listCampaigns, setArchivedGoalReached, type CampaignMeta } from '../../utils/campaignStore';
+import { listOwnJars, goalPct, ownJarDataset, setOwnJarGoalReached } from '../../utils/ownJars';
+import { ARCHIVE_PAGE_SIZE, archiveYears, goalsUnsaid, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
 import { ArchiveIcon, ChartIcon, LockIcon, PlusIcon, SpinnerIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 import { ImportStatementsSheet } from './ImportStatementsSheet';
+import { YearGoalsSheet, type UnsaidGoal } from './YearGoalsSheet';
 
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 const daysBetween = (first: string, last: string) =>
@@ -29,6 +30,7 @@ export function ArchiveList() {
   const [page, setPage] = useState(0);
   const [jarPage, setJarPage] = useState(0);
   const [importing, setImporting] = useState(false);
+  const [askingGoals, setAskingGoals] = useState<UnsaidGoal[] | null>(null);
 
   const load = useCallback(() => {
     listCampaigns().then((all) => setCampaigns(all.filter(isArchived))).catch(() => setCampaigns([]));
@@ -97,10 +99,29 @@ export function ArchiveList() {
     `px-4 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
   const open = (kind: 'project' | 'ownJar', id: string) => dispatch({ type: 'ARCHIVE_VIEW', payload: { kind, id } });
   // «Мій рік»: the year's statements load together (for the donors and the reports across them), then its cards open
-  const makeYearCards = async () => {
+  const makeYearCards = () => {
     if (shownYear === null || opening) return;
+    // jars with no goal and no word on it: ask first, so «Цілей досягнуто» counts them
+    const unsaid = goalsUnsaid(yearCampaigns, yearJars);
+    if (unsaid.length) setAskingGoals(unsaid);
+    else void openYear(shownYear, yearCampaigns, yearJars);
+  };
+  const goalsAnswered = async (answers: Map<string, boolean>) => {
+    setAskingGoals(null);
+    if (shownYear === null) return;
+    const said = (kind: string, id: string) => answers.get(`${kind}:${id}`);
+    const nextCampaigns = await Promise.all(
+      yearCampaigns.map(async (c) => (said('project', c.id) === undefined ? c : ((await setArchivedGoalReached(c.id, said('project', c.id)).catch(() => null)) ?? c))),
+    );
+    const nextJars = await Promise.all(
+      yearJars.map(async (j) => (said('ownJar', j.id) === undefined ? j : await setOwnJarGoalReached(j, said('ownJar', j.id)).catch(() => j))),
+    );
+    if (answers.size) load();
+    await openYear(shownYear, nextCampaigns, nextJars);
+  };
+  const openYear = async (year: number, yearCampaigns: CampaignMeta[], yearJars: OwnJar[]) => {
     setOpening(true);
-    const recap = yearRecap(shownYear, yearCampaigns, yearJars);
+    const recap = yearRecap(year, yearCampaigns, yearJars);
     const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), {
       proceed: true,
       extra: yearStatements,
@@ -175,7 +196,7 @@ export function ArchiveList() {
 
       {shownYear !== null && yearCampaigns.length + yearStatements.length > 0 && (
         <button
-          onClick={() => void makeYearCards()}
+          onClick={makeYearCards}
           disabled={opening}
           className="-mt-1 flex w-full items-center justify-center gap-2 rounded-xl border border-indigo-200 bg-white px-4 py-3 text-sm font-semibold text-indigo-600 shadow-sm hover:bg-indigo-50 disabled:opacity-60 transition-colors"
         >
@@ -269,6 +290,9 @@ export function ArchiveList() {
 
       {yearCampaigns.length + yearJars.length === 0 && <p className="py-6 text-center text-sm text-gray-500">{t('list.nothingThisYear')}</p>}
       {importSheet}
+      {askingGoals && shownYear !== null && (
+        <YearGoalsSheet year={shownYear} items={askingGoals} onDone={(a) => void goalsAnswered(a)} onCancel={() => setAskingGoals(null)} />
+      )}
     </div>
   );
 }

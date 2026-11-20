@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar, Raffle, RawDonation } from '../../types';
-import { buildProjectBackup, getCampaignMeta, listCampaigns, loadCampaignData, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
+import { buildProjectBackup, getCampaignMeta, listCampaigns, loadCampaignData, setArchivedGoalReached, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { normalizeDonations } from '../../utils/csvParser';
 import { aggregateDonations } from '../../utils/dataAggregator';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
@@ -12,6 +12,7 @@ import { biggestDonation, eligibleJars, raffleParticipants } from '../../utils/r
 import { formatDateRange } from '../../utils/dateRange';
 import { archiveYear, isArchived } from '../../utils/archive';
 import { CompareSection, GrowthSection, MoneySection, StatsGrid, SupportersSection } from './ArchiveStory';
+import { GoalReachedQuestion } from './GoalReachedQuestion';
 import { statementDays } from '../../utils/archiveStats';
 import { CopyJarLink } from '../insights/friendsShared';
 import { ArrowLeftIcon, CalendarIcon, DownloadIcon, ImageIcon, LockIcon } from '../../icons';
@@ -99,6 +100,11 @@ export function ArchivedProject({ id }: { id: string }) {
     if (await handleLoadCampaign(id, { proceed: true })) dispatch({ type: 'ARCHIVED_CARDS_OPENED', payload: { kind: 'project', id } });
   };
 
+  const sayGoal = async (v: boolean | undefined) => {
+    const next = await setArchivedGoalReached(id, v).catch(() => null);
+    if (next) setLoaded((l) => (l && l !== 'error' ? { ...l, meta: next } : l));
+  };
+
   const unarchive = async () => {
     if (!window.confirm(t('page.unarchiveConfirm', { name: meta.name }))) return;
     if (await unarchiveCampaign(id)) dispatch({ type: 'SECTION_CHANGED', payload: 'active' });
@@ -140,6 +146,12 @@ export function ArchivedProject({ id }: { id: string }) {
           <CalendarIcon className="h-4 w-4 shrink-0" />
           {formatDateRange(meta.summary.firstDate, meta.summary.lastDate)} · {t('list.days', { count: days })}
         </p>
+        {/* no goal was set: the user's word on it, for «Мій рік» */}
+        {!meta.goal && (
+          <div className="border-t border-gray-100 pt-2.5">
+            <GoalReachedQuestion value={meta.archive?.goalReached} onChange={(v) => void sayGoal(v)} />
+          </div>
+        )}
       </section>
 
       <StatsGrid aggregates={aggregates} />

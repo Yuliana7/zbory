@@ -1,7 +1,7 @@
 import { buildReport } from '../../src/utils/campaignAnalytics';
-import { saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
-import { archiveYear, archiveYears, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
-import { listOwnJars, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarStatement } from '../../src/utils/ownJars';
+import { setArchivedGoalReached, saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
+import { archiveYear, archiveYears, goalsUnsaid, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
+import { listOwnJars, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
 import { draftFromStatement, importToArchive, knownSignatures, nameFromFile } from '../../src/utils/archiveImport';
 
@@ -26,6 +26,8 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const q = await saveCampaign({ name: 'Без цілі', rawData: raw, fileName: null });
   check('store: closing with no goal keeps the user’s word on it', (await archiveCampaign(q.id, at(2026, 10, 14), { goalReached: true }))?.archive?.goalReached === true);
   check('store: not said, not stored', (await archiveCampaign(q.id, at(2026, 10, 14)))?.archive?.goalReached === undefined);
+  check('store: said later, on the archive page', (await setArchivedGoalReached(q.id, false))?.archive?.goalReached === false && (await getCampaignMeta(q.id))?.archive?.friendsCount === 0);
+  check('store: and taken back', (await setArchivedGoalReached(q.id, undefined))?.archive?.goalReached === undefined);
   check('store: archiving moves updatedAt (so a backup prefers it)', (archived?.updatedAt ?? 0) === at(2026, 10, 14));
   await saveCampaign({ id: p.id, name: 'На дрони', rawData: raw, fileName: null, goal: 400 });
   const afterSave = await getCampaignMeta(p.id);
@@ -74,6 +76,13 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('recap: own jars with no statement are listed for the totals', said.unstated.map((u) => u.name).join() === 'mine-no-goal,silent' && said.unstated[0].amount === 500);
   const withStatementRecap = yearRecap(2026, [], [{ ...own('stated'), statement: raw }]);
   check('recap: an own jar with a statement is not among them', withStatementRecap.unstated.length === 0);
+  const unsaid = goalsUnsaid(
+    [{ ...list[0] }, { ...list[1], goal: 100 }, { ...list[4], archive: { friendsCount: 0, goalReached: false } }],
+    [own('no-word'), { ...own('has-goal'), target: 10 }, { ...own('said'), goalReached: true }],
+  );
+  check('unsaid: jars with no goal and no word, projects and own jars', unsaid.map((u) => `${u.kind}:${u.name}`).join() === 'project:На авто для евакуації,ownJar:no-word', unsaid.map((u) => u.name).join());
+  const saidJar = await setOwnJarGoalReached(own('x'), true, at(2026, 11));
+  check('unsaid: an own jar’s word is kept, and counts as a change', saidJar.goalReached === true && saidJar.updatedAt === at(2026, 11) && (await setOwnJarGoalReached(saidJar, undefined)).goalReached === undefined);
   const items = [{ meta: list[0] as never, rawData: raw }];
   const plain = buildReport(items, { kind: 'year', year: 2026 });
   const plus = buildReport(items, { kind: 'year', year: 2026 }, [{ name: 'Без виписки', amount: 4000, closedAt: at(2026, 9) }, { name: 'Інший рік', amount: 999, closedAt: at(2025, 9) }]);

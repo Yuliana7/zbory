@@ -161,6 +161,17 @@ export async function archiveCampaign(id: string, now: number = Date.now(), opts
   return archived;
 }
 
+/** A closed project with no goal: the user's word on whether it reached its goal (undefined takes it back). */
+export async function setArchivedGoalReached(id: string, goalReached: boolean | undefined, now: number = Date.now()): Promise<CampaignMeta | null> {
+  const kv = getBackend();
+  const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
+  if (!meta?.archive) return null;
+  const { goalReached: _was, ...rest } = meta.archive;
+  const next: CampaignMeta = { ...meta, archive: goalReached === undefined ? rest : { ...rest, goalReached }, updatedAt: now };
+  await kv.put(META_STORE, next);
+  return next;
+}
+
 /** «Повернути в активні»: the project is active again, as it was. */
 export async function unarchiveCampaign(id: string, now: number = Date.now()): Promise<CampaignMeta | null> {
   const kv = getBackend();

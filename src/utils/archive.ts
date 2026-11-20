@@ -71,6 +71,17 @@ export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): 
 export const goalOutcome = (total: number, goal: number | undefined, said: boolean | undefined) =>
   goal ? total >= goal : said;
 
+/** The year's closed jars with no goal and no word on it yet: «Мій рік» asks about them before it counts
+ * goals reached. */
+export function goalsUnsaid(campaigns: CampaignMeta[], ownJars: OwnJar[]): Array<{ kind: 'project' | 'ownJar'; id: string; name: string; total: number }> {
+  return [
+    ...campaigns.filter((c) => !c.goal && c.archive?.goalReached === undefined).map((c) => ({ kind: 'project' as const, id: c.id, name: c.name, total: c.summary.totalAmount })),
+    ...ownJarsOnTheirOwn(campaigns, ownJars)
+      .filter((j) => !j.target && j.goalReached === undefined)
+      .map((j) => ({ kind: 'ownJar' as const, id: j.id, name: j.name || '—', total: j.raised })),
+  ];
+}
+
 /** «Мій рік»: the year card's numbers, the biggest of its projects and own jars, and how many of those
  * with a goal (or with the user's word on it) reached it. */
 export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearRecap {

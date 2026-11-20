@@ -34,6 +34,14 @@ export const sortOwnJars = (jars: OwnJar[]) =>
 /** When a jar last changed in any way the user can see: what a backup compares. */
 export const ownJarStamp = (j: OwnJar) => Math.max(j.addedAt, j.syncedAt ?? 0, j.updatedAt ?? 0, j.archivedAt ?? 0, j.statementAddedAt ?? 0);
 
+/** A jar with no goal: the user's word on whether it reached its goal (undefined takes it back). */
+export async function setOwnJarGoalReached(jar: OwnJar, goalReached: boolean | undefined, now: number = Date.now()): Promise<OwnJar> {
+  const { goalReached: _was, ...rest } = jar;
+  const next: OwnJar = { ...rest, ...(goalReached === undefined ? null : { goalReached }), updatedAt: now };
+  await saveOwnJar(next);
+  return next;
+}
+
 /** Adds the jar's own statement, or (`null`) takes it away. */
 export async function setOwnJarStatement(jar: OwnJar, rows: RawDonation[] | null, now: number = Date.now()): Promise<OwnJar> {
   const { statement: _rows, statementAddedAt: _at, ...rest } = jar;
