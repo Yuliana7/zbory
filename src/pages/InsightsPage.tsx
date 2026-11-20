@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../context/AppContext';
 import { InsightsPanel } from '../components/insights/InsightsPanel';
@@ -15,6 +15,8 @@ import { rawDonationsToManualRows } from '../utils/csvExporter';
 import { FriendsPage } from '../components/insights/FriendsPage';
 import { DailyPage } from '../components/insights/DailyPage';
 import { ArrowLeftIcon, ArrowRightIcon } from '../icons';
+import { GoalReachedCard } from '../components/archive/GoalReachedCard';
+import { CloseProjectSheet } from '../components/archive/CloseProjectSheet';
 
 export function InsightsPage() {
   const { t } = useTranslation('insights');
@@ -24,6 +26,14 @@ export function InsightsPage() {
   const { app } = state;
   // lives here so a renew carries on, and reports, across the analytics' pages
   const renew = useRenewAll();
+  const [closing, setClosing] = useState(false);
+  // «Закрити збір» from the project list lands here
+  const closeRequested = !!app.closeRequested;
+  useEffect(() => {
+    if (!closeRequested) return;
+    dispatch({ type: 'CLOSE_REQUESTED', payload: false });
+    setClosing(true);
+  }, [closeRequested, dispatch]);
 
   // Multi mode: «Разом» (the global merged pipeline) or one jar, recomputed locally
   const datasets = app.campaignDatasets;
@@ -132,6 +142,10 @@ export function InsightsPage() {
 
       {app.lastMerge && <MergeBanner merge={app.lastMerge} />}
       <RenewReportCard renew={renew} />
+      {/* one saved project that reached its goal: offer to close it */}
+      {!datasets && app.activeCampaignId && !!app.goal && app.aggregates.totalAmount >= app.goal && !closing && (
+        <GoalReachedCard key={app.activeCampaignId} projectId={app.activeCampaignId} onClose={() => setClosing(true)} />
+      )}
       {invalidRows > 0 && (
         <p role="status" className="mb-4 px-4 py-3 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-800">
           {tU('preview.invalidRows', { count: invalidRows })}
@@ -154,7 +168,7 @@ export function InsightsPage() {
         renew={renew}
       />
       {tokenSheet}
-
+      {closing && <CloseProjectSheet renew={renew} onCancel={() => setClosing(false)} />}
     </div>
   );
 }

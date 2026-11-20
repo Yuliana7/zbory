@@ -10,11 +10,12 @@ import cardsUk from './locales/uk/cards.json';
 import templatesUk from './locales/uk/templates.json';
 import manualUk from './locales/uk/manual.json';
 import campaignsUk from './locales/uk/campaigns.json';
+import archiveUk from './locales/uk/archive.json';
 
 i18n.use(initReactI18next).init({
   lng: 'uk',
   fallbackLng: 'uk',
-  ns: ['common', 'upload', 'insights', 'gallery', 'export', 'cards', 'templates', 'manual', 'campaigns'],
+  ns: ['common', 'upload', 'insights', 'gallery', 'export', 'cards', 'templates', 'manual', 'campaigns', 'archive'],
   defaultNS: 'common',
   resources: {
     uk: {
@@ -27,6 +28,7 @@ i18n.use(initReactI18next).init({
       templates: templatesUk,
       manual: manualUk,
       campaigns: campaignsUk,
+      archive: archiveUk,
     },
   },
   interpolation: {

@@ -1,11 +1,11 @@
 import { useEffect, type ComponentType } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CampaignMeta } from '../../utils/campaignStore';
-import { CheckCircleIcon, DownloadIcon, EditIcon, GiftIcon, GlobeIcon, PlusIcon, TrashIcon, UsersIcon } from '../../icons';
+import { CheckCircleIcon, DownloadIcon, EditIcon, GiftIcon, GlobeIcon, PlusIcon, TrashIcon, UsersIcon, ArchiveIcon } from '../../icons';
 import type { IconProps } from '../../icons/types';
 
 /** What "Редагувати" can do to a saved project; each one opens a full-screen flow. */
-export type CampaignAction = 'monobank' | 'csv' | 'edit' | 'goal' | 'friends' | 'raffles' | 'rename' | 'download';
+export type CampaignAction = 'monobank' | 'csv' | 'edit' | 'goal' | 'friends' | 'raffles' | 'rename' | 'download' | 'close';
 
 interface CampaignActionsSheetProps {
   campaign: CampaignMeta;
@@ -39,6 +39,7 @@ export function CampaignActionsSheet({ campaign, onAction, onDelete, onClose }: 
     { action: 'raffles', label: t('actions.raffles'), Icon: GiftIcon },
     { action: 'rename', label: t('actions.rename'), Icon: EditIcon },
     { action: 'download', label: t('actions.download'), Icon: DownloadIcon },
+    { action: 'close', label: t('actions.close'), Icon: ArchiveIcon },
   ];
 
   return (

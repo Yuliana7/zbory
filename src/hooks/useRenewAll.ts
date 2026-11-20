@@ -20,6 +20,9 @@ const readAuto = () => {
 
 export type RenewErrorKind = MonobankError['kind'] | 'unexpected';
 
+/** How a renew someone waits for ended: «Закрити збір» renews first and only then archives. */
+export type RenewOutcome = 'done' | 'failed' | 'cancelled';
+
 /** How a renew went for the helper jars, and which ones it could not reach at all. */
 export interface RenewReport {
   jarsUpdated: number;
@@ -52,6 +55,15 @@ export function useRenewAll() {
   const [report, setReport] = useState<RenewReport | null>(null);
   const [auto, setAutoState] = useState(readAuto);
   const runningRef = useRef(false);
+  // set by renewAndWait: told how the renew it started ends
+  const waiter = useRef<((outcome: RenewOutcome) => void) | null>(null);
+  const settle = useCallback((outcome: RenewOutcome) => {
+    const resolve = waiter.current;
+    waiter.current = null;
+    resolve?.(outcome);
+  }, []);
+  const lastFailed = useRef(false);
+  const lastAborted = useRef(false);
   const controller = useRef<AbortController | null>(null);
   const abortTimer = useRef<ReturnType<typeof setTimeout>>();
 
@@ -101,6 +113,7 @@ export function useRenewAll() {
           await handleFriendsChange(nextFriends);
         }
 
+        lastFailed.current = (statement.status === 'rejected' || jars.status === 'rejected') && !ctl.signal.aborted;
         if (statement.status === 'rejected' && !ctl.signal.aborted) {
           const kind: RenewErrorKind = statement.reason instanceof MonobankError ? statement.reason.kind : 'unexpected';
           setError(kind);
@@ -118,6 +131,7 @@ export function useRenewAll() {
             manual: (nextFriends ?? friends).filter((f) => !f.jarId && !f.closed && (f.raised > 0 || (f.target ?? 0) > 0)),
           });
         }
+        lastAborted.current = ctl.signal.aborted;
         return !ctl.signal.aborted;
       } finally {
         runningRef.current = false;
@@ -130,12 +144,37 @@ export function useRenewAll() {
     [handleMergeRows, handleFriendsChange],
   );
 
+  /** Runs, then tells whoever waits how it ended: stopped = cancelled, an error = failed, anything else
+   * (nothing to read included) = done. */
+  const runAndSettle = useCallback(
+    (token: string | null) => {
+      lastFailed.current = false;
+      lastAborted.current = false;
+      void run(token).then(
+        () => settle(lastAborted.current ? 'cancelled' : lastFailed.current ? 'failed' : 'done'),
+        () => settle('failed'),
+      );
+    },
+    [run, settle],
+  );
+
   const renew = useCallback(() => {
     const needsToken = !!appRef.current.monobankJar && !appRef.current.campaignDatasets;
     const saved = loadToken();
     if (needsToken && !saved) setAskToken(true);
-    else void run(saved);
-  }, [run]);
+    else runAndSettle(saved);
+  }, [runAndSettle]);
+
+  /** Renews and resolves once it is over. Asking for the token counts: closing that sheet is 'cancelled'. */
+  const renewAndWait = useCallback(
+    () =>
+      new Promise<RenewOutcome>((resolve) => {
+        if (runningRef.current) return resolve('cancelled');
+        waiter.current = resolve;
+        renew();
+      }),
+    [renew],
+  );
 
   const submitToken = useCallback(
     (token: string, remember: boolean) => {
@@ -144,9 +183,9 @@ export function useRenewAll() {
         setHasToken(true);
       }
       setAskToken(false);
-      void run(token.trim());
+      runAndSettle(token.trim());
     },
-    [run],
+    [runAndSettle],
   );
 
   const stop = useCallback(() => controller.current?.abort(), []);
@@ -223,7 +262,11 @@ export function useRenewAll() {
     report,
     dismissReport: () => setReport(null),
     askToken,
-    closeTokenSheet: () => setAskToken(false),
+    closeTokenSheet: () => {
+      setAskToken(false);
+      settle('cancelled');
+    },
+    renewAndWait,
     submitToken,
     stop,
     hasToken,

@@ -55,6 +55,12 @@ export function UploadPage() {
       if (data) await downloadCSV(manualRowsToCSVString(rawDonationsToManualRows(data.rawData)), `${campaign.name}.csv`);
       return;
     }
+    if (action === 'close') {
+      // closing happens on the analytics, where a last renew can run first
+      const loaded = await handleLoadCampaign(campaign.id, { proceed: true });
+      if (loaded) dispatch({ type: 'CLOSE_REQUESTED', payload: true });
+      return;
+    }
     if (action === 'monobank' && campaign.monobankJar) {
       // a linked jar renews right on the analytics
       const loaded = await handleLoadCampaign(campaign.id, { proceed: true });
