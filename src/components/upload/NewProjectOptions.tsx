@@ -26,7 +26,7 @@ export function NewProjectOptions({ onFileSelect, onMonobankClick, onManualClick
         <p className="mt-1.5 text-xs text-gray-500 text-center">{t('newOptions.apiHint')}</p>
       </div>
       <div>
-        <FileUpload onFileSelect={onFileSelect} isLoading={isLoading} fullWidth />
+        <FileUpload onFileSelect={onFileSelect} isLoading={isLoading} fullWidth secondary />
         <p className="mt-1.5 text-xs text-gray-500 text-center">{t('newOptions.csvHint')}</p>
       </div>
       <div>

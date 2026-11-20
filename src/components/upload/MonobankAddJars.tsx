@@ -249,9 +249,15 @@ export function MonobankAddJars({
                     />
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold text-gray-900 [overflow-wrap:anywhere]">{c.jar.title}</span>
+                      {/* each amount keeps its ₴ */}
                       <span className="block text-sm text-gray-500">
-                        {t('monobank.jarBalance', { amount: kopecks(c.jar.balance) })}
-                        {c.jar.goal > 0 && ` · ${t('monobank.jarGoal', { amount: kopecks(c.jar.goal) })}`}
+                        <span className="whitespace-nowrap">{t('monobank.jarBalance', { amount: kopecks(c.jar.balance) })}</span>
+                        {c.jar.goal > 0 && (
+                          <>
+                            {' · '}
+                            <span className="whitespace-nowrap">{t('monobank.jarGoal', { amount: kopecks(c.jar.goal) })}</span>
+                          </>
+                        )}
                       </span>
                       {c.added && <span className="mt-1 block text-xs font-medium text-gray-600">{t(`addJars.added.${c.added}`)}</span>}
                       {!c.usable && <span className="mt-1 block text-xs text-amber-600">{t('monobank.uahOnly')}</span>}

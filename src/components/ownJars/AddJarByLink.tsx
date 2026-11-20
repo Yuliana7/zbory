@@ -91,7 +91,7 @@ export function AddJarByLink({ onAdded }: { onAdded: () => void }) {
             setInput(e.target.value);
             setError(null);
           }}
-          placeholder={t('ownJars.placeholder')}
+          placeholder="send.monobank.ua/jar/…"
           inputMode="url"
           autoCapitalize="off"
           autoCorrect="off"

@@ -8,11 +8,13 @@ interface FileUploadProps {
   isLoading?: boolean;
   /** stretch the button to the container (used when stacked with other options) */
   fullWidth?: boolean;
+  /** a secondary button, when another way in leads */
+  secondary?: boolean;
 }
 
 /** A single upload button — most users are on mobile, where drag-and-drop
  * doesn't apply, so this just opens the native file picker. */
-export function FileUpload({ onFileSelect, isLoading = false, fullWidth = false }: FileUploadProps) {
+export function FileUpload({ onFileSelect, isLoading = false, fullWidth = false, secondary = false }: FileUploadProps) {
   const { t } = useTranslation('upload');
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -50,7 +52,7 @@ export function FileUpload({ onFileSelect, isLoading = false, fullWidth = false 
         disabled={isLoading}
       />
 
-      <button onClick={handleClick} disabled={isLoading} className="btn-primary flex items-center justify-center gap-2">
+      <button onClick={handleClick} disabled={isLoading} className={`${secondary ? 'btn-secondary' : 'btn-primary'} flex items-center justify-center gap-2`}>
         {isLoading ? (
           <>
             <SpinnerIcon className="w-5 h-5 animate-spin" />
