@@ -125,7 +125,7 @@ export function ArchiveList() {
     const ok = await handleLoadCampaigns(yearCampaigns.map((c) => c.id), {
       proceed: true,
       extra: yearStatements,
-      extraTotal: recap.unstated.reduce((sum, j) => sum + j.amount, 0),
+      extraDays: recap.unstated.flatMap((j) => j.days),
     });
     setOpening(false);
     if (ok) dispatch({ type: 'ARCHIVED_YEAR_OPENED', payload: recap });

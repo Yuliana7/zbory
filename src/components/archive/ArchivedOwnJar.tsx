@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { OwnJar } from '../../types';
-import { goalPct, listOwnJars, ownJarDataset, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../utils/ownJars';
+import { goalPct, listOwnJars, ownJarDataset, removeOwnJar, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../utils/ownJars';
 import { listCampaigns, type CampaignMeta } from '../../utils/campaignStore';
 import { archiveYear, isArchived } from '../../utils/archive';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
@@ -104,6 +104,12 @@ export function ArchivedOwnJar({ id }: { id: string }) {
   const fileInput = (
     <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => void addStatement(e.target.files?.[0])} />
   );
+
+  const remove = async () => {
+    if (!window.confirm(t('page.deleteConfirm', { name: jar.name || '—' }))) return;
+    await removeOwnJar(jar.id);
+    back();
+  };
 
   const unarchive = async () => {
     if (!window.confirm(t('page.unarchiveConfirm', { name: jar.name || '—' }))) return;
@@ -267,6 +273,9 @@ export function ArchivedOwnJar({ id }: { id: string }) {
         )}
         <button onClick={() => void unarchive()} className="px-2 py-2 text-sm font-medium text-gray-600 underline hover:text-gray-900">
           {t('page.unarchive')}
+        </button>
+        <button onClick={() => void remove()} className="px-2 py-2 text-sm font-medium text-red-600 underline hover:text-red-800">
+          {t('page.delete')}
         </button>
       </div>
     </div>

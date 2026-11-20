@@ -64,6 +64,8 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
 
   const change = (key: string, patch: Partial<ImportDraft>) => setDrafts((ds) => ds.map((d) => (d.key === key ? { ...d, ...patch } : d)));
   const chosen = drafts.filter((d) => !d.skip).length;
+  // a jar with no goal has to say whether it reached one
+  const unanswered = drafts.filter((d) => !d.skip && !d.goal.trim() && d.goalReached === undefined).length;
 
   const save = async () => {
     setBusy('saving');
@@ -185,10 +187,13 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
 
         <div className="flex flex-col gap-2">
           {drafts.length > 0 && (
-            <button onClick={() => void save()} disabled={!!busy || chosen === 0} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
+            <>
+            {unanswered > 0 && <p className="text-xs text-gray-500">{t('import.answerGoals')}</p>}
+            <button onClick={() => void save()} disabled={!!busy || chosen === 0 || unanswered > 0} className="btn-primary flex items-center justify-center gap-2 disabled:opacity-50">
               {busy === 'saving' && <SpinnerIcon className="h-4 w-4 animate-spin" />}
               {busy === 'saving' ? t('import.saving') : t('import.confirm', { n: chosen })}
             </button>
+            </>
           )}
           <button onClick={onClose} disabled={!!busy} className="btn-secondary disabled:opacity-50">
             {t('close.cancel')}

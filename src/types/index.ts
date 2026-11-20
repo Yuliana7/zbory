@@ -288,7 +288,9 @@ export interface YearRecap {
   goals: { set: number; reached: number };
   /** own jars counted in the year with no statement: their money is in the total, but there are no
    * donations behind it — the cards made from the year's statements add it to their totals */
-  unstated: Array<{ name: string; amount: number; closedAt: number }>;
+  unstated: Array<{ name: string; amount: number; closedAt: number; days: Array<{ date: string; amount: number }> }>;
+  /** every jar counted in the year: its projects and own jars */
+  jars: number;
 }
 
 /** A page of the archive: a closed project, or one of the user's own friendly jars. */

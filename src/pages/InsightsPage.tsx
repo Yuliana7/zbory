@@ -49,6 +49,8 @@ export function InsightsPage() {
   }, [datasets, viewId, t]);
 
   const isMerged = !perJar;
+  // a year of the archive: its friendly jars with no statement, day by day from the app's own readings
+  const yearExtra = useMemo(() => app.yearRecap?.unstated.flatMap((j) => j.days) ?? [], [app.yearRecap]);
 
   // Merged multi-jar view: enrich the repeat/top-donor lists with how many
   // of the loaded statements each identity actually donated in — lost once
@@ -98,6 +100,7 @@ export function InsightsPage() {
         aggregates={perJar?.aggregates ?? app.aggregates}
         donations={perJar?.donations ?? app.donations ?? []}
         withdrawals={perJar?.withdrawals ?? app.withdrawals ?? []}
+        extra={perJar ? undefined : yearExtra}
       />
     );
   }

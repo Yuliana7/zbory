@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import type { FriendJar, Raffle, RawDonation } from '../../types';
-import { buildProjectBackup, getCampaignMeta, listCampaigns, loadCampaignData, setArchivedGoalReached, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
+import { buildProjectBackup, deleteCampaign, getCampaignMeta, listCampaigns, loadCampaignData, setArchivedGoalReached, unarchiveCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { normalizeDonations } from '../../utils/csvParser';
 import { aggregateDonations } from '../../utils/dataAggregator';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../../utils/csvExporter';
@@ -103,6 +103,12 @@ export function ArchivedProject({ id }: { id: string }) {
   const sayGoal = async (v: boolean | undefined) => {
     const next = await setArchivedGoalReached(id, v).catch(() => null);
     if (next) setLoaded((l) => (l && l !== 'error' ? { ...l, meta: next } : l));
+  };
+
+  const remove = async () => {
+    if (!window.confirm(t('page.deleteConfirm', { name: meta.name }))) return;
+    await deleteCampaign(id);
+    back();
   };
 
   const unarchive = async () => {
@@ -241,6 +247,9 @@ export function ArchivedProject({ id }: { id: string }) {
         {meta.monobankJar?.shortId && <CopyJarLink shortId={meta.monobankJar.shortId} />}
         <button onClick={() => void unarchive()} className="px-2 py-2 text-sm font-medium text-gray-600 underline hover:text-gray-900">
           {t('page.unarchive')}
+        </button>
+        <button onClick={() => void remove()} className="px-2 py-2 text-sm font-medium text-red-600 underline hover:text-red-800">
+          {t('page.delete')}
         </button>
       </div>
     </div>

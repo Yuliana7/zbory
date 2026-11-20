@@ -33,7 +33,7 @@ import type {
 } from '../types';
 import { parseCSV, normalizeDonations } from '../utils/csvParser';
 import { manualRowsToRawDonations } from '../utils/csvExporter';
-import { aggregateDonations } from '../utils/dataAggregator';
+import { aggregateDonations, withAmountsByDay } from '../utils/dataAggregator';
 import { generateInsights } from '../utils/insightGenerator';
 import { analyzeComments } from '../utils/commentAnalyzer';
 import { saveSession, updateSessionFriends, clearSession, loadSession } from '../utils/session';
@@ -331,8 +331,8 @@ export interface LoadCampaignsOptions {
   proceed?: boolean;
   /** statements that aren't saved projects (an own jar's), loaded alongside them */
   extra?: Array<{ dataset: CampaignDataset; goal?: number }>;
-  /** money with no statement behind it (a year's own jars without one): added to the totals */
-  extraTotal?: number;
+  /** money with no statement behind it, by day (a year's own jars without one): added to the totals and days */
+  extraDays?: Array<{ date: string; amount: number }>;
 }
 
 interface AppContextValue {
@@ -371,10 +371,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   // Everything step 2 needs, derived from the loaded rows
   const buildAnalytics = useCallback(
-    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number, extraTotal = 0) => {
-      const counted = aggregateDonations(donations, withdrawals, currentBalance);
-      // money known only as a total (a year's own jars with no statement) joins the totals, not the donations
-      const aggregates = extraTotal ? { ...counted, totalAmount: counted.totalAmount + extraTotal, totalRaised: counted.totalRaised + extraTotal } : counted;
+    (donations: Donation[], withdrawals: Withdrawal[], currentBalance: number, extraDays: Array<{ date: string; amount: number }> = []) => {
+      // money known only by day (a year's own jars with no statement) joins the totals and days, not the donations
+      const aggregates = withAmountsByDay(aggregateDonations(donations, withdrawals, currentBalance), extraDays);
       return {
         aggregates,
         insights: generateInsights(aggregates, tInsights),
@@ -683,7 +682,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       if (opts?.proceed) {
         dispatch({
           type: 'PROCEED_TO_INSIGHTS',
-          payload: { ...buildAnalytics(donations, withdrawals, currentBalance, opts.extraTotal), goal: hasAnyGoal ? goalSum : undefined },
+          payload: { ...buildAnalytics(donations, withdrawals, currentBalance, opts.extraDays), goal: hasAnyGoal ? goalSum : undefined },
         });
       }
       return true;

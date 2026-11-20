@@ -4,7 +4,7 @@
 
 import type { OwnJar, YearRecap } from '../types';
 import type { CampaignMeta } from './campaignStore';
-import { ownJarDataset, ownJarDonationCount } from './ownJars';
+import { ownJarDataset, ownJarDays, ownJarDonationCount } from './ownJars';
 
 export const isArchived = (item: { archivedAt?: number }) => !!item.archivedAt;
 
@@ -102,7 +102,8 @@ export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJ
     byMonth: s.byMonth,
     biggest: biggest ? { name: biggest.name, total: biggest.total } : null,
     goals: { set: known.length, reached: known.filter((i) => i.reached).length },
-    unstated: own.filter((j) => !ownJarDataset(j)).map((j) => ({ name: j.name || '—', amount: j.raised, closedAt: j.archivedAt ?? 0 })),
+    unstated: own.filter((j) => !ownJarDataset(j)).map((j) => ({ name: j.name || '—', amount: j.raised, closedAt: j.archivedAt ?? 0, days: ownJarDays(j) })),
+    jars: campaigns.length + own.length,
   };
 }
 

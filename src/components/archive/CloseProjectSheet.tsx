@@ -76,6 +76,8 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
     { what: t('close.keptStyle'), note: t('close.keptStyleNote') },
   ];
   const busy = phase === 'renewing' || phase === 'archiving';
+  // no goal set: whether it reached one has to be said before it's closed
+  const unanswered = !app.goal && goalReached === undefined;
 
   return (
     <div
@@ -112,6 +114,7 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
         {!app.goal && (
           <div className="rounded-xl bg-gray-50 px-3.5 py-3">
             <GoalReachedQuestion value={goalReached} onChange={setGoalReached} disabled={busy} />
+            {unanswered && <p className="mt-2 text-xs text-gray-500">{t('goalQuestion.required')}</p>}
           </div>
         )}
 
@@ -137,7 +140,7 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
         <div className="flex flex-col gap-2">
           <button
             onClick={phase === 'failed' ? () => void archive() : () => void confirm()}
-            disabled={busy}
+            disabled={busy || unanswered}
             className="btn-primary flex items-center justify-center gap-2"
           >
             {busy && <SpinnerIcon className="w-4 h-4 animate-spin" />}

@@ -74,6 +74,7 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const said = yearRecap(2026, [{ ...list[0], archive: { friendsCount: 0, goalReached: true } }, { ...list[1], archive: { friendsCount: 0, goalReached: false } }, list[4]], [{ ...own('mine-no-goal'), goalReached: true }, own('silent')]);
   check('recap: with no goal, the user’s word counts; no word, not counted', said.goals.set === 3 && said.goals.reached === 2, JSON.stringify(said.goals));
   check('recap: own jars with no statement are listed for the totals', said.unstated.map((u) => u.name).join() === 'mine-no-goal,silent' && said.unstated[0].amount === 500);
+  check('recap: every jar of the year counted, own jars on their own too', said.jars === 5 && yearRecap(2026, [{ ...list[0], monobankJar: { id: 'L', title: '', shortId: 'M' } }], [{ ...own('fed'), main: { shortId: 'M' } }]).jars === 1);
   const withStatementRecap = yearRecap(2026, [], [{ ...own('stated'), statement: raw }]);
   check('recap: an own jar with a statement is not among them', withStatementRecap.unstated.length === 0);
   const unsaid = goalsUnsaid(

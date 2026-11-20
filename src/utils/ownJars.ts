@@ -6,6 +6,7 @@
 
 import type { Aggregates, CampaignDataset, FriendSnapshot, MainJarInfo, OwnJar, RawDonation } from '../types';
 import { normalizeDonations } from './csvParser';
+import { dayKey } from './dailyBreakdown';
 import { getBackend } from './db';
 import { jarShareLink, nextHistory } from './friendJars';
 import { generateId } from './id';
@@ -52,6 +53,25 @@ export async function setOwnJarStatement(jar: OwnJar, rows: RawDonation[] | null
 
 /** The donations in a jar's statement; none when it has no statement (or one without donations). */
 export const ownJarDonationCount = (jar: OwnJar) => (jar.statement ? normalizeDonations(jar.statement).donations.length : 0);
+
+/** What a jar with no statement raised day by day, as the app saw it: each change of its amount on the
+ * day it was read (the first reading carries everything raised before the app followed it), and anything
+ * after the last reading on the day it was last read. */
+export function ownJarDays(jar: OwnJar): Array<{ date: string; amount: number }> {
+  const days = new Map<string, number>();
+  const add = (at: number, amount: number) => {
+    if (amount <= 0) return;
+    const key = dayKey(new Date(at));
+    days.set(key, (days.get(key) ?? 0) + amount);
+  };
+  let seen = 0;
+  for (const h of [...(jar.history ?? [])].sort((a, b) => a.at - b.at)) {
+    add(h.at, h.raised - seen);
+    seen = Math.max(seen, h.raised);
+  }
+  add(jar.syncedAt ?? jar.archivedAt ?? jar.addedAt, jar.raised - seen);
+  return [...days.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([date, amount]) => ({ date, amount }));
+}
 
 /** A jar's statement as one of the datasets a set of statements is loaded from (the year's cards). */
 export const ownJarDataset = (jar: OwnJar): CampaignDataset | null =>

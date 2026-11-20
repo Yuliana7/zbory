@@ -13,6 +13,7 @@ import type { JarErrorKind } from '../../utils/monobankJar';
 import { CopyJarLink } from '../insights/friendsShared';
 import { JarChartModal } from '../insights/JarChartModal';
 import { ArchiveIcon, ImageIcon, PlusIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
+import { OwnJarArchiveSheet } from '../archive/OwnJarArchiveSheet';
 
 const GROWTH_DAYS = 7;
 
@@ -30,6 +31,7 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
   const [renewing, setRenewing] = useState(false);
   const [renewError, setRenewError] = useState<JarErrorKind | null>(null);
   const [chartId, setChartId] = useState<string | null>(null);
+  const [archiving, setArchiving] = useState<OwnJar | null>(null);
   const [query, setQuery] = useState('');
   const [page, setPage] = useState(0);
   const [now] = useState(() => Date.now());
@@ -97,8 +99,10 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
     onJarsChange(jarsRef.current.filter((j) => j.id !== jar.id));
   };
 
-  const archive = async (jar: OwnJar) => {
-    await setOwnJarArchived(jar, Date.now());
+  // the sheet asks whether a jar with no goal reached it, then it goes
+  const archive = async (jar: OwnJar, goalReached: boolean | undefined) => {
+    setArchiving(null);
+    await setOwnJarArchived(goalReached === undefined ? jar : { ...jar, goalReached }, Date.now());
     onJarsChange(jarsRef.current.filter((j) => j.id !== jar.id));
   };
 
@@ -197,7 +201,7 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
               now={now}
               onChart={() => setChartId(jar.id)}
               onCards={() => dispatch({ type: 'OWN_JAR_OPENED', payload: jar })}
-              onArchive={() => void archive(jar)}
+              onArchive={() => setArchiving(jar)}
               onRemove={() => void remove(jar)}
             />
           ))}
@@ -208,6 +212,7 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
       </div>
 
       {chartJar && <JarChartModal friend={chartJar} now={now} onClose={closeChart} />}
+      {archiving && <OwnJarArchiveSheet jar={archiving} onConfirm={(v) => void archive(archiving, v)} onCancel={() => setArchiving(null)} />}
     </div>
   );
 }
