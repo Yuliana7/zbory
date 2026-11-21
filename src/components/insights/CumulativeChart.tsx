@@ -81,19 +81,19 @@ export function CumulativeChart({ aggregates, datasets, points, bare = false }: 
         {/* Y-axis: gridlines + sum labels (0 renders as the darker x-axis baseline below) */}
         {yTicks.map((f) => (
           <g key={f}>
-            {f > 0 && <line x1={PL} x2={W - PR} y1={py(maxTotal * f)} y2={py(maxTotal * f)} stroke="#f3f4f6" strokeWidth={1} />}
-            <text x={PL - 6} y={py(maxTotal * f)} textAnchor="end" dominantBaseline="middle" fontSize={9} fill="#9ca3af">
+            {f > 0 && <line x1={PL} x2={W - PR} y1={py(maxTotal * f)} y2={py(maxTotal * f)} className="stroke-gray-100" strokeWidth={1} />}
+            <text x={PL - 6} y={py(maxTotal * f)} textAnchor="end" dominantBaseline="middle" fontSize={9} className="fill-gray-400">
               {formatCompact(maxTotal * f)} ₴
             </text>
           </g>
         ))}
 
         {/* X-axis baseline */}
-        <line x1={PL} x2={W - PR} y1={py(0)} y2={py(0)} stroke="#e5e7eb" strokeWidth={1} />
+        <line x1={PL} x2={W - PR} y1={py(0)} y2={py(0)} className="stroke-gray-200" strokeWidth={1} />
         {xAxis && (
           <>
-            <text x={PL} y={H - 4} textAnchor="start" fontSize={9} fill="#9ca3af">{xAxis.start}</text>
-            <text x={W - PR} y={H - 4} textAnchor="end" fontSize={9} fill="#9ca3af">{xAxis.end}</text>
+            <text x={PL} y={H - 4} textAnchor="start" fontSize={9} className="fill-gray-400">{xAxis.start}</text>
+            <text x={W - PR} y={H - 4} textAnchor="end" fontSize={9} className="fill-gray-400">{xAxis.end}</text>
           </>
         )}
 

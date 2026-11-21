@@ -10,6 +10,7 @@ import { SafeAreaTopBar } from './components/SafeAreaTopBar'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
 import { HryvniaIcon } from './icons/HryvniaIcon'
+import { ThemeToggle } from './components/ThemeToggle'
 
 function App() {
   const { t } = useTranslation('common')
@@ -47,20 +48,23 @@ function App() {
               </div>
             </button>
 
-            <div role="tablist" aria-label={t('section.label')} className="flex p-1 gap-0.5 rounded-full bg-indigo-50">
-              {(['active', 'archive'] as const).map((key) => (
-                <button
-                  key={key}
-                  role="tab"
-                  aria-selected={section === key}
-                  onClick={() => (section === key && !app.archiveView && !app.archivedCards && !app.yearRecap ? undefined : dispatch({ type: 'SECTION_CHANGED', payload: key }))}
-                  className={`px-3.5 sm:px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
-                    section === key ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-700 hover:bg-indigo-100'
-                  }`}
-                >
-                  {t(`section.${key}`)}
-                </button>
-              ))}
+            <div className="flex items-center gap-1.5">
+              <ThemeToggle />
+              <div role="tablist" aria-label={t('section.label')} className="flex p-1 gap-0.5 rounded-full bg-indigo-50">
+                {(['active', 'archive'] as const).map((key) => (
+                  <button
+                    key={key}
+                    role="tab"
+                    aria-selected={section === key}
+                    onClick={() => (section === key && !app.archiveView && !app.archivedCards && !app.yearRecap ? undefined : dispatch({ type: 'SECTION_CHANGED', payload: key }))}
+                    className={`px-3.5 sm:px-4 py-2 rounded-full text-sm font-semibold transition-colors ${
+                      section === key ? 'bg-indigo-600 text-white shadow-sm' : 'text-indigo-700 hover:bg-indigo-100'
+                    }`}
+                  >
+                    {t(`section.${key}`)}
+                  </button>
+                ))}
+              </div>
             </div>
 
           </div>

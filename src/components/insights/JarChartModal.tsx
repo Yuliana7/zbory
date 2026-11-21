@@ -100,18 +100,18 @@ export function JarChartModal({ friend: f, now, onClose }: { friend: FriendJar; 
             <svg viewBox={`0 0 ${W} ${H}`} className="w-full touch-pan-y" role="img" aria-label={t('jarChart.titleRaised')} onPointerDown={pick} onPointerMove={pick}>
               {[0, 0.5, 1].map((share) => (
                 <g key={share}>
-                  <line x1={PAD.left} x2={W - PAD.right} y1={py(top * share)} y2={py(top * share)} stroke={share === 0 ? '#d1d5db' : '#f3f4f6'} strokeWidth={1} />
-                  <text x={PAD.left - 6} y={py(top * share)} textAnchor="end" dominantBaseline="middle" fontSize={11} fill="#6b7280">{formatCompact(top * share)}</text>
+                  <line x1={PAD.left} x2={W - PAD.right} y1={py(top * share)} y2={py(top * share)} className={share === 0 ? 'stroke-gray-300' : 'stroke-gray-100'} strokeWidth={1} />
+                  <text x={PAD.left - 6} y={py(top * share)} textAnchor="end" dominantBaseline="middle" fontSize={11} className="fill-gray-500">{formatCompact(top * share)}</text>
                 </g>
               ))}
-              <text x={PAD.left} y={H - 6} fontSize={11} fill="#6b7280">{shortKey(firstDay)}</text>
-              {lastDay !== firstDay && <text x={W - PAD.right} y={H - 6} textAnchor="end" fontSize={11} fill="#6b7280">{shortKey(lastDay)}</text>}
-              {f.target && <line x1={PAD.left} x2={W - PAD.right} y1={py(f.target)} y2={py(f.target)} stroke="#6b7280" strokeWidth={1} strokeDasharray="2 4" />}
-              <line x1={px(selected.at)} x2={px(selected.at)} y1={PAD.top} y2={H - PAD.bottom} stroke="#e5e7eb" strokeWidth={1} />
+              <text x={PAD.left} y={H - 6} fontSize={11} className="fill-gray-500">{shortKey(firstDay)}</text>
+              {lastDay !== firstDay && <text x={W - PAD.right} y={H - 6} textAnchor="end" fontSize={11} className="fill-gray-500">{shortKey(lastDay)}</text>}
+              {f.target && <line x1={PAD.left} x2={W - PAD.right} y1={py(f.target)} y2={py(f.target)} className="stroke-gray-400" strokeWidth={1} strokeDasharray="2 4" />}
+              <line x1={px(selected.at)} x2={px(selected.at)} y1={PAD.top} y2={H - PAD.bottom} className="stroke-gray-200" strokeWidth={1} />
               {eta && f.target && <line x1={px(lastPoint.at)} y1={py(lastPoint.raised)} x2={px(eta)} y2={py(f.target)} stroke="#a5b4fc" strokeWidth={2} strokeDasharray="6 6" strokeLinecap="round" />}
               <polyline points={points.map((p) => `${px(p.at)},${py(p.raised)}`).join(' ')} fill="none" stroke="#6366f1" strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
               {points.map((p) => (
-                <circle key={p.at} cx={px(p.at)} cy={py(p.raised)} r={p.at === selected.at ? 5 : 3.5} fill="#6366f1" stroke="#fff" strokeWidth={2} />
+                <circle key={p.at} cx={px(p.at)} cy={py(p.raised)} r={p.at === selected.at ? 5 : 3.5} fill="#6366f1" style={{ stroke: 'rgb(var(--surface))' }} strokeWidth={2} />
               ))}
             </svg>
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
