@@ -50,7 +50,7 @@ export default defineConfig({
         // Dev-only — the production build is unaffected.
         suppressWarnings: true
       },
-      includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png'],
+      includeAssets: ['icon.svg', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
       manifest: {
         name: 'Zbory - Аналітика Збору Коштів',
         short_name: 'Zbory',
@@ -81,7 +81,7 @@ export default defineConfig({
             purpose: 'any'
           },
           {
-            src: `${BASE}pwa-512x512.png`,
+            src: `${BASE}pwa-maskable-512x512.png`,
             sizes: '512x512',
             type: 'image/png',
             purpose: 'maskable'
