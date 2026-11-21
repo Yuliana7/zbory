@@ -282,7 +282,7 @@ export interface YearRecap {
   /** closed projects */
   count: number;
   donations: number;
-  /** friendly jars: the projects' helpers and the user's own archived jars */
+  /** the user's own friendly jars closed that year (not the projects' helpers: those are other people's jars) */
   friendJars: number;
   /** closed totals by the month they were closed, January first */
   byMonth: number[];

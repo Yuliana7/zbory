@@ -61,11 +61,12 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('search: any part, any case', matchesName('На FPV-дрони', 'fpv') && matchesName('На авто для евакуації', '  АВТО  для ') && !matchesName('На генератор', 'дрон'));
   check('search: an empty query matches everything', matchesName('Будь-що', '   '));
   const s = yearSummary(inYear(list, 2026));
-  check('summary: total, count, donations and helpers of the year', s.total === 451000 && s.count === 3 && s.donations === 4510 && s.friends === 18);
+  check('summary: total, count, donations of the year; projects’ helpers aren’t the user’s friendly jars', s.total === 451000 && s.count === 3 && s.donations === 4510 && s.friends === 0);
   const fedProject = { ...meta('f', 'З банкою', at(2026, 10), 1000, 2), monobankJar: { id: 'L', title: 'З банкою', shortId: 'Main1' } };
   const own = (id: string, main?: string): OwnJar => ({ id, name: id, raised: 500, jarId: 'X'.repeat(16), addedAt: 0, archivedAt: at(2026, 10), ...(main ? { main: { shortId: main } } : {}) });
   const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')]);
-  check('summary: own jars count as friendly jars, unless they feed a project already counted', withOwn.friends === 4);
+  check('summary: every own jar of the year is a friendly jar, one feeding the user’s own project too', withOwn.friends === 3);
+  check('summary: a project with 21 helpers and one own jar → 1 friendly jar', yearSummary([meta('h', 'З помічниками', at(2026, 11), 300500, 21)], [own('mine')]).friends === 1);
   check('summary: own jars’ money joins the year, except a jar feeding one of its projects', withOwn.total === 2000 && withOwn.byMonth[9] === 2000, `${withOwn.total}`);
   const withStatement = { ...own('stated', 'Other'), statement: raw, statementAddedAt: 1 };
   check('summary: an own jar’s statement brings its donations', yearSummary([], [withStatement]).donations === raw.length);
