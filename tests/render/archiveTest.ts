@@ -30,11 +30,25 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('closing: the change itself is the newest, for backups', filed?.updatedAt === at(2026, 11, 21));
   // a project saved before the summary had months: filled in once, not counted as a change
   const legacy = await saveCampaign({ name: 'Старий запис', rawData: raw, fileName: null });
-  const { byMonth: _drop, ...oldSummary } = legacy.summary;
+  const { byMonth: _drop, clean: _clean, ...oldSummary } = legacy.summary;
   void _drop;
+  void _clean;
   await getBackend().put('meta', { ...legacy, summary: oldSummary, updatedAt: 42 });
   const filled = (await listCampaigns()).find((c) => c.id === legacy.id)!;
   check('months: an old project gets its donations by month once', filled.summary.byMonth?.['2026-07'] === 500 && filled.updatedAt === 42);
+  // refunds left out, as the analytics count them: 500 came in, 100 went back, 400 is on the jar
+  const refunded: RawDonation[] = [{ ...raw[0], amount: '300.00', balance: '400.00' }, raw[1]];
+  const r = await saveCampaign({ name: 'З поверненням', rawData: refunded, fileName: null });
+  check('refunds: the total leaves them out, as the analytics do', Math.round(r.summary.totalAmount) === 400, String(r.summary.totalAmount));
+  check('refunds: the months add up to that total', Math.round(Object.values(r.summary.byMonth ?? {}).reduce((s, v) => s + v, 0)) === 400);
+  const stale = await saveCampaign({ name: 'Старий підсумок', rawData: refunded, fileName: null });
+  const { clean: _c, ...grossSummary } = stale.summary;
+  void _c;
+  await getBackend().put('meta', { ...stale, summary: { ...grossSummary, totalAmount: 500 }, updatedAt: 43 });
+  const redone = (await listCampaigns()).find((c) => c.id === stale.id)!;
+  check('refunds: a summary saved with them in is recounted once, not as a change', Math.round(redone.summary.totalAmount) === 400 && redone.summary.clean === true && redone.updatedAt === 43);
+  await deleteCampaign(r.id);
+  await deleteCampaign(stale.id);
   const q = await saveCampaign({ name: 'Без цілі', rawData: raw, fileName: null });
   check('store: closing with no goal keeps the user’s word on it', (await archiveCampaign(q.id, at(2026, 10, 14), { goalReached: true }))?.archive?.goalReached === true);
   check('store: not said, not stored', (await archiveCampaign(q.id, at(2026, 10, 14)))?.archive?.goalReached === undefined);

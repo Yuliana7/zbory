@@ -2,6 +2,7 @@ import type { FriendJar, MonobankJarRef, OwnJar, Raffle, RawDonation, SharedStyl
 import { isOwnJar, listOwnJars, restoreOwnJars } from './ownJars';
 import { normalizeDonations } from './csvParser';
 import { generateId } from './id';
+import { cleanShare } from './dataAggregator';
 import { getBackend } from './db';
 import { withTimestamps } from './timestamps';
 
@@ -22,6 +23,9 @@ export interface CampaignSummary {
   /** donations by the month they came in («YYYY-MM» → UAH): the archive's year bars. Missing in metas
    * saved before it existed; listCampaigns fills it in once. */
   byMonth?: Record<string, number>;
+  /** totalAmount and byMonth leave refunds out (as the analytics count). Missing in metas saved before:
+   * listCampaigns recomputes those once. */
+  clean?: true;
 }
 
 export interface CampaignMeta {
@@ -62,13 +66,13 @@ interface CampaignData {
 
 /** Derives the list-view summary from raw rows via the same pipeline the app uses. */
 export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary {
-  const { donations, currentBalance } = normalizeDonations(rawData);
-  let totalAmount = 0;
+  const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
+  let raised = 0;
   let first = Infinity;
   let last = -Infinity;
   const byMonth: Record<string, number> = {};
   for (const d of donations) {
-    totalAmount += d.amount;
+    raised += d.amount;
     const month = `${d.timestamp.getFullYear()}-${String(d.timestamp.getMonth() + 1).padStart(2, '0')}`;
     byMonth[month] = (byMonth[month] ?? 0) + d.amount;
     const t = d.timestamp.getTime();
@@ -79,13 +83,17 @@ export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary 
     const d = new Date(ms);
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
+  // refunds out, as the analytics count: the months shrink in proportion to their donations
+  const share = donations.length ? cleanShare(raised, withdrawals.reduce((s, w) => s + w.amount, 0), currentBalance) : 1;
+  for (const m of Object.keys(byMonth)) byMonth[m] *= share;
   return {
-    totalAmount,
+    totalAmount: raised * share,
     donationCount: donations.length,
     firstDate: donations.length ? isoDate(first) : '',
     lastDate: donations.length ? isoDate(last) : '',
     currentBalance,
     byMonth,
+    clean: true,
   };
 }
 
@@ -143,13 +151,13 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
 export async function listCampaigns(): Promise<CampaignMeta[]> {
   const kv = getBackend();
   const all = (await kv.getAll(META_STORE)) as CampaignMeta[];
-  // projects saved before the summary had its months get them once, from their rows. Not a change
-  // the user made: updatedAt (what a backup compares) stays.
+  // projects saved before the summary had its months, or left refunds out, get it once from their rows.
+  // Not a change the user made: updatedAt (what a backup compares) stays.
   for (const [i, meta] of all.entries()) {
-    if (meta.summary.byMonth) continue;
+    if (meta.summary.clean) continue;
     const data = (await kv.get(DATA_STORE, meta.id)) as CampaignData | undefined;
     if (!data) continue;
-    all[i] = { ...meta, summary: { ...meta.summary, byMonth: computeCampaignSummary(data.rawData).byMonth } };
+    all[i] = { ...meta, summary: computeCampaignSummary(data.rawData) };
     await kv.put(META_STORE, all[i]);
   }
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
