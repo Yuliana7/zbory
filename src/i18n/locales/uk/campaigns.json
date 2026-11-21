@@ -8,7 +8,7 @@
   "actions": {
     "monobankUpdate": "Оновити з Monobank",
     "monobankLink": "Додати дані з Monobank",
-    "csv": "Додати CSV-виписку",
+    "csv": "Додати виписку (CSV, Excel)",
     "edit": "Редагувати рядки",
     "goal": "Мета збору",
     "friends": "Друзі збору",

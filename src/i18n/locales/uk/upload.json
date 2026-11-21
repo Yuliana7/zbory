@@ -80,7 +80,7 @@
   },
   "errors": {
     "tooLarge": "Файл занадто великий. Максимальний розмір: {{size}}",
-    "invalidType": "Будь ласка, оберіть CSV файл"
+    "invalidType": "Будь ласка, оберіть файл виписки: CSV або Excel (.xls, .xlsx)"
   },
   "monobank": {
     "button": "Усі мої банки з Monobank",

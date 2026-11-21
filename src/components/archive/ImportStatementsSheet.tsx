@@ -191,7 +191,7 @@ export function ImportStatementsSheet({ onClose, onImported }: { onClose: () => 
           </div>
         )}
 
-        <input ref={fileRef} type="file" accept=".csv,text/csv" multiple className="hidden" onChange={(e) => void read(e.target.files)} />
+        <input ref={fileRef} type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel" multiple className="hidden" onChange={(e) => void read(e.target.files)} />
         <button onClick={() => fileRef.current?.click()} disabled={!!busy} className="btn-secondary flex w-full items-center justify-center gap-2">
           {busy === 'reading' && <SpinnerIcon className="h-4 w-4 animate-spin" />}
           {busy === 'reading' ? t('statement.reading') : drafts.length ? t('import.pickMore') : t('import.pick')}

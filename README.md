@@ -91,7 +91,7 @@ Adding jars from the Monobank API has its own [step-by-step guide](#importing-fr
 ## Features
 
 ### Analytics
-- Parses the CSV statement exported from a Monobank jar, **or fetches it straight from the Monobank API**, or lets you type donations in by hand.
+- Parses the statement exported from a Monobank jar (**CSV, or Excel .xls / .xlsx**), **or fetches it straight from the Monobank API**, or lets you type donations in by hand.
 - Total raised, donation count, typical (median) vs. average donation, most frequent amount, best day, time-of-day activity, campaign duration.
 - **One Оновити** on the total reads the main jar's statement and every linked helper jar in parallel, then saves once, so the page can't drift out of sync. Jars entered by hand can't be read, so the report names them.
 - A daily chart of donations and withdrawals for up to the last 30 days. **Детальніше** opens **День за днем**: any period compared with the one before, bars or a running total. A bar is a day (up to 31 days), a calendar week (up to about three months) or a calendar month, with an explicit **Дні · Тижні · Місяці** switch; tap a bar for that day's breakdown (amount, donors, hours, comments) or that week's or month's (totals, its days, its best day). Plus a weekday × hour map of when people donate, and a shortcut to a card for that period. The «На рахунку» / refunds figures appear only when there are withdrawals or refunds.
@@ -175,7 +175,7 @@ The same response also names the jar's owner (`ownerName`) and shows the jar it 
 
 ## How to use it
 
-1. **Get your data.** Use *Усі мої банки з Monobank* with a personal token — no file needed — or export the jar's statement as **CSV** in the monobank app (Monobank support can also send a statement file; the app understands both layouts).
+1. **Get your data.** Use *Усі мої банки з Monobank* with a personal token — no file needed — or export the jar's statement as **CSV** (or **Excel, .xls / .xlsx**) in the monobank app (Monobank support can also send a statement file; the app understands both layouts).
 2. **Add a jar** with **Додати банку**: [all your jars via the Monobank API](#importing-from-monobank-step-by-step), a CSV, *Створити вручну*, or a friendly jar by link. It is saved automatically and the analytics opens; the goal and friendly jars can be set from **Редагувати** or the analytics.
 3. **Read the analytics,** then go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
@@ -233,6 +233,7 @@ Tap **Оновити** on the total in the analytics, **Редагувати →
 | i18n | i18next / react-i18next (Ukrainian) |
 | Charts | hand-rolled CSS/SVG charts |
 | CSV | PapaParse |
+| Excel (.xls, .xlsx) | SheetJS (loaded only when such a file is picked) |
 | Image export | `html-to-image` (cards render at native 1080 px and are rasterised offscreen) |
 | Monobank | plain `fetch` against the personal API (`src/utils/monobankApi.ts`), which answers browser preflights; a small Cloudflare Worker (`worker/`) only for turning a share link into a long id |
 | Storage | IndexedDB (fundraisers, themes) behind a small key-value wrapper with in-memory fallback; localStorage for preferences and, by choice, the token |

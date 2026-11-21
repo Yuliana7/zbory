@@ -21,7 +21,12 @@ export interface NormalizeResult {
  * - Залишок
  * - Валюта залишку
  */
-export function parseCSV(file: File): Promise<RawDonation[]> {
+export async function parseCSV(file: File): Promise<RawDonation[]> {
+  // The same statement also comes as an Excel file (.xls / .xlsx); loaded only when one is picked
+  if (isSpreadsheetFile(file)) {
+    const { readSpreadsheetRows } = await import('./xlsParser');
+    return rowsToRawDonations(await readSpreadsheetRows(file));
+  }
   return new Promise((resolve, reject) => {
     Papa.parse(file, {
       header: true,
@@ -29,24 +34,7 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
       encoding: 'UTF-8',
       complete: (results) => {
         try {
-          const rawDonations: RawDonation[] = (results.data as Record<string, string>[]).map((row) => {
-            const date = row['Дата та час операції'] || row['Дата та час'] || '';
-            return {
-              date,
-              // The CSV has clock text only; it is Kyiv time. Store the instant so rows
-              // can later be matched with API rows and shown in the user's own time.
-              ts: kyivWallClockToUnix(date) ?? undefined,
-              category: row['Категорія операції'] || row['Категорія'] || '',
-              amount: row['Сума'] || '0',
-              currency: row['Валюта'] || 'UAH',
-              additionalInfo: row['Додаткова інформація'] || row['Опис'] || '',
-              comment: row['Коментар до платежу'] || row['Коментар'] || '',
-              balance: row['Залишок'] || '0',
-              balanceCurrency: row['Валюта залишку'] || 'UAH',
-            };
-          });
-
-          resolve(rawDonations);
+          resolve(rowsToRawDonations(results.data as Record<string, string>[]));
         } catch {
           reject(new Error('Помилка при обробці CSV файлу'));
         }
@@ -55,6 +43,26 @@ export function parseCSV(file: File): Promise<RawDonation[]> {
         reject(new Error(`Помилка при читанні CSV: ${error.message}`));
       },
     });
+  });
+}
+
+/** Header-keyed rows (from a CSV or a spreadsheet) → raw donations. Both layouts of the headers are known. */
+export function rowsToRawDonations(rows: Record<string, string>[]): RawDonation[] {
+  return rows.map((row) => {
+    const date = row['Дата та час операції'] || row['Дата та час'] || '';
+    return {
+      date,
+      // The statement has clock text only; it is Kyiv time. Store the instant so rows
+      // can later be matched with API rows and shown in the user's own time.
+      ts: kyivWallClockToUnix(date) ?? undefined,
+      category: row['Категорія операції'] || row['Категорія'] || '',
+      amount: row['Сума'] || '0',
+      currency: row['Валюта'] || 'UAH',
+      additionalInfo: row['Додаткова інформація'] || row['Опис'] || '',
+      comment: row['Коментар до платежу'] || row['Коментар'] || '',
+      balance: row['Залишок'] || '0',
+      balanceCurrency: row['Валюта залишку'] || 'UAH',
+    };
   });
 }
 
@@ -167,15 +175,22 @@ function extractDonorName(info: string): string | undefined {
   return undefined;
 }
 
+const SPREADSHEET_EXTENSIONS = ['.xls', '.xlsx'];
+
+/** An Excel statement (.xls / .xlsx), by extension; browsers give these no reliable type. */
+export function isSpreadsheetFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  return SPREADSHEET_EXTENSIONS.some((ext) => name.endsWith(ext));
+}
+
 /**
- * Validates if a file is a valid CSV
+ * Validates if a file is a statement we can read: CSV or Excel
  */
 export function isValidCSVFile(file: File): boolean {
   const validTypes = ['text/csv', 'application/vnd.ms-excel', 'text/plain'];
-  const validExtensions = ['.csv'];
 
   const hasValidType = validTypes.includes(file.type);
-  const hasValidExtension = validExtensions.some(ext => file.name.toLowerCase().endsWith(ext));
+  const hasValidExtension = file.name.toLowerCase().endsWith('.csv') || isSpreadsheetFile(file);
 
   return hasValidType || hasValidExtension;
 }

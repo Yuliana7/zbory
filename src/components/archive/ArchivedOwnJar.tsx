@@ -103,7 +103,7 @@ export function ArchivedOwnJar({ id }: { id: string }) {
   const statementTotal = told?.aggregates.totalAmount ?? 0;
   const mismatch = told && Math.abs(statementTotal - jar.raised) > Math.max(1, jar.raised * 0.01);
   const fileInput = (
-    <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => void addStatement(e.target.files?.[0])} />
+    <input ref={fileRef} type="file" accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel" className="hidden" onChange={(e) => void addStatement(e.target.files?.[0])} />
   );
 
   const remove = async () => {
