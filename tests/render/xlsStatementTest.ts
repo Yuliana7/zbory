@@ -1,5 +1,6 @@
 import * as XLSX from 'xlsx';
-import { parseCSV, normalizeDonations, isValidCSVFile } from '../../src/utils/csvParser';
+import Papa from 'papaparse';
+import { parseCSV, normalizeDonations, isValidCSVFile, rowsToRawDonations } from '../../src/utils/csvParser';
 
 const check = (label: string, ok: boolean, extra = '') => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}${ok ? '' : ` ${extra}`}`);
@@ -52,3 +53,16 @@ const run = async () => {
 };
 
 void run();
+
+// tests/data/Zbir_short.xls is the same statement as Zbir_short.csv, saved as Excel
+const sameAsCsv = async () => {
+  const { readFileSync } = await import('node:fs');
+  const load = (name: string) => new File([readFileSync(`tests/data/${name}`)], name);
+  const fromXls = normalizeDonations(await parseCSV(load('Zbir_short.xls')));
+  // PapaParse can't read a File in node, so the CSV's text goes through the same row mapping
+  const csvRows = Papa.parse<Record<string, string>>(readFileSync('tests/data/Zbir_short.csv', 'utf8'), { header: true, skipEmptyLines: true }).data;
+  const fromCsv = normalizeDonations(rowsToRawDonations(csvRows));
+  check('fixture: .xls and .csv give the same donations', JSON.stringify(fromXls.donations) === JSON.stringify(fromCsv.donations) && fromCsv.donations.length > 0);
+  check('fixture: same balance', fromXls.currentBalance === fromCsv.currentBalance);
+};
+void sameAsCsv();
