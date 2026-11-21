@@ -124,9 +124,9 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
   };
 
   // the sheet asks whether a jar with no goal reached it, then it goes
-  const archive = async (jar: OwnJar, goalReached: boolean | undefined) => {
+  const archive = async (jar: OwnJar, goalReached: boolean | undefined, archivedAt: number) => {
     setArchiving(null);
-    await setOwnJarArchived(goalReached === undefined ? jar : { ...jar, goalReached }, Date.now());
+    await setOwnJarArchived(goalReached === undefined ? jar : { ...jar, goalReached }, archivedAt);
     onJarsChange(jarsRef.current.filter((j) => j.id !== jar.id));
   };
 
@@ -224,7 +224,7 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
           onClose={() => setAskToken(false)}
         />
       )}
-      {archiving && <OwnJarArchiveSheet jar={archiving} onConfirm={(v) => void archive(archiving, v)} onCancel={() => setArchiving(null)} />}
+      {archiving && <OwnJarArchiveSheet jar={archiving} onConfirm={(v, at) => void archive(archiving, v, at)} onCancel={() => setArchiving(null)} />}
     </div>
   );
 }

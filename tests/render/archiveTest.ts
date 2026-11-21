@@ -1,6 +1,6 @@
 import { buildReport } from '../../src/utils/campaignAnalytics';
 import { buildBackup, deleteCampaign, restoreBackup, renameCampaign, setArchivedGoalReached, saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
-import { archiveYear, archiveYears, goalsUnsaid, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
+import { archiveYear, archiveYears, closedAtOf, dayOf, goalsUnsaid, ownJarLastDay, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
 import { listOwnJars, removeOwnJar, renameOwnJar, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../src/utils/ownJars';
 import type { OwnJar, RawDonation } from '../../src/types';
 import { draftFromStatement, importToArchive, knownSignatures, nameFromFile } from '../../src/utils/archiveImport';
@@ -23,6 +23,10 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('store: a new project is active', !isArchived(p));
   const archived = await archiveCampaign(p.id, at(2026, 10, 14));
   check('store: archiving stamps the time and counts the helpers', archived?.archivedAt === at(2026, 10, 14) && archived.archive?.friendsCount === 2);
+  const old = await saveCampaign({ name: 'Давній', rawData: raw, fileName: null });
+  const filed = await archiveCampaign(old.id, closedAtOf('2026-08-31'), {}, at(2026, 11, 21));
+  check('closing: filed under the day it closed, which can be long ago', filed?.archivedAt === closedAtOf('2026-08-31') && archiveYear(filed!) === 2026 && new Date(filed!.archivedAt!).getMonth() === 7);
+  check('closing: the change itself is the newest, for backups', filed?.updatedAt === at(2026, 11, 21));
   const q = await saveCampaign({ name: 'Без цілі', rawData: raw, fileName: null });
   check('store: closing with no goal keeps the user’s word on it', (await archiveCampaign(q.id, at(2026, 10, 14), { goalReached: true }))?.archive?.goalReached === true);
   check('store: not said, not stored', (await archiveCampaign(q.id, at(2026, 10, 14)))?.archive?.goalReached === undefined);
@@ -31,7 +35,7 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const renamed = await renameCampaign(q.id, '  Генератор для лікарні  ', at(2026, 11));
   check('rename: a closed project keeps its record, takes the new name', renamed?.name === 'Генератор для лікарні' && renamed.archivedAt !== undefined && renamed.updatedAt === at(2026, 11));
   check('rename: a blank name changes nothing', (await renameCampaign(q.id, '   ')) === null && (await getCampaignMeta(q.id))?.name === 'Генератор для лікарні');
-  check('store: archiving moves updatedAt (so a backup prefers it)', (archived?.updatedAt ?? 0) === at(2026, 10, 14));
+  check('store: archiving moves updatedAt (so a backup prefers it)', (archived?.updatedAt ?? 0) > p.updatedAt && (archived?.updatedAt ?? 0) >= at(2026, 10, 14));
   await saveCampaign({ id: p.id, name: 'На дрони', rawData: raw, fileName: null, goal: 400 });
   const afterSave = await getCampaignMeta(p.id);
   check('store: a later save (the cards’ style) keeps it archived', afterSave?.archivedAt === at(2026, 10, 14) && afterSave.archive?.friendsCount === 2);
@@ -88,6 +92,12 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('unsaid: jars with no goal and no word, projects and own jars', unsaid.map((u) => `${u.kind}:${u.name}`).join() === 'project:На авто для евакуації,ownJar:no-word', unsaid.map((u) => u.name).join());
   const saidJar = await setOwnJarGoalReached(own('x'), true, at(2026, 11));
   check('unsaid: an own jar’s word is kept, and counts as a change', saidJar.goalReached === true && saidJar.updatedAt === at(2026, 11) && (await setOwnJarGoalReached(saidJar, undefined)).goalReached === undefined);
+  const T = (m: number, d: number) => new Date(2026, m - 1, d, 15).getTime();
+  check('closing day: a jar with a statement closes on its last donation', ownJarLastDay({ ...own('s'), statement: raw }, T(11, 21)) === '2026-07-03');
+  check('closing day: without one, the last change the app saw', ownJarLastDay({ ...own('h'), history: [{ at: T(9, 1), raised: 10 }, { at: T(9, 14), raised: 30 }] }, T(11, 21)) === '2026-09-14');
+  check('closing day: nothing known → today', ownJarLastDay(own('n'), T(11, 21)) === dayOf(T(11, 21)));
+  const pastClosed = await setOwnJarArchived({ ...own('pc'), updatedAt: T(10, 1) }, closedAtOf('2026-08-31'), T(11, 21));
+  check('closing an own jar in the past: filed then, stamped now', pastClosed.archivedAt === closedAtOf('2026-08-31') && pastClosed.updatedAt === T(11, 21));
   const rj = await renameOwnJar(own('old'), ' Нова назва ', at(2026, 12));
   check('rename: an own jar, trimmed; blank keeps the old name', rj.name === 'Нова назва' && rj.updatedAt === at(2026, 12) && (await renameOwnJar(rj, '  ')).name === 'Нова назва');
   const items = [{ meta: list[0] as never, rawData: raw }];
@@ -101,7 +111,7 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const jar: OwnJar = { id: 'j', name: 'Моя банка', raised: 100, jarId: 'X'.repeat(16), addedAt: at(2026, 6), main: { shortId: 'Main1' } };
   check('own: jars that feed a project are found by its short id', ownJarsFeeding([jar, { ...jar, id: 'k', main: { shortId: 'Other' } }], 'Main1').map((j) => j.id).join() === 'j');
   check('own: no short id, nothing feeds it', ownJarsFeeding([jar], undefined).length === 0);
-  const archivedJar = await setOwnJarArchived(jar, at(2026, 7));
+  const archivedJar = await setOwnJarArchived(jar, at(2026, 7), at(2026, 7));
   check('own: archiving a jar stamps it, and a backup sees it as newer', archivedJar.archivedAt === at(2026, 7) && ownJarStamp(archivedJar) > ownJarStamp(jar));
   check('own: an archived jar is no longer offered with its project', ownJarsFeeding([archivedJar], 'Main1').length === 0);
   const activeAgain = await setOwnJarArchived(archivedJar, null, at(2026, 8));

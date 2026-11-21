@@ -88,7 +88,8 @@ export const ownJarDataset = (jar: OwnJar): CampaignDataset | null =>
 /** Moves a jar to the archive, or (`null`) back to the active ones. */
 export async function setOwnJarArchived(jar: OwnJar, archivedAt: number | null, now: number = Date.now()): Promise<OwnJar> {
   const { archivedAt: _was, ...rest } = jar;
-  const next: OwnJar = archivedAt ? { ...rest, archivedAt } : { ...rest, updatedAt: now };
+  // the day it closed can be long ago; the change itself is now, so a backup sees it as the newest
+  const next: OwnJar = archivedAt ? { ...rest, archivedAt, updatedAt: Math.max(now, archivedAt) } : { ...rest, updatedAt: now };
   await saveOwnJar(next);
   return next;
 }

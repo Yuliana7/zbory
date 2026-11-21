@@ -150,13 +150,15 @@ export async function loadCampaignData(id: string): Promise<{ rawData: RawDonati
 
 /** Closes a project: it moves to the archive under this year, with a few numbers the archive lists
  * without opening it. Its data stays exactly as it is. */
-export async function archiveCampaign(id: string, now: number = Date.now(), opts: { goalReached?: boolean } = {}): Promise<CampaignMeta | null> {
+/** Files a project in the archive under `archivedAt` — the day it closed (its last donation, as a rule),
+ * which can be long before today. The change itself is stamped `now`, so a backup sees it as the newest. */
+export async function archiveCampaign(id: string, archivedAt: number = Date.now(), opts: { goalReached?: boolean } = {}, now: number = Date.now()): Promise<CampaignMeta | null> {
   const kv = getBackend();
   const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
   const data = (await kv.get(DATA_STORE, id)) as CampaignData | undefined;
   if (!meta || !data) return null;
   const archive: ArchiveSnapshot = { friendsCount: data.friends?.length ?? 0, ...(opts.goalReached !== undefined ? { goalReached: opts.goalReached } : null) };
-  const archived: CampaignMeta = { ...meta, archivedAt: now, archive, updatedAt: now };
+  const archived: CampaignMeta = { ...meta, archivedAt, archive, updatedAt: Math.max(now, archivedAt) };
   await kv.put(META_STORE, archived);
   return archived;
 }

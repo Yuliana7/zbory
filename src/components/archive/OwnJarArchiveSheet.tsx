@@ -4,12 +4,16 @@ import type { OwnJar } from '../../types';
 import { fmtUah } from '../../utils/friendJars';
 import { goalPct } from '../../utils/ownJars';
 import { GoalReachedQuestion } from './GoalReachedQuestion';
+import { ClosedOnField } from './ClosedOnField';
+import { closedAtOf, dayOf, ownJarLastDay } from '../../utils/archive';
 
 /** «В архів» for one of the user's friendly jars: with no goal set, whether it reached its goal must be
  * said first (for «Цілей досягнуто» in «Мій рік»); with one, the numbers say it. */
-export function OwnJarArchiveSheet({ jar, onConfirm, onCancel }: { jar: OwnJar; onConfirm: (goalReached: boolean | undefined) => void; onCancel: () => void }) {
+export function OwnJarArchiveSheet({ jar, onConfirm, onCancel }: { jar: OwnJar; onConfirm: (goalReached: boolean | undefined, archivedAt: number) => void; onCancel: () => void }) {
   const { t } = useTranslation('archive');
   const [reached, setReached] = useState<boolean | undefined>(undefined);
+  // the day it closed: when it last moved (its statement, or the last change the app saw)
+  const [closedOn, setClosedOn] = useState(() => ownJarLastDay(jar));
   const pct = goalPct(jar.raised, jar.target);
   const needsAnswer = pct === null;
 
@@ -37,7 +41,7 @@ export function OwnJarArchiveSheet({ jar, onConfirm, onCancel }: { jar: OwnJar; 
           <h3 id="own-archive-title" className="text-lg font-bold text-gray-900 [overflow-wrap:anywhere]">
             {t('ownArchive.title', { name: jar.name || '—' })}
           </h3>
-          <p className="mt-1 text-sm text-gray-600">{t('ownArchive.text', { year: new Date().getFullYear() })}</p>
+          <p className="mt-1 text-sm text-gray-600">{t('ownArchive.text', { year: Number((closedOn || dayOf(Date.now())).slice(0, 4)) })}</p>
         </div>
         <div className="rounded-xl bg-gray-50 px-3.5 py-3 text-sm">
           {needsAnswer ? (
@@ -52,9 +56,10 @@ export function OwnJarArchiveSheet({ jar, onConfirm, onCancel }: { jar: OwnJar; 
             </p>
           )}
         </div>
+        <ClosedOnField value={closedOn} onChange={setClosedOn} />
         {needsAnswer && reached === undefined && <p className="text-xs text-gray-500">{t('goalQuestion.required')}</p>}
         <div className="flex flex-col gap-2">
-          <button onClick={() => onConfirm(needsAnswer ? reached : undefined)} disabled={needsAnswer && reached === undefined} className="btn-primary disabled:opacity-50">
+          <button onClick={() => onConfirm(needsAnswer ? reached : undefined, closedAtOf(closedOn || dayOf(Date.now())))} disabled={needsAnswer && reached === undefined} className="btn-primary disabled:opacity-50">
             {t('ownArchive.confirm')}
           </button>
           <button onClick={onCancel} className="btn-secondary">

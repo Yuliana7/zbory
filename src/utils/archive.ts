@@ -3,7 +3,7 @@
 // jar's statement, which it carries).
 
 import type { OwnJar, YearRecap } from '../types';
-import type { CampaignMeta } from './campaignStore';
+import { computeCampaignSummary, type CampaignMeta } from './campaignStore';
 import { ownJarDataset, ownJarDays, ownJarDonationCount } from './ownJars';
 
 export const isArchived = (item: { archivedAt?: number }) => !!item.archivedAt;
@@ -36,6 +36,24 @@ export interface YearSummary {
   friends: number;
   /** what the projects and own jars closed in each month raised, January first */
   byMonth: number[];
+}
+
+/** A closing day (YYYY-MM-DD) as the moment it's filed under: noon, so it stays that day in any time zone. */
+export const closedAtOf = (day: string) => new Date(`${day}T12:00:00`).getTime();
+
+/** YYYY-MM-DD on the user's clock. */
+export const dayOf = (ms: number) => {
+  const d = new Date(ms);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
+
+/** When a friendly jar last moved, as the day to close it on: its statement's last donation, else the
+ * last time the app saw its amount change, else today. */
+export function ownJarLastDay(jar: OwnJar, now: number = Date.now()): string {
+  const last = jar.statement ? computeCampaignSummary(jar.statement).lastDate : '';
+  if (last) return last;
+  const changes = (jar.history ?? []).map((h) => h.at);
+  return dayOf(changes.length ? Math.max(...changes) : now);
 }
 
 /** The user's own jars that count on their own in a year: all but those feeding one of these projects,

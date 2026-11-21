@@ -5,10 +5,11 @@ import type { RenewAll } from '../../hooks/useRenewAll';
 import type { OwnJar } from '../../types';
 import { archiveCampaign } from '../../utils/campaignStore';
 import { listOwnJars, setOwnJarArchived } from '../../utils/ownJars';
-import { ownJarsFeeding } from '../../utils/archive';
+import { closedAtOf, dayOf, ownJarsFeeding } from '../../utils/archive';
 import { fmtUah } from '../../utils/friendJars';
 import { CheckIcon, SpinnerIcon } from '../../icons';
 import { GoalReachedQuestion } from './GoalReachedQuestion';
+import { ClosedOnField } from './ClosedOnField';
 
 type Phase = 'confirm' | 'renewing' | 'archiving' | 'failed';
 
@@ -24,6 +25,8 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
   const [phase, setPhase] = useState<Phase>('confirm');
   // with no goal set, «Мій рік» can still count it among the goals reached if the user says
   const [goalReached, setGoalReached] = useState<boolean | undefined>(undefined);
+  // the day it closed: its last donation by default, so it lands in the right year and month
+  const [closedOn, setClosedOn] = useState(() => dayOf(app.aggregates?.lastDate.getTime() ?? Date.now()));
 
   useEffect(() => {
     listOwnJars()
@@ -42,7 +45,7 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
 
   const archive = async () => {
     setPhase('archiving');
-    const done = await archiveCampaign(id, Date.now(), app.goal ? {} : { goalReached }).catch(() => null);
+    const done = await archiveCampaign(id, closedAtOf(closedOn || dayOf(Date.now())), app.goal ? {} : { goalReached }).catch(() => null);
     if (!done) {
       setPhase('failed');
       return;
@@ -97,7 +100,7 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
           <h3 id="close-project-title" className="text-lg font-bold text-gray-900">
             {t('close.title', { name: app.activeCampaignName ?? '' })}
           </h3>
-          <p className="mt-1 text-sm text-gray-600">{t('close.text', { year: new Date().getFullYear() })}</p>
+          <p className="mt-1 text-sm text-gray-600">{t('close.text', { year: Number((closedOn || dayOf(Date.now())).slice(0, 4)) })}</p>
         </div>
 
         <ul className="space-y-2.5">
@@ -110,6 +113,8 @@ export function CloseProjectSheet({ renew, onCancel }: { renew: RenewAll; onCanc
             </li>
           ))}
         </ul>
+
+        <ClosedOnField value={closedOn} onChange={setClosedOn} min={dayOf(app.aggregates.firstDate.getTime())} disabled={busy} />
 
         {!app.goal && (
           <div className="rounded-xl bg-gray-50 px-3.5 py-3">
