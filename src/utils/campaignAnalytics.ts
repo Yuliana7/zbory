@@ -1,7 +1,7 @@
 import type { RawDonation, CampaignDataset } from '../types';
 import { computeCampaignSummary, type CampaignMeta } from './campaignStore';
 import { normalizeDonations, SELF_DONATION } from './csvParser';
-import { isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
+import { cleanShare, isAnonymousDonor, normalizeDonorKey } from './dataAggregator';
 
 /** Builds the analyzeCampaigns/buildReport input from in-session datasets (no library round-trip). */
 export function datasetsToItems(datasets: CampaignDataset[]): Array<{ meta: CampaignMeta; rawData: RawDonation[] }> {
@@ -184,7 +184,9 @@ export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonat
   let lastDate: Date | null = null;
 
   for (const { meta, rawData } of items) {
-    const { donations } = normalizeDonations(rawData);
+    const { donations, withdrawals, currentBalance } = normalizeDonations(rawData);
+    // refunds out, as the analytics count: the period keeps its share of the clean total
+    const share = cleanShare(donations.reduce((s, d) => s + d.amount, 0), withdrawals.reduce((s, w) => s + w.amount, 0), currentBalance);
     let campaignAmount = 0;
 
     for (const d of donations) {
@@ -200,6 +202,7 @@ export function buildReport(items: Array<{ meta: CampaignMeta; rawData: RawDonat
       }
     }
 
+    campaignAmount *= share;
     if (campaignAmount > 0) {
       campaignTotals.push({ name: meta.name, amount: campaignAmount });
       totalAmount += campaignAmount;

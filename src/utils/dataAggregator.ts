@@ -1,5 +1,17 @@
 import type { Donation, Withdrawal, Aggregates } from '../types';
 
+/** What a jar raised with refunds left out, as its analytics count it: what's on it now plus what was
+ * taken out. Refunds never show as rows, only as a balance lower than the donations add up to. */
+export const cleanTotal = (withdrawn: number, balance: number) => balance + withdrawn;
+
+/** The share of a statement's donations that the clean total keeps (below 1 when there were refunds):
+ * spreads the clean total over parts of the statement (months, a period) in proportion to their donations. */
+export const cleanShare = (raised: number, withdrawn: number, balance: number) => {
+  const clean = cleanTotal(withdrawn, balance);
+  // rows without a balance (nothing on the jar, nothing taken out): the donations are all there is
+  return raised > 0 && clean > 0 ? clean / raised : 1;
+};
+
 /**
  * Aggregates donation data into useful statistics.
  * withdrawals and currentBalance are optional — callers that don't have them
@@ -28,9 +40,7 @@ export function aggregateDonations(
   const impliedRefunds = hasBalanceData
     ? Math.max(0, totalRaised - totalWithdrawn - currentBalance!)
     : 0;
-  const totalAmount = hasBalanceData
-    ? currentBalance! + totalWithdrawn
-    : totalRaised;
+  const totalAmount = hasBalanceData ? cleanTotal(totalWithdrawn, currentBalance!) : totalRaised;
   const donationCount = donations.length;
   const avgDonation = totalAmount / donationCount;
 
