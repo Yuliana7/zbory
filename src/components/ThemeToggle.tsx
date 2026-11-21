@@ -1,29 +1,35 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { AutoThemeIcon, MoonIcon, SunIcon } from '../icons/ThemeIcons';
-import { applyTheme, nextThemePreference, readThemePreference, saveThemePreference, watchSystemTheme, type ThemePreference } from '../utils/theme';
+import { MoonIcon, SunIcon } from '../icons/ThemeIcons';
+import { applyTheme, currentTheme, otherTheme, saveTheme, savedTheme, watchSystemTheme, type Theme } from '../utils/theme';
 
-const ICONS = { auto: AutoThemeIcon, light: SunIcon, dark: MoonIcon } as const;
-
-/** One button that goes Auto → Light → Dark. «Auto» follows the device and its schedule. */
+/** Light ↔ dark. The icon shows the theme you are in. */
 export function ThemeToggle() {
   const { t } = useTranslation('common');
-  const [pref, setPref] = useState<ThemePreference>(readThemePreference);
+  const [theme, setTheme] = useState<Theme>(currentTheme);
 
-  // while on «auto», the device switching to or from dark changes the page too
-  useEffect(() => (pref === 'auto' ? watchSystemTheme(() => applyTheme('auto')) : undefined), [pref]);
+  // before the first pick, the device switching to or from dark changes the page too
+  useEffect(
+    () =>
+      watchSystemTheme(() => {
+        if (savedTheme()) return;
+        applyTheme();
+        setTheme(currentTheme());
+      }),
+    [],
+  );
 
-  const Icon = ICONS[pref];
-  const next = nextThemePreference(pref);
+  const Icon = theme === 'dark' ? MoonIcon : SunIcon;
+  const next = otherTheme(theme);
   return (
     <button
       type="button"
       onClick={() => {
-        saveThemePreference(next);
-        setPref(next);
+        saveTheme(next);
+        setTheme(next);
       }}
-      title={t(`theme.${pref}`)}
-      aria-label={`${t('theme.label')}: ${t(`theme.${pref}`)}. ${t('theme.next', { next: t(`theme.${next}`) })}`}
+      title={t(`theme.${theme}`)}
+      aria-label={`${t('theme.label')}: ${t(`theme.${theme}`)}. ${t('theme.next', { next: t(`theme.${next}`) })}`}
       className="flex h-10 w-10 items-center justify-center rounded-full text-indigo-700 hover:bg-indigo-100 transition-colors"
     >
       <Icon className="h-5 w-5" />

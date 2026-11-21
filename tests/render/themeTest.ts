@@ -1,27 +1,22 @@
-import { nextThemePreference, readThemePreference, isDark, type ThemePreference } from '../../src/utils/theme';
+import { currentTheme, otherTheme, savedTheme } from '../../src/utils/theme';
 
 const check = (label: string, ok: boolean) => {
   console.log(`${ok ? 'PASS' : 'FAIL'}  ${label}`);
   if (!ok) process.exitCode = 1;
 };
 
-// the toggle goes Auto → Light → Dark → Auto
-let p: ThemePreference = 'auto';
-const seen = [p];
-for (let i = 0; i < 3; i++) seen.push((p = nextThemePreference(p)));
-check('toggle cycles auto → light → dark → auto', seen.join() === 'auto,light,dark,auto');
+check('the toggle flips light ↔ dark', otherTheme('light') === 'dark' && otherTheme('dark') === 'light');
 
-// outside a browser (no localStorage / matchMedia) it falls back to following the device, light
-check('no storage: preference is auto', readThemePreference() === 'auto');
-check('explicit choices ignore the device', isDark('dark') === true && isDark('light') === false);
-check('auto without matchMedia is light', isDark('auto') === false);
+// outside a browser (no localStorage / matchMedia): nothing picked, the device unknown → light
+check('no storage: nothing saved', savedTheme() === null);
+check('no storage, no device hint: light', currentTheme() === 'light');
 
-// a stored choice is read back; anything else means auto
+// a stored pick is read back and beats the device; anything else means "not picked"
 const store: Record<string, string> = {};
 (globalThis as unknown as { localStorage: Pick<Storage, 'getItem'> }).localStorage = { getItem: (k) => store[k] ?? null };
 store['zbory-theme'] = 'dark';
-check('stored dark is read', readThemePreference() === 'dark');
+check('stored dark is read', savedTheme() === 'dark' && currentTheme() === 'dark');
 store['zbory-theme'] = 'light';
-check('stored light is read', readThemePreference() === 'light');
+check('stored light is read', savedTheme() === 'light' && currentTheme() === 'light');
 store['zbory-theme'] = 'purple';
-check('an unknown stored value means auto', readThemePreference() === 'auto');
+check('an unknown stored value means not picked', savedTheme() === null);

@@ -1,37 +1,39 @@
-// Light / dark / follow the device. The choice is kept on this device; `.dark` on <html> is what the
-// styles react to (index.html applies it before the first paint, so there is no light flash).
+// Light or dark. Until the user picks one, the device decides (and is followed live); a pick is kept on
+// this device. `.dark` on <html> is what the styles react to (index.html applies it before the first
+// paint, so there is no light flash).
 
-export type ThemePreference = 'auto' | 'light' | 'dark';
+export type Theme = 'light' | 'dark';
 
 const KEY = 'zbory-theme';
 const query = () => (typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null);
 
-export function readThemePreference(): ThemePreference {
+/** The theme the user picked on this device, if they did. */
+export function savedTheme(): Theme | null {
   try {
     const v = localStorage.getItem(KEY);
-    return v === 'light' || v === 'dark' ? v : 'auto';
+    return v === 'light' || v === 'dark' ? v : null;
   } catch {
-    return 'auto';
+    return null;
   }
 }
 
-export const isDark = (pref: ThemePreference) => (pref === 'auto' ? !!query()?.matches : pref === 'dark');
+/** The theme in effect: the pick, else the device's. */
+export const currentTheme = (): Theme => savedTheme() ?? (query()?.matches ? 'dark' : 'light');
 
-export function applyTheme(pref: ThemePreference) {
-  document.documentElement.classList.toggle('dark', isDark(pref));
+export function applyTheme() {
+  document.documentElement.classList.toggle('dark', currentTheme() === 'dark');
 }
 
-export function saveThemePreference(pref: ThemePreference) {
+export function saveTheme(theme: Theme) {
   try {
-    if (pref === 'auto') localStorage.removeItem(KEY);
-    else localStorage.setItem(KEY, pref);
+    localStorage.setItem(KEY, theme);
   } catch {
-    // private mode: the choice just lasts until the page closes
+    // private mode: the pick just lasts until the page closes
   }
-  applyTheme(pref);
+  document.documentElement.classList.toggle('dark', theme === 'dark');
 }
 
-/** In «auto», follow the device when it switches (sunset, a manual change). Returns the unsubscribe. */
+/** Until a pick is made, follow the device when it switches (sunset, a manual change). Returns the unsubscribe. */
 export function watchSystemTheme(onChange: () => void): () => void {
   const q = query();
   if (!q) return () => undefined;
@@ -39,4 +41,4 @@ export function watchSystemTheme(onChange: () => void): () => void {
   return () => q.removeEventListener('change', onChange);
 }
 
-export const nextThemePreference = (p: ThemePreference): ThemePreference => (p === 'auto' ? 'light' : p === 'light' ? 'dark' : 'auto');
+export const otherTheme = (t: Theme): Theme => (t === 'dark' ? 'light' : 'dark');

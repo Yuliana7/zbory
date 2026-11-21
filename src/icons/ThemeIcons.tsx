@@ -16,13 +16,3 @@ export function MoonIcon({ className }: IconProps) {
     </svg>
   );
 }
-
-/** Half sun, half moon: «follow the device». */
-export function AutoThemeIcon({ className }: IconProps) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-      <circle cx="12" cy="12" r="9" strokeWidth={2} />
-      <path fill="currentColor" d="M12 3a9 9 0 0 1 0 18z" />
-    </svg>
-  );
-}
