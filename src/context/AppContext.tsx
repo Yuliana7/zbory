@@ -75,7 +75,7 @@ function projectName(
   t: (key: string, opts?: Record<string, unknown>) => string,
 ): string {
   if (jar) return jar.title;
-  if (fileName) return fileName.replace(/\.csv$/i, '');
+  if (fileName) return fileName.replace(/\.(csv|xlsx?)$/i, '');
   const times = donations.map((d) => d.timestamp.getTime());
   const day = (ms: number) => new Date(ms).toLocaleDateString('uk-UA');
   return t('defaultName', { from: day(Math.min(...times)), to: day(Math.max(...times)) });

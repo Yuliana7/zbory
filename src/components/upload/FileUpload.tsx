@@ -46,7 +46,7 @@ export function FileUpload({ onFileSelect, isLoading = false, fullWidth = false,
       <input
         ref={fileInputRef}
         type="file"
-        accept=".csv,text/csv,application/vnd.ms-excel"
+        accept=".csv,.xls,.xlsx,text/csv,application/vnd.ms-excel"
         onChange={handleFileInputChange}
         className="hidden"
         disabled={isLoading}
