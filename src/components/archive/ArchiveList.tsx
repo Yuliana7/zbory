@@ -179,7 +179,8 @@ export function ArchiveList() {
                   <div
                     key={i}
                     title={`${MONTHS[i]}: ${fmtUah(v)} ₴`}
-                    className={`flex-1 rounded ${v ? 'bg-indigo-300' : 'bg-indigo-300/30'}`}
+                    // exact indigo-300: the card is dark in both themes, so the bar must not follow the theme's flip of bg-indigo-300
+                    className={`flex-1 rounded ${v ? 'bg-[#a5b4fc]' : 'bg-[#a5b4fc]/30'}`}
                     style={{ height: v ? `${Math.max(6, Math.round((v / maxMonth) * 56))}px` : '3px' }}
                   />
                 ))}
