@@ -41,7 +41,7 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
   const duration = Math.round((lastDay.getTime() - firstDay.getTime()) / msPerDay) + 1;
 
   const { handleTemplateSelect, dispatch } = useAppContext();
-  const hasAudience = !!commentInsights?.hasEnoughData;
+  const hasAudience = !!commentInsights && (commentInsights.hasEnoughComments || commentInsights.topDonorsBySum.length > 0);
   // How much of the jar the loyal and the biggest donors carry: the people behind the total
   const sumOf = (list: RepeatDonor[]) => list.reduce((sum, d) => sum + d.totalAmount, 0);
   const pctOfTotal = (amount: number) => (aggregates.totalAmount > 0 ? Math.round((amount / aggregates.totalAmount) * 100) : 0);
@@ -103,7 +103,7 @@ export function InsightsPanel({ insights, aggregates, commentInsights, campaignD
       {/* Right column: the audience */}
       <div className="space-y-4">
         {/* Comment analysis */}
-        {commentInsights?.hasEnoughData && (
+        {commentInsights && hasAudience && (
           <div className="pt-2">
             <SectionDivider label={t('sections.comments')} color="purple" />
             <div className="space-y-3">

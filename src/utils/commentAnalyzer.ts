@@ -14,30 +14,21 @@ const AUTO_COMMENT_PREFIX = 'поповнення рахунку';
  */
 export function analyzeComments(donations: Donation[]): CommentInsights {
   const personalComments = donations.filter(d => isPersonalComment(d.comment));
-  const hasEnoughData =
+  // Emojis and community links come from the comments, so they need enough of them;
+  // who donated, and how often, comes from the donor names and never waits for comments.
+  const hasEnoughComments =
     personalComments.length >= 5 &&
     personalComments.length / donations.length >= 0.03;
-
-  if (!hasEnoughData) {
-    return {
-      totalWithComments: personalComments.length,
-      topEmojis: [],
-      repeatDonors: [],
-      topDonorsBySum: [],
-      communities: [],
-      hasEnoughData: false,
-    };
-  }
 
   const identities = topIdentities(donations);
 
   return {
     totalWithComments: personalComments.length,
-    topEmojis: extractTopEmojis(donations),
+    topEmojis: hasEnoughComments ? extractTopEmojis(donations) : [],
     repeatDonors: identities.filter(v => v.count >= 2).sort((a, b) => b.count - a.count).slice(0, 5),
     topDonorsBySum: [...identities].sort((a, b) => b.totalAmount - a.totalAmount).slice(0, 5),
-    communities: detectCommunities(donations),
-    hasEnoughData: true,
+    communities: hasEnoughComments ? detectCommunities(donations) : [],
+    hasEnoughComments,
   };
 }
 
