@@ -313,3 +313,51 @@ input[type='date']::-webkit-date-and-time-value {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* ───────── Dark theme ─────────
+   `.dark` on <html> (set by utils/theme.ts, and by a script in index.html before the first paint).
+   The grey/indigo/amber/… scales swap through variables (see tailwind.config.js); what is left here is
+   white, which a utility can't flip without also flipping translucent "glass" like bg-white/10. */
+:root {
+  --surface: 255 255 255;
+  --page-mid: 255 255 255;
+}
+.dark {
+  color-scheme: dark; /* native inputs, date pickers, scrollbars */
+  --surface: 26 33 51;
+  --page-mid: 14 19 34;
+}
+.dark body {
+  background-color: rgb(var(--page-mid));
+}
+.dark .bg-white,
+.dark .card,
+.dark .hover\:bg-white:hover {
+  background-color: rgb(var(--surface));
+}
+.dark .bg-white\/90 {
+  background-color: rgb(var(--surface) / 0.9);
+}
+/* the page's wash (indigo → white → purple) and the edge fade of a scrolling table end in the surface */
+.dark .via-white {
+  --tw-gradient-stops: var(--tw-gradient-from), rgb(var(--page-mid)) var(--tw-gradient-via-position), var(--tw-gradient-to);
+}
+.dark .from-white {
+  --tw-gradient-from: rgb(var(--surface)) var(--tw-gradient-from-position);
+  --tw-gradient-to: rgb(var(--surface) / 0) var(--tw-gradient-to-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to);
+}
+.dark ::-webkit-scrollbar-track {
+  background: rgb(var(--page-mid));
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: #3c4864;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: #67738f;
+}
+.dark .zb-calendar .rdp-root {
+  --rdp-accent-color: #818cf8; /* indigo-400 */
+  --rdp-accent-background-color: #312e81; /* indigo-900 */
+  --rdp-today-color: #a5b4fc;
+}

@@ -105,6 +105,7 @@ Adding jars from the Monobank API has its own [step-by-step guide](#importing-fr
 - **Three formats:** 1080×1080 post, 1080×1350 (4:5) post, 1080×1920 Story.
 - **Every element is yours to change** — in the full-screen **Редагувати елементи** view, tap an element to resize its text (50–200%) or remove it, with one undo for both. Any label or text can be edited too.
 - **Your own background** with a full-screen, gesture-isolated editor: drag, pinch-to-zoom, two-finger rotate, brightness and opacity. The page doesn't scroll or move the photo by accident while you edit. Large phone photos are scaled down to 3000 px on upload (about 1:1 at maximum zoom), which keeps exports and saved projects light.
+- **Dark theme** for the app itself (a button in the header: follow the device / light / dark; the cards and exported pictures are not affected).
 - 8 colour palettes, overall and per-element text size, per-card date ranges. On a phone the preview shrinks as you scroll, down to a third of its size, so the controls have room.
 - **Series:** build several cards at once; they share one background and style (a card can detach and keep its own).
 - **Themes:** save the current look under a name and switch between looks across fundraisers. Applying a theme copies it, so editing or deleting a theme never changes a card you already made. A theme can also be updated with your latest tweaks («Оновити тему»).
