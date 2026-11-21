@@ -16,7 +16,8 @@ import { BackupControls } from '../upload/BackupControls';
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 const daysBetween = (first: string, last: string) =>
   first && last ? Math.round((new Date(`${last}T12:00:00`).getTime() - new Date(`${first}T12:00:00`).getTime()) / 864e5) + 1 : 0;
-const MONTHS = ['січ', 'квіт', 'лип', 'жовт', 'груд'];
+/** every month under its own bar, so the bars can't be misread */
+const MONTHS = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
 
 /** The archive's list: a year at a time (or all of them), a card with what that year's closed projects
  * raised, then the projects and the user's own jars, each searchable and in pages. */
@@ -177,14 +178,17 @@ export function ArchiveList() {
                 {summary.byMonth.map((v, i) => (
                   <div
                     key={i}
+                    title={`${MONTHS[i]}: ${fmtUah(v)} ₴`}
                     className={`flex-1 rounded ${v ? 'bg-indigo-300' : 'bg-indigo-300/30'}`}
                     style={{ height: v ? `${Math.max(6, Math.round((v / maxMonth) * 56))}px` : '3px' }}
                   />
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[11px] text-indigo-200" aria-hidden="true">
-                {MONTHS.map((m) => (
-                  <span key={m}>{m}</span>
+              <div className="mt-1 flex gap-1.5 text-[10px] sm:text-[11px] leading-tight" aria-hidden="true">
+                {MONTHS.map((m, i) => (
+                  <span key={m} className={`flex-1 min-w-0 text-center ${summary.byMonth[i] ? 'font-semibold text-white' : 'text-indigo-200/70'}`}>
+                    {m}
+                  </span>
                 ))}
               </div>
             </div>
