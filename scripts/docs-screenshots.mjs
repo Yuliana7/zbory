@@ -128,7 +128,7 @@ await page.getByRole('checkbox', { name: 'На дрони' }).check();
 await page.getByRole('checkbox', { name: 'Банка для «Медичний рюкзак»' }).check();
 await page.waitForTimeout(200);
 await shot(page, '17-monobank-jars');
-await page.getByRole('button', { name: 'Далі' }).click(); await page.waitForTimeout(450); await top(page); await page.waitForTimeout(200);
+await page.getByRole('button', { name: 'Далі', exact: true }).click(); await page.waitForTimeout(450); await top(page); await page.waitForTimeout(200);
 await shot(page, '18-monobank-range');
 await page.getByRole('button', { name: 'Назад' }).click(); await page.waitForTimeout(300);
 await page.getByRole('button', { name: 'Скасувати' }).click(); await page.waitForTimeout(500);
