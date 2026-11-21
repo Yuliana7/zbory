@@ -139,10 +139,9 @@ export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChang
 
   return (
     <div className="animate-fade-in">
-      <p className="mb-2 px-1 text-xs text-gray-500">{t('ownJars.intro')}</p>
 
       {jars.length > 0 && (
-        <div className="mt-4 mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-xs text-gray-500" aria-live="polite">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-xs text-gray-500" aria-live="polite">
           <span>
             {renewing
               ? t('ownJars.renewing')

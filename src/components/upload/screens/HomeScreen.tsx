@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../../context/AppContext';
 import { NewProjectOptions } from '../NewProjectOptions';
@@ -21,7 +21,17 @@ interface HomeScreenProps {
   onAction: (campaign: CampaignMeta, action: CampaignAction) => void;
 }
 
-const SECTION = 'mb-3 px-1 text-xs font-semibold uppercase tracking-wide text-gray-500';
+/** A section's small heading, with the page's add button on the same line when it is the first one. */
+function SectionHeading({ id, title, action }: { id: string; title: string; action: ReactNode }) {
+  return (
+    <div className="mb-3 flex min-h-[2.25rem] items-center justify-between gap-3">
+      <h3 id={id} className="px-1 text-xs font-semibold uppercase tracking-wide text-gray-500">
+        {title}
+      </h3>
+      {action}
+    </div>
+  );
+}
 
 /** «Активні»: the autosave restore offer, «Додати банку» on top, then the active main jars and the user's
  * own friendly jars, each in its own section. Closed ones live in the archive. A first run with nothing
@@ -61,6 +71,7 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
       }}
     />
   );
+  const addButton = <TopAction onClick={() => setAdding(true)} label={t('addJarTitle')} />;
   const hasAnything = loaded && (campaigns.length > 0 || ownJars.length > 0);
 
   return (
@@ -114,24 +125,17 @@ export function HomeScreen({ onMonobank, onManual, onAction }: HomeScreenProps) 
           {options}
         </div>
       ) : hasAnything ? (
-        // one screen: «Додати банку» on top, then the main jars and the user's own friendly jars apart
+        // one screen: the main jars and the user's own friendly jars apart; «Додати банку» on the first heading's line
         <div className="max-w-3xl mx-auto space-y-8">
-          <div className="flex justify-end">
-            <TopAction onClick={() => setAdding(true)} label={t('addJarTitle')} />
-          </div>
           {campaigns.length > 0 && (
             <section aria-labelledby="home-main">
-              <h3 id="home-main" className={SECTION}>
-                {t('view.saved')}
-              </h3>
+              <SectionHeading id="home-main" title={t('view.saved')} action={addButton} />
               <CampaignList campaigns={campaigns} onCampaignsChange={setCampaigns} onAction={onAction} />
             </section>
           )}
           {ownJars.length > 0 && (
             <section aria-labelledby="home-own">
-              <h3 id="home-own" className={SECTION}>
-                {t('view.own')}
-              </h3>
+              <SectionHeading id="home-own" title={t('view.own')} action={campaigns.length > 0 ? null : addButton} />
               <OwnJarsTab jars={ownJars} onJarsChange={setOwnJars} />
             </section>
           )}

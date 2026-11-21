@@ -100,7 +100,7 @@ export function ArchiveList() {
     setJarPage(0);
   };
   const chip = (on: boolean) =>
-    `px-4 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
+    `shrink-0 px-3.5 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
   const open = (kind: 'project' | 'ownJar', id: string) => dispatch({ type: 'ARCHIVE_VIEW', payload: { kind, id } });
   // «Мій рік»: the year's statements load together (for the donors and the reports across them), then its cards open
   const makeYearCards = () => {
@@ -137,12 +137,10 @@ export function ArchiveList() {
 
   return (
     <div className="max-w-3xl mx-auto pb-8 space-y-5 animate-fade-in">
-      {/* like the active jars: the one way to add on top, then the years and their numbers */}
-      <div className="flex justify-end">
-        <TopAction onClick={() => setImporting(true)} label={t('import.open')} />
-      </div>
-
-      <div role="tablist" aria-label={t('list.yearLabel')} className="flex flex-wrap gap-2">
+      {/* the years, and the one way to add on the same line, like the active jars */}
+      <div className="flex items-center gap-2">
+      {/* many years scroll sideways, so «З виписок» stays on this line */}
+      <div role="tablist" aria-label={t('list.yearLabel')} className="no-scrollbar -my-1 flex min-w-0 flex-1 gap-2 overflow-x-auto py-1">
         {years.map((y) => (
           <button key={y} role="tab" aria-selected={shownYear === y} onClick={() => pickYear(y)} className={chip(shownYear === y)}>
             {y}
@@ -153,6 +151,8 @@ export function ArchiveList() {
             {t('list.allYears')}
           </button>
         )}
+      </div>
+        <TopAction onClick={() => setImporting(true)} label={t('import.open')} />
       </div>
 
       {yearCampaigns.length + yearJars.length > 0 && (
