@@ -9,6 +9,27 @@ import { ArrowRightIcon, CheckIcon, GlobeIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 import { CampaignActionsSheet, type CampaignAction } from './CampaignActionsSheet';
 import { RenewProjectsBar } from './RenewProjectsBar';
+import { goalPct } from '../../utils/ownJars';
+import { fmtUah } from '../../utils/friendJars';
+
+/** A main jar's progress to its goal (from Monobank when it was added, or set in «Редагувати»), as a
+ * friendly jar shows it. Nothing without a goal. */
+function GoalBar({ raised, goal }: { raised: number; goal?: number }) {
+  const { t } = useTranslation('upload');
+  const pct = goalPct(raised, goal);
+  if (pct === null) return null;
+  const left = Math.max(0, goal! - raised);
+  return (
+    <div className="mt-1.5">
+      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+        <div className={`h-full rounded-full ${pct >= 100 ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+      <p className="mt-1 text-xs text-gray-500">
+        {t('ownJars.ofGoal', { pct, goal: fmtUah(goal!) })} · {left > 0 ? t('ownJars.left', { amount: fmtUah(left) }) : t('ownJars.reached')}
+      </p>
+    </div>
+  );
+}
 
 const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -104,6 +125,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction }: Campaig
                   {' · '}
                   {formatCurrency(campaign.summary.totalAmount)}
                 </p>
+                <GoalBar raised={campaign.summary.totalAmount} goal={campaign.goal} />
                 {campaign.monobankJar && (
                   <p className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-600">
                     <GlobeIcon className="w-3 h-3" />
