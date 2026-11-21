@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { HryvniaIcon } from '../../icons';
+import { AppLogo } from '../../icons/AppLogo';
 import type { ReactNode } from 'react';
 
 interface EmptyStateProps {
@@ -15,9 +15,7 @@ export function EmptyState({ options }: EmptyStateProps) {
 
   return (
     <div className="max-w-xl mx-auto text-center animate-fade-in">
-      <div className="w-16 h-16 mx-auto mb-5 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl flex items-center justify-center text-white shadow-sm">
-        <HryvniaIcon className="w-8 h-8" />
-      </div>
+      <AppLogo className="w-16 h-16 mx-auto mb-5 drop-shadow-sm" />
       <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{t('title')}</h2>
       <p className="text-gray-600 mb-8">{t('subtitle')}</p>
 

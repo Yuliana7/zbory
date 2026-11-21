@@ -76,6 +76,8 @@ export default {
         'ukraine-blue': '#0057B7',
         'ukraine-yellow': '#FFD700',
       },
+      // the app's one gradient (indigo-900 → indigo-600): cards, tiles and the logo all use it
+      backgroundImage: { brand: 'linear-gradient(to bottom right, #312e81, #4f46e5)' },
       backgroundColor: scale('bg'),
       gradientColorStops: scale('bg'),
       borderColor: scale('bd'),

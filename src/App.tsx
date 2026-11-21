@@ -9,8 +9,8 @@ import { ExportPage } from './pages/ExportPage'
 import { SafeAreaTopBar } from './components/SafeAreaTopBar'
 import { UpdateNotificationBanner } from './components/UpdateNotificationBanner'
 import { InstallPromptBanner } from './components/InstallPromptBanner'
-import { HryvniaIcon } from './icons/HryvniaIcon'
 import { ThemeToggle } from './components/ThemeToggle'
+import { AppLogo } from './icons/AppLogo'
 
 function App() {
   const { t } = useTranslation('common')
@@ -39,9 +39,7 @@ function App() {
               className="flex items-center space-x-3 group cursor-pointer"
               title={t('logoTitle')}
             >
-              <div className="w-10 h-10 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white group-hover:opacity-80 transition-opacity">
-                <HryvniaIcon className="w-5 h-5" />
-              </div>
+              <AppLogo className="w-10 h-10 shrink-0 group-hover:opacity-80 transition-opacity" />
               <div className="text-left">
                 <h1 className="text-2xl font-bold text-gray-900 group-hover:text-indigo-700 transition-colors">{t('appName')}</h1>
                 <p className="hidden sm:block text-sm text-gray-500">{t('appSubtitle')}</p>
