@@ -34,7 +34,7 @@ function fontFacesCSS(font: CardFont): Promise<string> {
         // BASE_URL matters: the app deploys under a subpath (vite base '/zbory/')
         const dataUrl = await fetchAsDataUrl(`${import.meta.env.BASE_URL}fonts/${file}.woff2`);
         const w = weight === null ? font.range : weight;
-        return `@font-face { font-family: '${font.family}'; font-style: normal; font-weight: ${w}; src: url('${dataUrl}') format('woff2'); unicode-range: ${unicodeRange}; }`;
+        return `@font-face { font-family: '${font.family}'; font-style: normal; font-weight: ${w}; src: url('${dataUrl}') format('woff2'); unicode-range: ${unicodeRange};${font.sizeAdjust ? ` size-adjust: ${font.sizeAdjust};` : ''} }`;
       }),
     ),
   ).then((faces) => faces.join('\n'));

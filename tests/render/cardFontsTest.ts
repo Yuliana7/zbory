@@ -24,6 +24,7 @@ for (const f of CARD_FONTS.filter((x) => x.id !== DEFAULT_FONT_ID)) {
   const faces = css.split('@font-face').filter((b) => b.includes(`font-family: '${f.family}'`));
   check(`${f.label}: one @font-face per subset`, faces.length === f.subsets.length, `${faces.length} vs ${f.subsets.length}`);
   check(`${f.label}: weight range matches`, faces.every((b) => b.includes(`font-weight: ${f.range}`)));
+  check(`${f.label}: size-adjust matches`, faces.every((b) => (f.sizeAdjust ? b.includes(`size-adjust: ${f.sizeAdjust}`) : !b.includes('size-adjust'))));
 }
 
 check('unknown / missing id falls back to Inter', fontById('nope').id === 'inter' && fontById(null).id === 'inter' && fontById(undefined).id === 'inter');

@@ -44,6 +44,8 @@ export const CardShell = forwardRef<HTMLDivElement, CardShellProps>(
           ...(center ? { alignItems: 'center', justifyContent: 'center', textAlign: 'center' } as CSSProperties : null),
           padding: cardPadding(isStory, safeZonePad, storyPadding, safeZoneHorizontal),
           fontFamily: fontStack(fontId),
+          // amounts read as one row of same-height digits (Playfair defaults to old-style figures)
+          fontVariantNumeric: 'lining-nums',
           color: p.primary,
           boxSizing: 'border-box',
           position: 'relative',

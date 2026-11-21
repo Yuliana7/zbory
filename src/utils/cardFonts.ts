@@ -31,6 +31,8 @@ export interface CardFont {
   weights: readonly number[] | null;
   /** the weight range written into the @font-face of a variable font */
   range?: string;
+  /** @font-face size-adjust, for a font that sets small next to the others (Caveat) */
+  sizeAdjust?: string;
 }
 
 const ALL = ['cyrillic-ext', 'cyrillic', 'latin'] as const;
@@ -41,7 +43,7 @@ export const CARD_FONTS: readonly CardFont[] = [
   { id: 'nunito', label: 'Nunito', family: 'Nunito', subsets: [...ALL], weights: null, range: '400 800' },
   { id: 'playfair', label: 'Playfair', family: 'Playfair Display', subsets: ['cyrillic', 'latin'], weights: null, range: '400 800' },
   { id: 'oswald', label: 'Oswald', family: 'Oswald', subsets: [...ALL], weights: null, range: '400 700' },
-  { id: 'caveat', label: 'Caveat', family: 'Caveat', subsets: [...ALL], weights: null, range: '400 700' },
+  { id: 'caveat', label: 'Caveat', family: 'Caveat', subsets: [...ALL], weights: null, range: '400 700', sizeAdjust: '120%' },
 ];
 
 export const DEFAULT_FONT_ID = 'inter';
