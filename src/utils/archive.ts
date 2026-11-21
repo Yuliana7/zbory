@@ -46,20 +46,19 @@ export function ownJarsOnTheirOwn(campaigns: CampaignMeta[], ownJars: OwnJar[]):
 }
 
 /** The year card: everything the user closed that year raised — the projects and their own friendly jars
- * (see ownJarsOnTheirOwn), month by month. Friendly jars are the projects' helpers plus those own jars;
- * an own jar's donations count when its statement was added. */
+ * (see ownJarsOnTheirOwn), month by month. Friendly jars are the user's own ones closed that year, all of
+ * them (a project's helpers are other people's jars: they show on that project's page, not here); an own
+ * jar's donations count when its statement was added. */
 export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearSummary {
-  const out: YearSummary = { total: 0, count: 0, donations: 0, friends: 0, byMonth: Array(12).fill(0) };
+  const out: YearSummary = { total: 0, count: 0, donations: 0, friends: ownJars.length, byMonth: Array(12).fill(0) };
   for (const c of campaigns) {
     out.total += c.summary.totalAmount;
     out.count += 1;
     out.donations += c.summary.donationCount;
-    out.friends += c.archive?.friendsCount ?? 0;
     out.byMonth[new Date(c.archivedAt ?? 0).getMonth()] += c.summary.totalAmount;
   }
   for (const j of ownJarsOnTheirOwn(campaigns, ownJars)) {
     out.total += j.raised;
-    out.friends += 1;
     out.donations += ownJarDonationCount(j);
     out.byMonth[new Date(j.archivedAt ?? 0).getMonth()] += j.raised;
   }
