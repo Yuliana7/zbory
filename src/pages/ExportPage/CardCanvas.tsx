@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { TemplateType, Aggregates, CommentInsights, CardState, SharedStyle, FriendJar, Donation, OwnJar, Raffle, YearRecap } from '../../types';
 import { FriendlyJarCard } from '../../components/templates/FriendlyJarCard';
 import { ownJarLink } from '../../utils/ownJars';
+import { CardFontContext, DEFAULT_FONT_ID, fontStack } from '../../utils/cardFonts';
 import { ProgressCard } from '../../components/templates/ProgressCard';
 import { DailyActivityCard } from '../../components/templates/DailyActivityCard';
 import { ThankYouCard } from '../../components/templates/ThankYouCard';
@@ -78,6 +79,8 @@ export function CardCanvas({ card, style, aggregates, goal, friends, raffles, do
         overflow: 'hidden',
         // palette bg shows through semi-transparent image when opacity < 1
         background: style.bgImage ? style.palette.background : undefined,
+        // the card sets its own font too; this one is what the PNG export reads to know which font to embed
+        fontFamily: fontStack(style.fontId),
       }}
     >
       {style.bgImage && (
@@ -96,33 +99,35 @@ export function CardCanvas({ card, style, aggregates, goal, friends, raffles, do
           }}
         />
       )}
-      <TemplateRenderer
-        templateId={card.templateId}
-        templateRef={templateRef}
-        aggregates={aggregates}
-        goal={goal}
-        // helper totals cover the whole campaign — meaningless next to a date-filtered total
-        friends={card.dateFrom || card.dateTo ? undefined : friends}
-        hiddenFriendIds={card.hiddenFriendIds}
-        allFriends={friends}
-        raffles={raffles}
-        raffleId={card.raffleId}
-        donations={donations}
-        format={card.format}
-        palette={style.palette}
-        textOverrides={card.textOverrides}
-        fontScale={style.fontScale}
-        showRefunds={card.showRefunds}
-        bgOverride={bgOverride}
-        hidden={hidden}
-        safeZonePad={safeZonePad}
-        commentInsights={commentInsights}
-        crossItems={crossItems}
-        selectedComments={selectedComments}
-        activeCampaignName={activeCampaignName}
-        ownJar={ownJar}
-        yearRecap={yearRecap}
-      />
+      <CardFontContext.Provider value={style.fontId ?? DEFAULT_FONT_ID}>
+        <TemplateRenderer
+          templateId={card.templateId}
+          templateRef={templateRef}
+          aggregates={aggregates}
+          goal={goal}
+          // helper totals cover the whole campaign — meaningless next to a date-filtered total
+          friends={card.dateFrom || card.dateTo ? undefined : friends}
+          hiddenFriendIds={card.hiddenFriendIds}
+          allFriends={friends}
+          raffles={raffles}
+          raffleId={card.raffleId}
+          donations={donations}
+          format={card.format}
+          palette={style.palette}
+          textOverrides={card.textOverrides}
+          fontScale={style.fontScale}
+          showRefunds={card.showRefunds}
+          bgOverride={bgOverride}
+          hidden={hidden}
+          safeZonePad={safeZonePad}
+          commentInsights={commentInsights}
+          crossItems={crossItems}
+          selectedComments={selectedComments}
+          activeCampaignName={activeCampaignName}
+          ownJar={ownJar}
+          yearRecap={yearRecap}
+        />
+      </CardFontContext.Provider>
     </div>
   );
 }

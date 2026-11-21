@@ -541,6 +541,8 @@ function ExportPageInner() {
             onToggle={() => toggleSection('font')}
             fontScale={style.fontScale}
             onFontScaleChange={(v) => patchStyle({ fontScale: v })}
+            fontId={style.fontId}
+            onFontChange={(fontId) => patchStyle({ fontId })}
             styleBadge={styleBadge}
           />
 
