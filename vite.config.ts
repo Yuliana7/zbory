@@ -91,10 +91,18 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
+        // the optional card fonts (everything but Inter) are cached when a card first uses one,
+        // not with every install
+        globIgnores: ['**/fonts/{montserrat,nunito,playfair,oswald,caveat}-*.woff2'],
         navigateFallback: `${BASE}index.html`,
         // a link to a reminder must reach the file, not the app shell
         navigateFallbackDenylist: [/\/reminders\//],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }: { url: URL }) => /\/fonts\/(montserrat|nunito|playfair|oswald|caveat)-[\w-]+\.woff2$/.test(url.pathname),
+            handler: 'CacheFirst',
+            options: { cacheName: 'card-fonts', expiration: { maxEntries: 20 }, cacheableResponse: { statuses: [0, 200] } }
+          },
           // Google Fonts - cache first
           {
             urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,

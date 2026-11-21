@@ -196,6 +196,8 @@ export interface SharedStyle {
   bgOffsetY: number;
   bgRotate: number;
   fontScale: number;
+  /** id of the card font (utils/cardFonts); absent = Inter, so older saved styles are unchanged */
+  fontId?: string | null;
   /** id of the saved theme this style was last applied from exactly; cleared by any manual edit */
   themeId?: string | null;
   /** the saved theme this style started from — kept through edits, so that theme can be updated */

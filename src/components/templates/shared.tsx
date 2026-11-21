@@ -2,6 +2,7 @@ import { forwardRef, type ReactNode, type CSSProperties } from 'react';
 import type { Aggregates } from '../../types';
 import type { Palette } from '../../utils/palettes';
 import { cardPadding } from '../../utils/units';
+import { fontStack, useCardFont } from '../../utils/cardFonts';
 
 const fmtUA = (n: number) => new Intl.NumberFormat('uk-UA').format(Math.round(n));
 
@@ -30,6 +31,7 @@ export const CardShell = forwardRef<HTMLDivElement, CardShellProps>(
     ref,
   ) => {
     const isStory = format === 'story';
+    const fontId = useCardFont();
     return (
       <div
         ref={ref}
@@ -41,7 +43,9 @@ export const CardShell = forwardRef<HTMLDivElement, CardShellProps>(
           flexDirection: 'column',
           ...(center ? { alignItems: 'center', justifyContent: 'center', textAlign: 'center' } as CSSProperties : null),
           padding: cardPadding(isStory, safeZonePad, storyPadding, safeZoneHorizontal),
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
+          fontFamily: fontStack(fontId),
+          // amounts read as one row of same-height digits (Playfair defaults to old-style figures)
+          fontVariantNumeric: 'lining-nums',
           color: p.primary,
           boxSizing: 'border-box',
           position: 'relative',

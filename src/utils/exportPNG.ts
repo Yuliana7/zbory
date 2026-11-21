@@ -1,29 +1,15 @@
 import { toPng } from 'html-to-image';
 import { saveBlob } from './download';
+import { DEFAULT_FONT_ID, FONT_SUBSETS, fontById, fontFromFamily, type CardFont } from './cardFonts';
 
-// Self-hosted Inter subsets (see src/index.css). At export time they're
+// Self-hosted font subsets (see src/index.css, utils/cardFonts). At export time they're
 // inlined as data: URLs so the offscreen SVG rasterizer renders the same
 // font as the live preview. We hand html-to-image ready-made CSS via
 // `fontEmbedCSS`, which also bypasses its crash-prone font auto-detection
 // (the reason `skipFonts: true` was used before).
-const FONT_WEIGHTS = [400, 600, 700, 800] as const;
-const FONT_SUBSETS: Array<{ name: string; unicodeRange: string }> = [
-  {
-    name: 'cyrillic-ext', // includes U+20B4 — the ₴ sign
-    unicodeRange: 'U+0460-052F, U+1C80-1C8A, U+20B4, U+2DE0-2DFF, U+A640-A69F, U+FE2E-FE2F',
-  },
-  {
-    name: 'cyrillic',
-    unicodeRange: 'U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116',
-  },
-  {
-    name: 'latin',
-    unicodeRange:
-      'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
-  },
-];
-
-let cachedFontCSS: string | null = null;
+// Inter is always embedded (the fallback for any glyph the card's font lacks, e.g. ₴),
+// plus the font the card is set in.
+const fontCSSCache = new Map<string, Promise<string>>();
 
 async function fetchAsDataUrl(url: string): Promise<string> {
   const response = await fetch(url);
@@ -37,19 +23,30 @@ async function fetchAsDataUrl(url: string): Promise<string> {
   });
 }
 
-async function getFontEmbedCSS(): Promise<string> {
-  if (cachedFontCSS !== null) return cachedFontCSS;
-  const faces = await Promise.all(
-    FONT_WEIGHTS.flatMap((weight) =>
-      FONT_SUBSETS.map(async ({ name, unicodeRange }) => {
+function fontFacesCSS(font: CardFont): Promise<string> {
+  const cached = fontCSSCache.get(font.id);
+  if (cached) return cached;
+  const job = Promise.all(
+    FONT_SUBSETS.filter((s) => font.subsets.includes(s.name)).flatMap(({ name, unicodeRange }) =>
+      // Inter has a file per weight; the others are variable fonts with one file per subset
+      (font.weights ?? [null]).map(async (weight) => {
+        const file = weight === null ? `${font.id}-${name}` : `${font.id}-${weight}-${name}`;
         // BASE_URL matters: the app deploys under a subpath (vite base '/zbory/')
-        const dataUrl = await fetchAsDataUrl(`${import.meta.env.BASE_URL}fonts/inter-${weight}-${name}.woff2`);
-        return `@font-face { font-family: 'Inter'; font-style: normal; font-weight: ${weight}; src: url('${dataUrl}') format('woff2'); unicode-range: ${unicodeRange}; }`;
+        const dataUrl = await fetchAsDataUrl(`${import.meta.env.BASE_URL}fonts/${file}.woff2`);
+        const w = weight === null ? font.range : weight;
+        return `@font-face { font-family: '${font.family}'; font-style: normal; font-weight: ${w}; src: url('${dataUrl}') format('woff2'); unicode-range: ${unicodeRange};${font.sizeAdjust ? ` size-adjust: ${font.sizeAdjust};` : ''} }`;
       }),
     ),
-  );
-  cachedFontCSS = faces.join('\n');
-  return cachedFontCSS;
+  ).then((faces) => faces.join('\n'));
+  // a failed fetch must not stay cached: the next export gets another try
+  job.catch(() => fontCSSCache.delete(font.id));
+  fontCSSCache.set(font.id, job);
+  return job;
+}
+
+async function getFontEmbedCSS(card: CardFont): Promise<string> {
+  const fonts = card.id === DEFAULT_FONT_ID ? [card] : [fontById(DEFAULT_FONT_ID), card];
+  return (await Promise.all(fonts.map(fontFacesCSS))).join('\n');
 }
 
 export async function renderToPNGDataUrl(
@@ -59,7 +56,8 @@ export async function renderToPNGDataUrl(
 ): Promise<string> {
   let fontEmbedCSS = '';
   try {
-    fontEmbedCSS = await getFontEmbedCSS();
+    // the font is read back from the card itself, so every caller exports in the font it shows
+    fontEmbedCSS = await getFontEmbedCSS(fontFromFamily(getComputedStyle(element).fontFamily));
   } catch (err) {
     // Fonts are a rendering nicety — export with system fallback rather than fail
     console.error('Font embedding failed, exporting with fallback font:', err);
