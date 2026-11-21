@@ -78,7 +78,7 @@ export function InstallPromptBanner() {
       <div className="p-4">
         <div className="flex gap-3">
           <div className="flex-shrink-0 mt-1">
-            <div className="w-12 h-12 bg-gradient-to-br from-indigo-600 to-purple-600 rounded-lg flex items-center justify-center text-white text-lg font-bold">
+            <div className="w-12 h-12 bg-brand rounded-lg flex items-center justify-center text-white text-lg font-bold">
               ₴
             </div>
           </div>

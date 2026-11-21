@@ -1,6 +1,6 @@
 import { useId } from 'react';
 
-/** The app's mark: two coins with ₴ and a sparkle, white on the indigo→violet tile. Drawn as paths
+/** The app's mark: two coins with ₴ and a sparkle, white on the brand gradient (indigo-900 → indigo-600, same as tailwind.config.js). Drawn as paths
  * (no font) and mirrored in public/icon.svg and the PWA PNGs, so the header, the favicon and the
  * home-screen icon are the same picture. Size it with `className`.
  * Two tones only: the shapes that hide the lines behind them are filled with the tile's own gradient,
@@ -12,8 +12,8 @@ export function AppLogo({ className }: { className?: string }) {
     <svg viewBox="0 0 512 512" className={className} aria-hidden="true">
       <defs>
         <linearGradient id={id} gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="512" y2="512">
-          <stop offset="0%" stopColor="#4F46E5" />
-          <stop offset="100%" stopColor="#8B5CF6" />
+          <stop offset="0%" stopColor="#312E81" />
+          <stop offset="100%" stopColor="#4F46E5" />
         </linearGradient>
       </defs>
       <rect width="512" height="512" rx="110" fill={g} />

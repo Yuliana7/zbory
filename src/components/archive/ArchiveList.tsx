@@ -157,7 +157,7 @@ export function ArchiveList() {
       </div>
 
       {yearCampaigns.length + yearJars.length > 0 && (
-        <section className="rounded-2xl bg-gradient-to-br from-indigo-900 to-indigo-600 p-5 text-white space-y-4">
+        <section className="rounded-2xl bg-brand p-5 text-white space-y-4">
           <p className="text-sm text-indigo-200">{shownYear === null ? t('list.allCard') : t('list.yearCard', { year: shownYear })}</p>
           <p className="text-4xl font-extrabold tracking-tight">{fmtUah(summary.total)} ₴</p>
           <div className="grid grid-cols-3 gap-2">

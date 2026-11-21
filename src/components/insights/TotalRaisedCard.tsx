@@ -27,7 +27,7 @@ export function TotalRaisedCard({ aggregates, duration, renew }: TotalRaisedCard
   const left = goal ? Math.max(0, goal - raised) : 0;
 
   return (
-    <div className="bg-gradient-to-br from-indigo-600 to-purple-600 rounded-2xl p-6 text-white">
+    <div className="bg-brand rounded-2xl p-6 text-white">
       <div className="flex items-start justify-between gap-3 mb-1">
         <p className="text-indigo-200 text-sm font-medium">{t('totalAmount')}</p>
         {renew.available && (
