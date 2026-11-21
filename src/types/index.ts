@@ -387,7 +387,7 @@ export interface CommentInsights {
   repeatDonors: RepeatDonor[];                    // identities with 2+ donations, ranked by count
   topDonorsBySum: RepeatDonor[];                  // all identities, ranked by total amount
   communities: string[];                          // detected group links / mentions
-  hasEnoughData: boolean;                         // false when <3% of donations have comments
+  hasEnoughComments: boolean;                     // emojis and communities need 5+ personal comments, 3%+ of donations
 }
 
 // A single row in the manual statement editor

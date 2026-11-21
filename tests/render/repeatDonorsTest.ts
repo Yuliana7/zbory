@@ -19,7 +19,7 @@ const row = (date: string, amount: string, info: string, comment = 'Тримай
   balanceCurrency: 'UAH',
 });
 
-// Enough personal comments to clear analyzeComments' 5-comment / 3% threshold.
+// Enough personal comments to clear the 5-comment / 3% threshold for emojis and communities.
 // Олена repeats 3x (by name); 🐈 repeats 3x too but must never surface as an
 // identity; Юрій gives one large donation (must still rank by sum without a
 // count>=2 filter, unlike the repeat-donors list).
@@ -37,7 +37,7 @@ const raw: RawDonation[] = [
 const { donations } = normalizeDonations(raw);
 const insights = analyzeComments(donations);
 
-assertEq('hasEnoughData (8 personal comments)', insights.hasEnoughData, true);
+assertEq('hasEnoughComments (8 personal comments)', insights.hasEnoughComments, true);
 assertEq('repeatDonors excludes 🐈', insights.repeatDonors.some((d) => d.identity === '🐈'), false);
 assertEq('repeatDonors includes Олена (3x)', insights.repeatDonors.some((d) => d.identity === 'Олена Петренко' && d.count === 3), true);
 assertEq('topDonorsBySum excludes 🐈', insights.topDonorsBySum.some((d) => d.identity === '🐈'), false);
@@ -56,3 +56,17 @@ const enriched = attachCampaignCounts(insights.repeatDonors, [
 ]);
 const olena = enriched.find((d) => d.identity === 'Олена Петренко');
 assertEq('campaignCount: Олена in 2 of 3 campaigns', olena?.campaignCount, 2);
+
+// A jar whose donors left almost no comments still shows who they are and how often they gave
+const quiet = normalizeDonations([
+  { ...raw[0], comment: '' },
+  { ...raw[1], comment: '' },
+  { ...raw[2], comment: '' },
+  { ...raw[6], comment: '' },
+  { ...raw[7], comment: 'Дякую' },
+]).donations;
+const quietInsights = analyzeComments(quiet);
+assertEq('quiet jar: not enough comments for emojis', quietInsights.hasEnoughComments, false);
+assertEq('quiet jar: still lists Олена (3x)', quietInsights.repeatDonors.some((d) => d.identity === 'Олена Петренко' && d.count === 3), true);
+assertEq('quiet jar: still ranks by sum, Юрій first', quietInsights.topDonorsBySum[0]?.identity, 'Юрій Гулянич');
+assertEq('quiet jar: no emojis or communities', quietInsights.topEmojis.length + quietInsights.communities.length, 0);
