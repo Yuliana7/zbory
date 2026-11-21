@@ -34,6 +34,8 @@ const stub = async (ctx) => {
     if (url.includes('client-info')) return json({ jars: [
       { id: 'demo1', sendId: 'jar/DemoMain01', title: 'На тепловізор', description: '', currencyCode: 980, balance: 2698000, goal: 6000000 },
       { id: 'demo2', sendId: 'jar/DemoMain02', title: 'На дрони', description: '', currencyCode: 980, balance: 1240000, goal: 3000000 },
+      { id: 'demo4', sendId: '', title: 'Моя банка для «На FPV»', description: '', currencyCode: 980, balance: 420000, goal: 1000000 },
+      { id: 'demo5', sendId: '', title: 'Банка для «Медичний рюкзак»', description: '', currencyCode: 980, balance: 185000, goal: 500000 },
       { id: 'demo3', sendId: 'jar/DemoMain03', title: 'Валютна банка', description: '', currencyCode: 840, balance: 50000, goal: 0 } ] });
     if (url.includes('/personal/statement/')) return json([{ id: 'new1', time: Math.floor(Date.now() / 1000) - 3600, description: 'Від: Ганна Литвин', comment: 'Тримайтесь!', amount: 50000, balance: 2748000, hold: false }]);
     if (url.includes('/bank/jar/')) { const id = url.split('/').pop(); const a = { DemoLongJarAAAAAAAAAAAAAAAAAAAAA1: 560000, DemoLongJarAAAAAAAAAAAAAAAAAAAAA2: 320000, DemoLongJarAAAAAAAAAAAAAAAAAAAAA4: 95000, DemoLongJarAAAAAAAAAAAAAAAAAAAAA5: 170000 }[id] ?? 100000; return json({ amount: a, goal: 0, title: 'Банка', ownerName: 'Демо', currency: 980, closed: false, jarId: 'DemoHelper1' }); }
@@ -45,7 +47,7 @@ const seed = async (page) => page.evaluate(async () => {
   const store = await import('/zbory/src/utils/campaignStore.ts');
   const parser = await import('/zbory/src/utils/csvParser.ts');
   const ts = await import('/zbory/src/utils/timestamps.ts');
-  const load = async (f) => { const csv = await (await fetch(`/zbory/tests/data/${f}`)).text(); const raw = ts.withTimestamps(await parser.parseCSV(new File([csv], 'x.csv', { type: 'text/csv' }))); const shift = Math.floor(NOW / 1000) - 8 * 3600 - Math.max(...raw.map((r) => r.ts)); return raw.map((r) => ({ ...r, ts: r.ts + shift })); };
+  const load = async (f, endDaysAgo = 0) => { const csv = await (await fetch(`/zbory/tests/data/${f}`)).text(); const raw = ts.withTimestamps(await parser.parseCSV(new File([csv], 'x.csv', { type: 'text/csv' }))); const shift = Math.floor(NOW / 1000) - 8 * 3600 - endDaysAgo * 86400 - Math.max(...raw.map((r) => r.ts)); return raw.map((r) => ({ ...r, ts: r.ts + shift })); };
   const h = (...p) => p.map(([d, raised]) => ({ at: NOW - d * DAY, raised }));
   const friends = [
     { id: 'f1', name: 'Оля К.', raised: 400, target: 1000, updatedAt: NOW - 11 * DAY },
@@ -66,6 +68,17 @@ const seed = async (page) => page.evaluate(async () => {
   const { PALETTES: PALETTES } = await import('/zbory/src/utils/palettes.ts').catch(() => ({}));
   if (themes.saveTheme) { const list = PALETTES ?? []; for (const [i, name] of ['Звітний', 'Для сторіс'].entries()) await themes.saveTheme({ name, style: { ...DEFAULT_SHARED_STYLE, palette: list[i + 1] ?? DEFAULT_SHARED_STYLE.palette } }).catch((e) => console.log('theme', e)); }
   await store.saveCampaign({ name: 'На дрони', rawData: await load('Zbir_short.csv'), fileName: null, goal: 10000 });
+  // one of the user's own friendly jars, from their Monobank (no statement: amount and goal only)
+  const own = await import('/zbory/src/utils/ownJars.ts');
+  await own.saveOwnJar({ id: 'own1', name: 'Моя банка для «На FPV»', raised: 4200, target: 10000, jarId: '', monoId: 'demo4', addedAt: NOW - 20 * DAY, syncedAt: NOW - 3600e3, history: h([20, 800], [12, 2100], [6, 3300], [1, 4200]) });
+  // the archive: a project closed this year, one last year, and an own jar closed this year
+  const archive = async (name, file, endDaysAgo, goal) => {
+    const meta = await store.saveCampaign({ name, rawData: await load(file, endDaysAgo), fileName: null, goal });
+    await store.archiveCampaign(meta.id, new Date(`${meta.summary.lastDate}T12:00:00`).getTime());
+  };
+  await archive('На генератор для шпиталю', 'Zbir_refund.csv', 75, 10000);
+  await archive('На евакуаційне авто', 'Zbir_long.csv', 400, 25000);
+  await own.saveOwnJar({ id: 'own2', name: 'Моя банка для «На генератор»', raised: 3200, target: 3000, jarId: '', addedAt: NOW - 100 * DAY, syncedAt: NOW - 76 * DAY, archivedAt: NOW - 75 * DAY, closed: true, history: h([95, 600], [88, 1800], [80, 2900], [76, 3200]) });
   localStorage.setItem('zbory.friendsAutoRefresh', '0');
   localStorage.setItem('zbory.lastBackupAt', String(NOW - 2 * DAY));
 });
@@ -100,20 +113,24 @@ await page.goto(APP); await page.waitForTimeout(1300);
 await seed(page);
 await page.reload(); await page.waitForTimeout(1700); await later(page);
 
-// step 1
+// the active jars, and «Додати банку»
 await shot(page, '04-projects');
 await page.locator('li', { hasText: 'На тепловізор' }).getByRole('button', { name: 'Редагувати' }).click(); await page.waitForTimeout(350);
 await shot(page, '05-edit-menu');
-await page.getByRole('button', { name: 'Закрити' }).click(); await page.waitForTimeout(250);
-await page.getByRole('tab', { name: /Новий збір/ }).click(); await page.waitForTimeout(350);
+await page.getByRole('button', { name: 'Закрити', exact: true }).click(); await page.waitForTimeout(250);
+await page.getByRole('button', { name: 'Додати банку' }).first().click(); await page.waitForTimeout(400);
 await shot(page, '01-start');
-await page.getByRole('button', { name: /Monobank API/ }).first().click(); await page.waitForTimeout(500);
+await page.getByRole('button', { name: /Усі мої банки з Monobank/ }).click(); await page.waitForTimeout(500);
 await page.locator('input[type=password]').fill('demo-token-not-real'); await page.waitForTimeout(150);
 await shot(page, '16-monobank-token');
-await page.getByRole('button', { name: 'Показати мої банки' }).click(); await page.waitForTimeout(700);
+await page.getByRole('button', { name: 'Показати мої банки' }).click(); await page.waitForTimeout(800);
+await page.getByRole('checkbox', { name: 'На дрони' }).check();
+await page.getByRole('checkbox', { name: 'Банка для «Медичний рюкзак»' }).check();
+await page.waitForTimeout(200);
 await shot(page, '17-monobank-jars');
-await page.getByRole('button', { name: 'Далі' }).click(); await page.waitForTimeout(450);
+await page.getByRole('button', { name: 'Далі' }).click(); await page.waitForTimeout(450); await top(page); await page.waitForTimeout(200);
 await shot(page, '18-monobank-range');
+await page.getByRole('button', { name: 'Назад' }).click(); await page.waitForTimeout(300);
 await page.getByRole('button', { name: 'Скасувати' }).click(); await page.waitForTimeout(500);
 await page.reload(); await page.waitForTimeout(1500); await later(page);
 
@@ -226,6 +243,48 @@ await page.getByRole('button', { name: 'Редагувати позицію' }).
 await shot(page, '14-background-editor');
 await page.locator('.screen-overlay').getByRole('button', { name: 'Готово' }).click(); await page.waitForTimeout(400);
 
+// closing a jar
+await home(page);
+await page.locator('li', { hasText: 'На дрони' }).getByRole('button', { name: 'Редагувати' }).click(); await page.waitForTimeout(350);
+await page.getByRole('dialog').getByRole('button', { name: /Закрити збір/ }).click(); await page.waitForTimeout(1800);
+await shot(page, '36-close-sheet');
+await page.getByRole('dialog').getByRole('button', { name: 'Скасувати' }).click(); await page.waitForTimeout(300);
+
+// the archive
+await home(page);
+await page.getByRole('tab', { name: 'Архів' }).click(); await page.waitForTimeout(1000); await top(page);
+await shot(page, '37-archive');
+await page.locator('main button', { hasText: 'На генератор для шпиталю' }).click(); await page.waitForTimeout(1000); await top(page);
+await shot(page, '38-archive-project');
+await toY(page, 'Як збиралося'); await shot(page, '39-archive-story');
+await page.getByRole('button', { name: /^Архів 20/ }).click(); await page.waitForTimeout(700);
+
+// closed jars from statements: a made-up statement for a jar the app never tracked
+const rows = ['Дата та час операції,Категорія операції,Сума,Валюта,Додаткова інформація,Коментар до платежу,Залишок,Валюта залишку'];
+let balance = 0;
+const names = ['Тест А', 'Тест Б', 'Тест В', 'Тест Г', 'Тест Ґ'];
+const year = new Date().getFullYear();
+for (let i = 0; i < 24; i++) {
+  const amount = [100, 200, 250, 500, 1000][i % 5];
+  balance += amount;
+  const day = String(1 + Math.floor(i * 1.2)).padStart(2, '0');
+  rows.splice(1, 0, `${day}.09.${year} ${String(9 + (i % 12)).padStart(2, '0')}:15,За посиланням,${amount}.00,UAH,"Від: ${names[i % 5]}",,${balance}.00,UAH`);
+}
+await page.getByRole('button', { name: 'З виписок' }).click(); await page.waitForTimeout(400);
+await page.locator('[role=dialog] input[type=file]').setInputFiles({ name: `Jar_statement_29.09.${year}.csv`, mimeType: 'text/csv', buffer: Buffer.from(rows.join('\n'), 'utf8') });
+await page.waitForTimeout(900);
+await page.locator('[role=dialog] li input[placeholder="Назва банки"]').fill('Банка для «На рації»'); await page.waitForTimeout(200);
+await shot(page, '40-archive-import');
+await page.getByRole('dialog').getByRole('button', { name: 'Скасувати' }).click(); await page.waitForTimeout(300);
+
+// a year: its analytics, then «Мій рік»
+await top(page);
+await page.getByRole('button', { name: /аналітика й картки/ }).click(); await page.waitForTimeout(2500); await top(page);
+await shot(page, '41-year-analytics');
+await page.getByRole('button', { name: 'Шаблони' }).last().click(); await page.waitForTimeout(800);
+await page.locator('main button', { hasText: 'Мій рік' }).filter({ hasText: 'Використати шаблон' }).first().click(); await page.waitForTimeout(1300); await top(page);
+await shot(page, '42-year-card');
+
 // desktop
 const { page: d } = await newPage({ viewport: { width: 1400, height: 900 }, deviceScaleFactor: 1, serviceWorkers: 'block', timezoneId: 'Europe/Kyiv', locale: 'uk-UA' });
 await d.goto(APP); await d.waitForTimeout(1300);
@@ -236,6 +295,9 @@ await d.getByRole('button', { name: 'Шаблони' }).last().click(); await d.
 await d.getByRole('button', { name: /Друзі збору/ }).first().click(); await d.waitForTimeout(500);
 await d.locator('main button', { hasText: 'Рейтинг друзів-помічників' }).first().click(); await d.waitForTimeout(1200);
 await shot(d, '21-desktop-export');
+await d.locator('header button').first().click(); await d.waitForTimeout(700);
+await d.getByRole('tab', { name: 'Архів' }).click(); await d.waitForTimeout(1000);
+await shot(d, '43-desktop-archive');
 await browser.close();
 await server.close();
 if (pageErrors > 0) {

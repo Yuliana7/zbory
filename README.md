@@ -4,7 +4,7 @@
 
 **[Open the app → yuliana7.github.io/zbory](https://yuliana7.github.io/zbory/)** · **[Посібник для волонтерів (українською) →](docs/USER_GUIDE.uk.md)**
 
-> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Завантажте CSV-виписку банки monobank або отримайте дані одразу через Monobank API (за персональним токеном, без файлу) — отримайте аналітику збору (хто і коли донатить, хто тримає збір) та 24 готові шаблони для сторіс і дописів з вашим фоном, кольорами та текстами. Усе працює у браузері, виписка нікуди не надсилається. Інтерфейс — українською.
+> 🇺🇦 **Коротко:** веб-застосунок для волонтерів. Додайте свої банки через Monobank API (за персональним токеном — одразу і основні, і дружні), CSV-виписку або вручну — отримайте аналітику збору (хто і коли донатить, хто тримає збір) і готові шаблони для сторіс і дописів з вашим фоном, кольорами та текстами. Закриті збори лишаються в архіві за роками, з підсумками, виписками й картками «Мій рік». Усе працює у браузері, виписка нікуди не надсилається. Інтерфейс — українською.
 
 <p align="center">
   <img src="docs/screenshots/20-export-with-photo.jpg" alt="A friends leaderboard card with your own photo, on a phone" width="260">
@@ -28,13 +28,13 @@ It is built for Ukrainian volunteers, mostly working from a phone, so the whole 
 
 All screenshots use made-up demo data: the names, amounts and jars are invented.
 
-**Step 1 — your projects, and three ways to start a new one**
+**Your jars, and adding one**
 
-| Start | Saved projects | The «Редагувати» menu |
+| Active jars | «Додати банку» | The «Редагувати» menu |
 | :---: | :---: | :---: |
-| ![CSV, Monobank API or manual entry](docs/screenshots/01-start.jpg) | ![Saved projects, each with Аналітика and Редагувати](docs/screenshots/04-projects.jpg) | ![Menu: update from Monobank, add CSV, edit rows, goal, friends, raffles, rename, download, delete](docs/screenshots/05-edit-menu.jpg) |
+| ![Main jars with goal progress, and your own friendly jars, on one screen](docs/screenshots/04-projects.jpg) | ![Monobank (all your jars), a statement file, by hand, or a friendly jar by link](docs/screenshots/01-start.jpg) | ![Menu: update from Monobank, add CSV, edit rows, goal, friends, raffles, close, rename, download, delete](docs/screenshots/05-edit-menu.jpg) |
 
-**Step 2 — analytics.** One **Оновити** brings in the main jar and every linked friendly jar together.
+**Analytics.** One **Оновити** brings in the main jar and every linked friendly jar together.
 
 | Overview | Friendly jars | After a renew |
 | :---: | :---: | :---: |
@@ -54,9 +54,9 @@ All screenshots use made-up demo data: the names, amounts and jars are invented.
 
 | Any period | One day and when people donate | Raffles |
 | :---: | :---: | :---: |
-| ![Period picker, totals and daily bars](docs/screenshots/29-daily.jpg) | ![One day's breakdown and the weekday × hour map](docs/screenshots/30-daily-day.jpg) | ![Prizes, conditions and who qualifies](docs/screenshots/28-raffles.jpg) |
+| ![Period picker, totals and bars by day, week or month](docs/screenshots/29-daily.jpg) | ![One day's breakdown and the weekday × hour map](docs/screenshots/30-daily-day.jpg) | ![Prizes, conditions and who qualifies](docs/screenshots/28-raffles.jpg) |
 
-**Steps 3–4 — pick templates, edit, export**
+**Templates, the editor, export**
 
 | Gallery | Friendly jars templates | Raffle templates |
 | :---: | :---: | :---: |
@@ -74,9 +74,19 @@ The exported PNG (1080×1920 here):
 
 <p align="center"><img src="docs/screenshots/card-friends-leaderboard.jpg" alt="Exported friends leaderboard card" width="260"></p>
 
-On desktop: [projects](docs/screenshots/22-desktop-projects.jpg) · [analytics](docs/screenshots/23-desktop-analytics.jpg) · [editor](docs/screenshots/21-desktop-export.jpg).
+**Closing a fundraiser, and the archive**
 
-Importing from the Monobank API has its own [step-by-step guide](#importing-from-monobank-step-by-step) below.
+| Closing | The archive | A closed fundraiser |
+| :---: | :---: | :---: |
+| ![Closing date (the last donation by default) and whether the goal was reached](docs/screenshots/36-close-sheet.jpg) | ![Years, the year's total and month bars, closed jars](docs/screenshots/37-archive.jpg) | ![Final total, goal status, numbers](docs/screenshots/38-archive-project.jpg) |
+
+| How it was raised | Closed jars from statements | «Мій рік» |
+| :---: | :---: | :---: |
+| ![Path to the goal, records, rhythm, donors](docs/screenshots/39-archive-story.jpg) | ![Old statements straight into the archive](docs/screenshots/40-archive-import.jpg) | ![The year's card](docs/screenshots/42-year-card.jpg) |
+
+On desktop: [active jars](docs/screenshots/22-desktop-projects.jpg) · [analytics](docs/screenshots/23-desktop-analytics.jpg) · [editor](docs/screenshots/21-desktop-export.jpg) · [archive](docs/screenshots/43-desktop-archive.jpg).
+
+Adding jars from the Monobank API has its own [step-by-step guide](#importing-from-monobank-step-by-step) below.
 
 ## Features
 
@@ -84,14 +94,14 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Parses the CSV statement exported from a Monobank jar, **or fetches it straight from the Monobank API**, or lets you type donations in by hand.
 - Total raised, donation count, typical (median) vs. average donation, most frequent amount, best day, time-of-day activity, campaign duration.
 - **One Оновити** on the total reads the main jar's statement and every linked helper jar in parallel, then saves once, so the page can't drift out of sync. Jars entered by hand can't be read, so the report names them.
-- A daily chart of donations and withdrawals for up to the last 30 days. **Детальніше** opens **День за днем**: any period compared with the one before, daily bars or a running total, a tap-through breakdown of each day (amount, donors, hours, comments), a weekday × hour map of when people donate, and a shortcut to a card for that period. The «На рахунку» / refunds figures appear only when there are withdrawals or refunds.
+- A daily chart of donations and withdrawals for up to the last 30 days. **Детальніше** opens **День за днем**: any period compared with the one before, bars or a running total. A bar is a day (up to 31 days), a calendar week (up to about three months) or a calendar month, with an explicit **Дні · Тижні · Місяці** switch; tap a bar for that day's breakdown (amount, donors, hours, comments) or that week's or month's (totals, its days, its best day). Plus a weekday × hour map of when people donate, and a shortcut to a card for that period. The «На рахунку» / refunds figures appear only when there are withdrawals or refunds.
 - Repeat donors and most generous donors; anonymous donations are counted but kept out of the lists.
 - **«Хто тримає збір»:** how much of the jar the regular donors and the top three carry, with a one-tap shortcut to a thank-you template.
 - Goal: shown as progress on the templates.
 - **Refund detection** — Monobank doesn't list refunds in the statement; the app infers them from balance vs. donations vs. withdrawals.
 
 ### Templates & editing
-- **24 templates** in six groups: progress, activity, people, friendly jars, raffles and reports.
+- **Templates** in groups: progress, activity, people, friendly jars, raffles and reports; closed fundraisers get **Підсумок** (how it was raised, the numbers, our donors) and a year gets **Мій рік**.
 - **Three formats:** 1080×1080 post, 1080×1350 (4:5) post, 1080×1920 Story.
 - **Every element is yours to change** — in the full-screen **Редагувати елементи** view, tap an element to resize its text (50–200%) or remove it, with one undo for both. Any label or text can be edited too.
 - **Your own background** with a full-screen, gesture-isolated editor: drag, pinch-to-zoom, two-finger rotate, brightness and opacity. The page doesn't scroll or move the photo by accident while you edit. Large phone photos are scaled down to 3000 px on upload (about 1:1 at maximum zoom), which keeps exports and saved projects light.
@@ -101,7 +111,7 @@ Importing from the Monobank API has its own [step-by-step guide](#importing-from
 - Export a single **PNG**, or the whole series as one **ZIP**. On iOS the file goes through the share sheet ("Save Image").
 
 ### Several fundraisers
-- **Library** of saved fundraisers kept on your device. Step 1 has two views, *Мої збори* and *Новий збір* (only the latter if nothing is saved). **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Редагувати** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, rename, download CSV, delete), and each option opens a focused full screen for just that one thing. Whatever brings data in saves it automatically and opens the analytics. **Зберегти копію всіх зборів** writes every project to one JSON file (helper history included, the token never), and **Відновити з копії** brings it back on any device without overwriting anything newer.
+- **Library** of fundraisers kept on your device. **Активні** shows your main jars (with progress to the goal) and your own friendly jars on one screen, with **Додати банку** on top; **Оновити все з Monobank** reads every linked main jar's statement in turn. **Аналітика →** on a saved fundraiser goes straight to the analytics with its goal, helpers, background and style intact; **Редагувати** opens a small menu (update from Monobank, add a CSV, edit rows, goal, friends, raffles, close and archive, rename, download CSV, delete), and each option opens a focused full screen for just that one thing. Whatever brings data in saves it automatically and opens the analytics. **Зберегти копію всіх зборів** writes every project to one JSON file (helper history included, the token never), and **Відновити з копії** brings it back on any device without overwriting anything newer.
 - **Merge** several statement files into one fundraiser (long campaigns come in chunks).
 - **Compare fundraisers:** open several at once for a cross-campaign view and report templates ("Звіт за період", comparison chart).
 
@@ -115,7 +125,18 @@ Prizes live with the project (**Редагувати → Розіграші**, o
 Donor and biggest-donation raffles cover the whole fundraiser or any period, even one day. Each type has its own card.
 
 ### Monobank API import
-Skip the CSV: paste your personal API token and the app pulls a jar's donations directly: jar picker and date range the first time, then **Оновити** on the analytics fetches everything new in one go. Remembering the token on the device is opt-in. See the [step-by-step guide](#importing-from-monobank-step-by-step).
+Skip the CSV: paste your personal API token and the app lists **all your jars, main and friendly** (Monobank marks a friendly jar by an empty `sendId`; the label can be switched). Pick several at once: main jars come in with their statement for one period, friendly jars with their amount and goal. Then **Оновити** on the analytics fetches everything new in one go. Remembering the token on the device is opt-in. See the [step-by-step guide](#importing-from-monobank-step-by-step).
+
+### Your own friendly jars
+A friendly jar you run for someone else's fundraiser never shows up in your statement. **Мої дружні банки** tracks them: from your Monobank (official, with your token — amount and goal, no donations) or by link. **Оновити** reads the token-tied jars in one official call and the rest through their links, falling back to the links when the token isn't there, and says so. A jar Monobank stops listing is marked closed. Add a link to a token-added jar to copy it, find the fundraiser it feeds and read it without the token; a token jar and a link-added jar with the same name and goal are offered to merge (your name wins).
+
+### Archive
+**Закрити збір і в архів** files a fundraiser under its closing date (the last donation by default) with everything it had — statement, friends, raffles, card style — read-only. Without a goal it asks whether the goal was reached.
+- **By year:** the year's total, its jars, donations, your own friendly jars, and month bars of when the money came in; search and pages for long lists.
+- **A closed fundraiser's page:** path to the goal (when each quarter was reached), records, rhythm, donation sizes, returning donors, money flow, comparison with your other closed jars; downloads (statement, friends, a full backup of it); summary cards; rename; back to active; delete.
+- **Closed jars from statements:** drop in old statements (a friendly jar's from the bank's support too) and they become closed jars, with duplicates caught.
+- **«Мій рік»:** the year's analytics (all its jars together) and a year card for socials.
+- The backup (**Зберегти копію всіх зборів**) carries the archive too.
 
 ### Friendly jars (дружні збори)
 Monobank lets helpers open their own jars that pay into yours. Those donations are already in your statement, just without saying who brought them. Add each helper and you get a leaderboard, a stats card, a page of their own and an optional "of which via friends" line on the progress card. It is **attribution only** and never changes your totals.
@@ -154,23 +175,24 @@ The same response also names the jar's owner (`ownerName`) and shows the jar it 
 
 ## How to use it
 
-1. **Get your data.** Either export the jar's statement as **CSV** in the monobank app (Monobank support can also send a statement file; the app understands both layouts), or use *З Monobank API* with a personal token — no file needed.
-2. **Start a project** in *Новий збір*: upload the CSV, [import via the Monobank API](#importing-from-monobank-step-by-step), or choose *Створити вручну*. It is saved automatically and the analytics opens; the goal and friendly jars can be set from **Редагувати** or the analytics.
+1. **Get your data.** Use *Усі мої банки з Monobank* with a personal token — no file needed — or export the jar's statement as **CSV** in the monobank app (Monobank support can also send a statement file; the app understands both layouts).
+2. **Add a jar** with **Додати банку**: [all your jars via the Monobank API](#importing-from-monobank-step-by-step), a CSV, *Створити вручну*, or a friendly jar by link. It is saved automatically and the analytics opens; the goal and friendly jars can be set from **Редагувати** or the analytics.
 3. **Read the analytics,** then go on to the gallery.
 4. **Pick one or more templates.** Select several to make a series with a shared look.
 5. **Edit and export.** Change the format, add your photo (*Фон та стиль → Редагувати позицію*), resize or remove elements, edit text, save a theme, then **Завантажити PNG** (or the ZIP for a series).
-6. **Come back any time:** every fundraiser is saved as it changes — pick it in *Мої збори* and tap **Аналітика →**.
+6. **Come back any time:** every fundraiser is saved as it changes — it's in **Активні**, tap **Аналітика →**.
+7. **Close it when it's done:** **Редагувати → Закрити збір і в архів**. It moves to **Архів**, by year, with its summary, downloads and cards.
 
 ## Importing from Monobank (step by step)
 
-No CSV needed: the app can read a jar's donations straight from Monobank with a personal API token. It takes about a minute the first time.
+No CSV needed: the app can read your jars straight from Monobank with a personal API token — main jars with their donations, friendly jars with their amount and goal. It takes about a minute the first time.
 
 <p align="center">
   <img src="docs/screenshots/16-monobank-token.jpg" alt="Instructions and token field" width="230">
   &nbsp;
-  <img src="docs/screenshots/17-monobank-jars.jpg" alt="Choosing a jar" width="230">
+  <img src="docs/screenshots/17-monobank-jars.jpg" alt="All your jars, labelled main or friendly" width="230">
   &nbsp;
-  <img src="docs/screenshots/18-monobank-range.jpg" alt="Choosing the date range" width="230">
+  <img src="docs/screenshots/18-monobank-range.jpg" alt="A link for each friendly jar, the period for main jars" width="230">
 </p>
 
 ### 1. Get a token
@@ -178,14 +200,14 @@ No CSV needed: the app can read a jar's donations straight from Monobank with a 
 2. Copy the personal token the site shows you. (The same instructions are on the import screen.)
 
 ### 2. Import
-1. On step 1 open **Новий збір → З Monobank API**.
+1. Tap **Додати банку → Усі мої банки з Monobank**.
 2. Paste the token and tap **Показати мої банки**.
-3. Pick the jar. Only **hryvnia** jars can be imported; jars in other currencies are listed but greyed out. The jar's goal is used as the campaign goal.
-4. Choose the dates — by default the **last 30 days**. Tap **Отримати виписку**.
-5. The project is saved automatically, named after the jar, and the analytics opens. Rows can be corrected later from **Редагувати → Редагувати рядки**.
+3. Every jar is listed as **Основна** or **Дружня** (tap the label to switch it). Jars already in the app say so. Only **hryvnia** jars can be added; others are listed but greyed out. Pick one or several and tap **Далі**.
+4. For a friendly jar, paste its link if you have it (Monobank doesn't give one), and choose to merge it with a jar you already track by link when the app finds one with the same name and goal. For main jars, choose the dates — by default the **last 30 days**.
+5. Tap **Додати**. Friendly jars appear at once; main jars' statements come one after another. One main jar on its own opens its analytics; rows can be corrected later from **Редагувати → Редагувати рядки**.
 
 ### 3. Update it later
-Tap **Оновити** on the total in the analytics (or **Мої збори → Редагувати → Оновити з Monobank**). The app fetches from the day of your newest saved donation until now, merges it, skips anything already there and saves. It asks for the token unless you chose to remember it.
+Tap **Оновити** on the total in the analytics, **Редагувати → Оновити з Monobank**, or **Оновити все з Monobank** above the list for every linked jar. The app fetches from the day of your newest saved donation until now, merges it, skips anything already there and saves. It asks for the token unless you chose to remember it.
 
 <p align="center">
   <img src="docs/screenshots/05-edit-menu.jpg" alt="The Редагувати menu on a saved project" width="230">
