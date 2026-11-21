@@ -12,7 +12,7 @@ import { Pager, SearchBox } from '../ListControls';
 import type { JarErrorKind } from '../../utils/monobankJar';
 import { CopyJarLink } from '../insights/friendsShared';
 import { JarChartModal } from '../insights/JarChartModal';
-import { ArchiveIcon, ImageIcon, LinkIcon, PlusIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
+import { ArchiveIcon, ImageIcon, LinkIcon, RefreshIcon, SpinnerIcon, TrashIcon } from '../../icons';
 import { OwnJarArchiveSheet } from '../archive/OwnJarArchiveSheet';
 import { RenewTokenSheet } from '../insights/RenewTokenSheet';
 import { MonobankError, fetchJars, type MonoJar } from '../../utils/monobankApi';
@@ -23,7 +23,7 @@ const GROWTH_DAYS = 7;
 /** «Мої дружні банки»: the user's own friendly jars, which Monobank leaves out of their statement.
  * Added by link, read from the jar's public numbers, renewed together; each opens the templates.
  * Only active jars are here: «В архів» files one under the year it was closed. */
-export function OwnJarsTab({ jars, onJarsChange, onAdd }: { jars: OwnJar[]; onJarsChange: (jars: OwnJar[]) => void; onAdd: () => void }) {
+export function OwnJarsTab({ jars, onJarsChange }: { jars: OwnJar[]; onJarsChange: (jars: OwnJar[]) => void }) {
   const { t } = useTranslation('upload');
   const { t: tExport } = useTranslation('export');
   const { t: tCommon } = useTranslation();
@@ -138,18 +138,8 @@ export function OwnJarsTab({ jars, onJarsChange, onAdd }: { jars: OwnJar[]; onJa
   const closeChart = useCallback(() => setChartId(null), []);
 
   return (
-    <div className="max-w-3xl mx-auto mb-10 animate-fade-in">
-      <p className="mb-4 px-1 text-sm text-gray-500 text-center">{t('ownJars.intro')}</p>
-
-      <div className="mb-2 flex justify-end">
-        <button
-          onClick={onAdd}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium transition-colors"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-          {t('addJarTitle')}
-        </button>
-      </div>
+    <div className="animate-fade-in">
+      <p className="mb-2 px-1 text-xs text-gray-500">{t('ownJars.intro')}</p>
 
       {jars.length > 0 && (
         <div className="mt-4 mb-3 flex flex-wrap items-center justify-between gap-x-4 gap-y-1 px-1 text-xs text-gray-500" aria-live="polite">

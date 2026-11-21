@@ -11,7 +11,6 @@ import { RafflesScreen } from '../components/upload/screens/RafflesScreen';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { MonobankImport, type MonobankFetchResult } from '../components/upload/MonobankImport';
 import { MonobankAddJars } from '../components/upload/MonobankAddJars';
-import { rememberHomeTab } from '../utils/homeTab';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import type { ManualRow } from '../types';
@@ -115,10 +114,7 @@ export function UploadPage() {
       <div className="py-8">
         <MonobankAddJars
           onSingleMain={(rows, jar, goal) => handleNewFromMonobank({ rows, jar, goal })}
-          onDone={({ tab }) => {
-            rememberHomeTab(tab);
-            setShowMonobank(false);
-          }}
+          onDone={() => setShowMonobank(false)}
           onCancel={() => setShowMonobank(false)}
         />
       </div>

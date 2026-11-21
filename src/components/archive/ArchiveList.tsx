@@ -6,7 +6,8 @@ import { listCampaigns, setArchivedGoalReached, type CampaignMeta } from '../../
 import { listOwnJars, goalPct, ownJarDataset, setOwnJarGoalReached } from '../../utils/ownJars';
 import { ARCHIVE_PAGE_SIZE, archiveYears, goalsUnsaid, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
-import { ArchiveIcon, ChartIcon, LockIcon, PlusIcon, SpinnerIcon } from '../../icons';
+import { ArchiveIcon, ChartIcon, LockIcon, SpinnerIcon } from '../../icons';
+import { TopAction } from '../TopAction';
 import { Pager, SearchBox } from '../ListControls';
 import { ImportStatementsSheet } from './ImportStatementsSheet';
 import { YearGoalsSheet, type UnsaidGoal } from './YearGoalsSheet';
@@ -135,16 +136,10 @@ export function ArchiveList() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-6 sm:py-8 space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-gray-900">{t('list.title')}</h2>
-        <button
-          onClick={() => setImporting(true)}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium transition-colors"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-          {t('import.open')}
-        </button>
+    <div className="max-w-3xl mx-auto pb-8 space-y-5 animate-fade-in">
+      {/* like the active jars: the one way to add on top, then the years and their numbers */}
+      <div className="flex justify-end">
+        <TopAction onClick={() => setImporting(true)} label={t('import.open')} />
       </div>
 
       <div role="tablist" aria-label={t('list.yearLabel')} className="flex flex-wrap gap-2">

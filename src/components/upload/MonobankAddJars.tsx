@@ -28,11 +28,6 @@ import { CheckIcon, SpinnerIcon } from '../../icons';
 
 type Stage = 'token' | 'loadingJars' | 'pick' | 'details' | 'working' | 'done';
 
-export interface AddJarsResult {
-  /** where to land: the projects or the friendly jars */
-  tab: 'saved' | 'own';
-}
-
 interface Summary {
   mains: string[];
   friendly: string[];
@@ -55,7 +50,7 @@ export function MonobankAddJars({
   onCancel,
   onSingleMain,
 }: {
-  onDone: (result: AddJarsResult) => void;
+  onDone: () => void;
   onCancel: () => void;
   onSingleMain: (rows: RawDonation[], jar: MonobankJarRef, goal?: number) => Promise<void>;
 }) {
@@ -419,7 +414,7 @@ export function MonobankAddJars({
               {summary.badLinks.length > 0 && <p>{t('addJars.badLinks', { names: summary.badLinks.join(', ') })}</p>}
             </div>
           )}
-          <button onClick={() => onDone({ tab: summary.mains.length > 0 ? 'saved' : 'own' })} className="btn-primary w-full">
+          <button onClick={onDone} className="btn-primary w-full">
             {t('addJars.done')}
           </button>
         </div>
