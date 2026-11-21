@@ -3,12 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { useAppContext } from '../../context/AppContext';
 import { ArrowLeftIcon } from '../../icons';
 
-/** A page inside step 2: a way back to the analytics, a title, room for an action. */
+/** A page inside step 2: a way back to the analytics, a title, room for an action.
+ * As wide as the archive's lists (max-w-3xl), so the two read alike on a desktop. */
 export function SubPage({ title, actions, children }: { title: string; actions?: ReactNode; children: ReactNode }) {
   const { t } = useTranslation('insights');
   const { dispatch } = useAppContext();
   return (
-    <div className="animate-fade-in">
+    <div className="max-w-3xl mx-auto animate-fade-in">
       <button
         onClick={() => dispatch({ type: 'INSIGHTS_VIEW', payload: 'main' })}
         className="mb-4 flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-gray-800"
