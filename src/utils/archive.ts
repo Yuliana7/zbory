@@ -34,7 +34,7 @@ export interface YearSummary {
   count: number;
   donations: number;
   friends: number;
-  /** what the projects and own jars closed in each month raised, January first */
+  /** for one year: what came in each month of it (donations by their date), January first */
   byMonth: number[];
 }
 
@@ -63,22 +63,46 @@ export function ownJarsOnTheirOwn(campaigns: CampaignMeta[], ownJars: OwnJar[]):
   return ownJars.filter((j) => !j.main?.shortId || !fed.has(j.main.shortId));
 }
 
+/** What an own jar raised by month («YYYY-MM» → UAH): its statement's donations, else the changes of
+ * its amount the app saw (ownJarDays). */
+function ownJarMonths(jar: OwnJar): Record<string, number> {
+  if (jar.statement) {
+    const m = computeCampaignSummary(jar.statement).byMonth;
+    if (m && Object.keys(m).length) return m;
+  }
+  const out: Record<string, number> = {};
+  for (const d of ownJarDays(jar)) out[d.date.slice(0, 7)] = (out[d.date.slice(0, 7)] ?? 0) + d.amount;
+  return out;
+}
+
 /** The year card: everything the user closed that year raised — the projects and their own friendly jars
- * (see ownJarsOnTheirOwn), month by month. Friendly jars are the user's own ones closed that year, all of
- * them (a project's helpers are other people's jars: they show on that project's page, not here); an own
- * jar's donations count when its statement was added. */
-export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearSummary {
+ * (see ownJarsOnTheirOwn). Friendly jars are the user's own ones closed that year, all of them (a
+ * project's helpers are other people's jars: they show on that project's page, not here); an own jar's
+ * donations count when its statement was added. The month bars (for one `year`) show when the money
+ * came in: donations by their month, in that year. */
+export function yearSummary(campaigns: CampaignMeta[], ownJars: OwnJar[] = [], year: number | null = null): YearSummary {
   const out: YearSummary = { total: 0, count: 0, donations: 0, friends: ownJars.length, byMonth: Array(12).fill(0) };
+  const addMonths = (months: Record<string, number> | undefined, fallbackAt: number, total: number) => {
+    if (year === null) return;
+    if (!months || Object.keys(months).length === 0) {
+      // nothing by month known: all of it in the month it closed, if that's this year
+      if (new Date(fallbackAt).getFullYear() === year) out.byMonth[new Date(fallbackAt).getMonth()] += total;
+      return;
+    }
+    for (const [ym, amount] of Object.entries(months)) {
+      if (Number(ym.slice(0, 4)) === year) out.byMonth[Number(ym.slice(5, 7)) - 1] += amount;
+    }
+  };
   for (const c of campaigns) {
     out.total += c.summary.totalAmount;
     out.count += 1;
     out.donations += c.summary.donationCount;
-    out.byMonth[new Date(c.archivedAt ?? 0).getMonth()] += c.summary.totalAmount;
+    addMonths(c.summary.byMonth, c.archivedAt ?? 0, c.summary.totalAmount);
   }
   for (const j of ownJarsOnTheirOwn(campaigns, ownJars)) {
     out.total += j.raised;
     out.donations += ownJarDonationCount(j);
-    out.byMonth[new Date(j.archivedAt ?? 0).getMonth()] += j.raised;
+    addMonths(ownJarMonths(j), j.archivedAt ?? 0, j.raised);
   }
   return out;
 }
@@ -102,7 +126,7 @@ export function goalsUnsaid(campaigns: CampaignMeta[], ownJars: OwnJar[]): Array
 /** «Мій рік»: the year card's numbers, the biggest of its projects and own jars, and how many of those
  * with a goal (or with the user's word on it) reached it. */
 export function yearRecap(year: number, campaigns: CampaignMeta[], ownJars: OwnJar[] = []): YearRecap {
-  const s = yearSummary(campaigns, ownJars);
+  const s = yearSummary(campaigns, ownJars, year);
   const own = ownJarsOnTheirOwn(campaigns, ownJars);
   const items = [
     ...campaigns.map((c) => ({ name: c.name, total: c.summary.totalAmount, reached: goalOutcome(c.summary.totalAmount, c.goal, c.archive?.goalReached) })),

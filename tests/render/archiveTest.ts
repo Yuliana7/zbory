@@ -1,4 +1,5 @@
 import { buildReport } from '../../src/utils/campaignAnalytics';
+import { getBackend } from '../../src/utils/db';
 import { buildBackup, deleteCampaign, restoreBackup, renameCampaign, setArchivedGoalReached, saveCampaign, getCampaignMeta, archiveCampaign, unarchiveCampaign, buildProjectBackup, parseBackup, listCampaigns } from '../../src/utils/campaignStore';
 import { archiveYear, archiveYears, closedAtOf, dayOf, goalsUnsaid, ownJarLastDay, inYear, matchesName, yearSummary, yearRecap, ownJarsFeeding, isArchived } from '../../src/utils/archive';
 import { listOwnJars, removeOwnJar, renameOwnJar, ownJarDataset, ownJarStamp, setOwnJarArchived, setOwnJarGoalReached, setOwnJarStatement } from '../../src/utils/ownJars';
@@ -27,6 +28,13 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const filed = await archiveCampaign(old.id, closedAtOf('2026-08-31'), {}, at(2026, 11, 21));
   check('closing: filed under the day it closed, which can be long ago', filed?.archivedAt === closedAtOf('2026-08-31') && archiveYear(filed!) === 2026 && new Date(filed!.archivedAt!).getMonth() === 7);
   check('closing: the change itself is the newest, for backups', filed?.updatedAt === at(2026, 11, 21));
+  // a project saved before the summary had months: filled in once, not counted as a change
+  const legacy = await saveCampaign({ name: 'Старий запис', rawData: raw, fileName: null });
+  const { byMonth: _drop, ...oldSummary } = legacy.summary;
+  void _drop;
+  await getBackend().put('meta', { ...legacy, summary: oldSummary, updatedAt: 42 });
+  const filled = (await listCampaigns()).find((c) => c.id === legacy.id)!;
+  check('months: an old project gets its donations by month once', filled.summary.byMonth?.['2026-07'] === 500 && filled.updatedAt === 42);
   const q = await saveCampaign({ name: 'Без цілі', rawData: raw, fileName: null });
   check('store: closing with no goal keeps the user’s word on it', (await archiveCampaign(q.id, at(2026, 10, 14), { goalReached: true }))?.archive?.goalReached === true);
   check('store: not said, not stored', (await archiveCampaign(q.id, at(2026, 10, 14)))?.archive?.goalReached === undefined);
@@ -64,11 +72,11 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   check('years: «Усі роки» has every closed one and no active one', inYear(list, null).length === 4 && !inYear(list, null).some((c) => c.id === 'd'));
   check('search: any part, any case', matchesName('На FPV-дрони', 'fpv') && matchesName('На авто для евакуації', '  АВТО  для ') && !matchesName('На генератор', 'дрон'));
   check('search: an empty query matches everything', matchesName('Будь-що', '   '));
-  const s = yearSummary(inYear(list, 2026));
+  const s = yearSummary(inYear(list, 2026), [], 2026);
   check('summary: total, count, donations of the year; projects’ helpers aren’t the user’s friendly jars', s.total === 451000 && s.count === 3 && s.donations === 4510 && s.friends === 0);
   const fedProject = { ...meta('f', 'З банкою', at(2026, 10), 1000, 2), monobankJar: { id: 'L', title: 'З банкою', shortId: 'Main1' } };
   const own = (id: string, main?: string): OwnJar => ({ id, name: id, raised: 500, jarId: 'X'.repeat(16), addedAt: 0, archivedAt: at(2026, 10), ...(main ? { main: { shortId: main } } : {}) });
-  const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')]);
+  const withOwn = yearSummary([fedProject], [own('mine', 'Main1'), own('elsewhere', 'Other'), own('unlinked')], 2026);
   check('summary: every own jar of the year is a friendly jar, one feeding the user’s own project too', withOwn.friends === 3);
   check('summary: a project with 21 helpers and one own jar → 1 friendly jar', yearSummary([meta('h', 'З помічниками', at(2026, 11), 300500, 21)], [own('mine')]).friends === 1);
   check('summary: own jars’ money joins the year, except a jar feeding one of its projects', withOwn.total === 2000 && withOwn.byMonth[9] === 2000, `${withOwn.total}`);
@@ -105,6 +113,13 @@ const at = (y: number, m: number, d = 10) => new Date(y, m - 1, d, 12).getTime()
   const plus = buildReport(items, { kind: 'year', year: 2026 }, [{ name: 'Без виписки', amount: 4000, closedAt: at(2026, 9) }, { name: 'Інший рік', amount: 999, closedAt: at(2025, 9) }]);
   check('report: jars known only by total join the jars and money of their period', plus.totalAmount === plain.totalAmount + 4000 && plus.campaignCount === plain.campaignCount + 1 && plus.donationCount === plain.donationCount && plus.topCampaigns[0].name === 'Без виписки');
   check('recap: an empty year has no biggest project', yearRecap(2024, []).biggest === null && yearRecap(2024, []).count === 0);
+  const spread = { ...meta('sp', 'Довгий', at(2026, 2), 900), summary: { totalAmount: 900, donationCount: 3, firstDate: '2025-12-20', lastDate: '2026-02-01', currentBalance: 0, byMonth: { '2025-12': 100, '2026-01': 300, '2026-02': 500 } } };
+  const bars = yearSummary([spread], [], 2026);
+  check('bars: donations by the month they came in, not the month it closed', bars.byMonth[0] === 300 && bars.byMonth[1] === 500 && bars.total === 900);
+  check('bars: money from another year stays out of this year’s bars', bars.byMonth.reduce((a2, b2) => a2 + b2, 0) === 800);
+  check('bars: «Усі роки» has none', yearSummary([spread], [], null).byMonth.every((v) => v === 0));
+  const ownSpread = yearSummary([], [{ ...own('hist'), raised: 600, history: [{ at: at(2026, 3), raised: 200 }, { at: at(2026, 5), raised: 600 }] }], 2026);
+  check('bars: an own jar by the changes of its amount the app saw', ownSpread.byMonth[2] === 200 && ownSpread.byMonth[4] === 400);
   check('summary: totals by the month they were closed', s.byMonth[9] === 300000 && s.byMonth[7] === 150000 && s.byMonth[0] === 1000);
 
   // ── own jars ──

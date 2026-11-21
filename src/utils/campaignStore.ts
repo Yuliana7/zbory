@@ -19,6 +19,9 @@ export interface CampaignSummary {
   firstDate: string; // ISO YYYY-MM-DD
   lastDate: string;
   currentBalance: number;
+  /** donations by the month they came in («YYYY-MM» → UAH): the archive's year bars. Missing in metas
+   * saved before it existed; listCampaigns fills it in once. */
+  byMonth?: Record<string, number>;
 }
 
 export interface CampaignMeta {
@@ -63,8 +66,11 @@ export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary 
   let totalAmount = 0;
   let first = Infinity;
   let last = -Infinity;
+  const byMonth: Record<string, number> = {};
   for (const d of donations) {
     totalAmount += d.amount;
+    const month = `${d.timestamp.getFullYear()}-${String(d.timestamp.getMonth() + 1).padStart(2, '0')}`;
+    byMonth[month] = (byMonth[month] ?? 0) + d.amount;
     const t = d.timestamp.getTime();
     if (t < first) first = t;
     if (t > last) last = t;
@@ -79,6 +85,7 @@ export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary 
     firstDate: donations.length ? isoDate(first) : '',
     lastDate: donations.length ? isoDate(last) : '',
     currentBalance,
+    byMonth,
   };
 }
 
@@ -134,7 +141,17 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
 
 /** All campaigns, most recently updated first. */
 export async function listCampaigns(): Promise<CampaignMeta[]> {
-  const all = (await getBackend().getAll(META_STORE)) as CampaignMeta[];
+  const kv = getBackend();
+  const all = (await kv.getAll(META_STORE)) as CampaignMeta[];
+  // projects saved before the summary had its months get them once, from their rows. Not a change
+  // the user made: updatedAt (what a backup compares) stays.
+  for (const [i, meta] of all.entries()) {
+    if (meta.summary.byMonth) continue;
+    const data = (await kv.get(DATA_STORE, meta.id)) as CampaignData | undefined;
+    if (!data) continue;
+    all[i] = { ...meta, summary: { ...meta.summary, byMonth: computeCampaignSummary(data.rawData).byMonth } };
+    await kv.put(META_STORE, all[i]);
+  }
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 

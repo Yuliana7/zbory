@@ -81,7 +81,7 @@ export function ArchiveList() {
 
   const yearCampaigns = inYear(campaigns, shownYear);
   const yearJars = inYear(jars, shownYear);
-  const summary = yearSummary(yearCampaigns, yearJars);
+  const summary = yearSummary(yearCampaigns, yearJars, shownYear);
   // own jars' statements join the year's projects in its cards (not those feeding one of them: their
   // donations are already in that project's statement)
   const yearStatements = ownJarsOnTheirOwn(yearCampaigns, yearJars).flatMap((j) => {
