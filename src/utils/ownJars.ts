@@ -5,10 +5,11 @@
 // keeping its own history. Each one also follows the main jar it feeds, so cards can name it.
 
 import type { Aggregates, CampaignDataset, FriendSnapshot, MainJarInfo, OwnJar, RawDonation } from '../types';
+import type { MonoJar } from './monobankApi';
 import { normalizeDonations } from './csvParser';
 import { dayKey } from './dailyBreakdown';
 import { getBackend } from './db';
-import { jarShareLink, nextHistory } from './friendJars';
+import { friendNameKey, jarShareLink, nextHistory } from './friendJars';
 import { generateId } from './id';
 import { JarError, fetchPublicJar, lookupJar, parseJarRef, type FetchJarOptions, type JarErrorKind, type PublicJar } from './monobankJar';
 import { readJars, STALE_AFTER_MS, type ReadOptions } from './friendsRefresh';
@@ -87,7 +88,8 @@ export const ownJarDataset = (jar: OwnJar): CampaignDataset | null =>
 /** Moves a jar to the archive, or (`null`) back to the active ones. */
 export async function setOwnJarArchived(jar: OwnJar, archivedAt: number | null, now: number = Date.now()): Promise<OwnJar> {
   const { archivedAt: _was, ...rest } = jar;
-  const next: OwnJar = archivedAt ? { ...rest, archivedAt } : { ...rest, updatedAt: now };
+  // the day it closed can be long ago; the change itself is now, so a backup sees it as the newest
+  const next: OwnJar = archivedAt ? { ...rest, archivedAt, updatedAt: Math.max(now, archivedAt) } : { ...rest, updatedAt: now };
   await saveOwnJar(next);
   return next;
 }
@@ -171,6 +173,31 @@ export async function addOwnJar(input: string, existing: OwnJar[], opts: FetchJa
   }
 }
 
+/** Adds a jar's public link to a jar known only through the user's token: from then on it can be read
+ * without the token, copied, and tied to its main jar. The link is checked (our lookup) before it's kept;
+ * a lookup that fails leaves the jar as it was. */
+export async function attachJarLink(jar: OwnJar, input: string, others: OwnJar[], opts: FetchJarOptions & { now?: number } = {}): Promise<AddOwnResult> {
+  const ref = parseJarRef(input);
+  if (!ref) return { error: 'invalid' };
+  const now = opts.now ?? Date.now();
+  try {
+    const found = ref.kind === 'short' ? await lookupJar(ref.id, opts) : null;
+    const longId = found?.longId ?? ref.id;
+    if (others.some((j) => j.id !== jar.id && j.jarId === longId)) return { error: 'duplicate' };
+    const read = await fetchPublicJar(longId, opts);
+    const shortId = read.shortId ?? (ref.kind === 'short' ? ref.id : undefined);
+    const mainShort = found ? found.mainJar : shortId ? await lookupJar(shortId, opts).then((f) => f.mainJar, () => undefined) : undefined;
+    let next: OwnJar = { ...jar, jarId: longId, shortId, updatedAt: now };
+    if (mainShort) next.main = await readMain({ shortId: mainShort }, now, opts).catch(() => ({ shortId: mainShort }));
+    // the official numbers (with the token) stay; a jar with none takes the public ones
+    if (!jar.monoId) next = applyOwnRead(next, read, now);
+    return { jar: next };
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'AbortError') throw err;
+    return { error: err instanceof JarError ? err.kind : 'unexpected' };
+  }
+}
+
 /** Finds the main jar's long id once (our lookup), then reads it. */
 async function readMain(main: MainJarInfo, now: number, opts: FetchJarOptions): Promise<MainJarInfo> {
   const longId = main.longId ?? (await lookupJar(main.shortId, opts)).longId;
@@ -190,8 +217,8 @@ export interface RenewOwnResult {
  * all at once, with readJars' retry on "too many requests". Closed jars are final and aren't read; a
  * closed main jar isn't either. Main jars still missing a long id get it from our lookup first.
  */
-export async function renewOwnJars(jars: OwnJar[], opts: ReadOptions & { now?: () => number } = {}): Promise<RenewOwnResult> {
-  const { now = Date.now, ...read } = opts;
+export async function renewOwnJars(jars: OwnJar[], opts: ReadOptions & { now?: () => number; skip?: Set<string> } = {}): Promise<RenewOwnResult> {
+  const { now = Date.now, skip, ...read } = opts;
   const mains = new Map<string, MainJarInfo>();
   // copies: the long ids found below must not be written into the caller's jars
   for (const j of jars) if (j.main && !j.closed && !j.main.closed && !mains.has(j.main.shortId)) mains.set(j.main.shortId, { ...j.main });
@@ -208,7 +235,8 @@ export async function renewOwnJars(jars: OwnJar[], opts: ReadOptions & { now?: (
   }
 
   const todo = [
-    ...jars.filter((j) => !j.closed).map((j) => ({ id: `own:${j.id}`, jarId: j.jarId })),
+    // only jars with a public id, and not those read another way (the user's token)
+    ...jars.filter((j) => !j.closed && j.jarId && !skip?.has(j.id)).map((j) => ({ id: `own:${j.id}`, jarId: j.jarId })),
     ...[...mains.values()].filter((m) => m.longId).map((m) => ({ id: `main:${m.shortId}`, jarId: m.longId! })),
   ];
   const res = await readJars(todo, read);
@@ -230,6 +258,115 @@ export async function renewOwnJars(jars: OwnJar[], opts: ReadOptions & { now?: (
     failed: errors.length + (lookupError ? 1 : 0),
     firstError: errors[0] ?? lookupError,
     rateLimited: res.rateLimited || lookupError === 'rate-limit',
+  };
+}
+
+// ─── The official way: the user's own client-info ─────────────────────────────
+
+const kopecks = (n: number) => n / 100;
+
+/** A friendly jar from the user's client-info, as a new tracked jar. No link: it can be added later. */
+export function ownJarFromMono(mono: MonoJar, now: number): OwnJar {
+  const raised = kopecks(mono.balance);
+  return {
+    id: generateId(),
+    name: mono.title,
+    raised,
+    ...(mono.goal > 0 ? { target: kopecks(mono.goal) } : null),
+    jarId: '',
+    monoId: mono.id,
+    addedAt: now,
+    syncedAt: now,
+    updatedAt: now,
+    history: [{ at: now, raised }],
+  };
+}
+
+/** What a client-info read changes: amount and goal. The name stays the user's (a jar with none takes
+ * Monobank's title). Being listed means it's open. */
+export function applyMonoRead(jar: OwnJar, mono: MonoJar, now: number): OwnJar {
+  const raised = kopecks(mono.balance);
+  const target = mono.goal > 0 ? kopecks(mono.goal) : undefined;
+  const changed = jar.raised !== raised || (jar.target ?? 0) !== (target ?? 0) || !!jar.closed;
+  return {
+    ...jar,
+    name: jar.name.trim() ? jar.name : mono.title,
+    monoId: mono.id,
+    raised,
+    target,
+    closed: undefined,
+    syncedAt: now,
+    updatedAt: changed ? now : jar.updatedAt,
+    history: nextHistory(jar, jar.history, raised, now),
+  };
+}
+
+/** A jar added by link that is probably this client-info jar: the same name (any case or spacing) and the
+ * same goal. Only jars not yet tied to client-info are candidates. */
+export const likelySameJar = (jar: OwnJar, mono: MonoJar) =>
+  !jar.monoId && friendNameKey(jar.name) === friendNameKey(mono.title) && Math.round((jar.target ?? 0) * 100) === Math.round(mono.goal);
+
+/** The other way round: a jar just read by link that is probably one already known through the user's
+ * token and not yet linked (same name and goal). */
+export const likelySameAsTied = (read: OwnJar, known: OwnJar) =>
+  !!known.monoId && !known.jarId && friendNameKey(read.name) === friendNameKey(known.name) && Math.round((read.target ?? 0) * 100) === Math.round((known.target ?? 0) * 100);
+
+/** One jar from two: a jar tracked by link takes the client-info id and its numbers; its name, link,
+ * main jar and history stay. */
+export const mergeMonoIntoOwn = (jar: OwnJar, mono: MonoJar, now: number): OwnJar => applyMonoRead(jar, mono, now);
+
+export interface OfficialRenewResult extends RenewOwnResult {
+  /** client-info failed, so jars it should have read were read through their public links */
+  fellBack: boolean;
+  /** jars it should have read that have no public link either: not renewed */
+  unread: OwnJar[];
+  /** jars client-info no longer lists: closed (Monobank drops a closed jar from it) */
+  closedNow: OwnJar[];
+}
+
+/**
+ * «Оновити»: jars tied to the user's client-info are read from it in one call (`mono`); the rest through
+ * their public links. When the client-info call failed (`mono` null), jars tied to it are read through
+ * their public links if they have one. A tied jar client-info no longer lists has been closed: it is
+ * marked so, and read once more through its link (for its final numbers) when it has one.
+ */
+export async function renewOwnJarsOfficial(
+  jars: OwnJar[],
+  mono: MonoJar[] | null,
+  opts: ReadOptions & { now?: () => number } = {},
+): Promise<OfficialRenewResult> {
+  const now = opts.now ?? Date.now;
+  const at = now();
+  const byId = new Map((mono ?? []).map((m) => [m.id, m]));
+  const skip = new Set<string>();
+  const closedNow: OwnJar[] = [];
+  const unread: OwnJar[] = [];
+  const official = jars.map((j) => {
+    if (!j.monoId || j.closed) return j;
+    if (!mono) {
+      if (!j.jarId) unread.push(j);
+      return j;
+    }
+    const m = byId.get(j.monoId);
+    if (m) {
+      skip.add(j.id);
+      return applyMonoRead(j, m, at);
+    }
+    const closed = { ...j, closed: true, updatedAt: at };
+    closedNow.push(closed);
+    // with a link, one more public read brings its final numbers; without, these are them
+    if (!j.jarId) skip.add(j.id);
+    return j.jarId ? j : closed;
+  });
+  const res = await renewOwnJars(official, { ...opts, now, skip });
+  const closedIds = new Set(closedNow.map((j) => j.id));
+  return {
+    ...res,
+    // a jar read publicly after leaving client-info still counts as closed
+    jars: res.jars.map((j) => (closedIds.has(j.id) && !j.closed ? { ...j, closed: true, updatedAt: at } : j)),
+    fellBack: !mono && jars.some((j) => j.monoId && !j.closed),
+    unread,
+    closedNow,
   };
 }
 

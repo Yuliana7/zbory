@@ -1,6 +1,5 @@
 {
   "listTitle": "Мої збори",
-  "listHint": "Збережені збори на цьому пристрої",
   "open": "Відкрити",
   "proceed": "Аналітика",
   "modify": "Редагувати",
@@ -109,5 +108,18 @@
       "thanks": "Дякуємо кожному, хто долучився! 💙💛"
     }
   },
-  "new": "Новий збір"
+  "renewAll": {
+    "hint_one": "{{count}} збір пов’язаний із Monobank",
+    "hint_few": "{{count}} збори пов’язані з Monobank",
+    "hint_many": "{{count}} зборів пов’язані з Monobank",
+    "hint_other": "{{count}} збору пов’язано з Monobank",
+    "button": "Оновити все з Monobank",
+    "stop": "Зупинити",
+    "starting": "Починаємо…",
+    "reading": "«{{name}}» ({{n}} з {{total}})",
+    "waiting": "наступна виписка за {{seconds}} с",
+    "updated": "Нові донати: {{names}}.",
+    "nothingNew": "Нових донатів немає.",
+    "failed": "Не вдалося оновити: {{names}}. Спробуйте пізніше."
+  }
 }

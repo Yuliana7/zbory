@@ -19,6 +19,9 @@ export interface CampaignSummary {
   firstDate: string; // ISO YYYY-MM-DD
   lastDate: string;
   currentBalance: number;
+  /** donations by the month they came in («YYYY-MM» → UAH): the archive's year bars. Missing in metas
+   * saved before it existed; listCampaigns fills it in once. */
+  byMonth?: Record<string, number>;
 }
 
 export interface CampaignMeta {
@@ -63,8 +66,11 @@ export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary 
   let totalAmount = 0;
   let first = Infinity;
   let last = -Infinity;
+  const byMonth: Record<string, number> = {};
   for (const d of donations) {
     totalAmount += d.amount;
+    const month = `${d.timestamp.getFullYear()}-${String(d.timestamp.getMonth() + 1).padStart(2, '0')}`;
+    byMonth[month] = (byMonth[month] ?? 0) + d.amount;
     const t = d.timestamp.getTime();
     if (t < first) first = t;
     if (t > last) last = t;
@@ -79,6 +85,7 @@ export function computeCampaignSummary(rawData: RawDonation[]): CampaignSummary 
     firstDate: donations.length ? isoDate(first) : '',
     lastDate: donations.length ? isoDate(last) : '',
     currentBalance,
+    byMonth,
   };
 }
 
@@ -134,7 +141,17 @@ export async function saveCampaign(input: SaveCampaignInput): Promise<CampaignMe
 
 /** All campaigns, most recently updated first. */
 export async function listCampaigns(): Promise<CampaignMeta[]> {
-  const all = (await getBackend().getAll(META_STORE)) as CampaignMeta[];
+  const kv = getBackend();
+  const all = (await kv.getAll(META_STORE)) as CampaignMeta[];
+  // projects saved before the summary had its months get them once, from their rows. Not a change
+  // the user made: updatedAt (what a backup compares) stays.
+  for (const [i, meta] of all.entries()) {
+    if (meta.summary.byMonth) continue;
+    const data = (await kv.get(DATA_STORE, meta.id)) as CampaignData | undefined;
+    if (!data) continue;
+    all[i] = { ...meta, summary: { ...meta.summary, byMonth: computeCampaignSummary(data.rawData).byMonth } };
+    await kv.put(META_STORE, all[i]);
+  }
   return all.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
@@ -150,13 +167,15 @@ export async function loadCampaignData(id: string): Promise<{ rawData: RawDonati
 
 /** Closes a project: it moves to the archive under this year, with a few numbers the archive lists
  * without opening it. Its data stays exactly as it is. */
-export async function archiveCampaign(id: string, now: number = Date.now(), opts: { goalReached?: boolean } = {}): Promise<CampaignMeta | null> {
+/** Files a project in the archive under `archivedAt` — the day it closed (its last donation, as a rule),
+ * which can be long before today. The change itself is stamped `now`, so a backup sees it as the newest. */
+export async function archiveCampaign(id: string, archivedAt: number = Date.now(), opts: { goalReached?: boolean } = {}, now: number = Date.now()): Promise<CampaignMeta | null> {
   const kv = getBackend();
   const meta = (await kv.get(META_STORE, id)) as CampaignMeta | undefined;
   const data = (await kv.get(DATA_STORE, id)) as CampaignData | undefined;
   if (!meta || !data) return null;
   const archive: ArchiveSnapshot = { friendsCount: data.friends?.length ?? 0, ...(opts.goalReached !== undefined ? { goalReached: opts.goalReached } : null) };
-  const archived: CampaignMeta = { ...meta, archivedAt: now, archive, updatedAt: now };
+  const archived: CampaignMeta = { ...meta, archivedAt, archive, updatedAt: Math.max(now, archivedAt) };
   await kv.put(META_STORE, archived);
   return archived;
 }

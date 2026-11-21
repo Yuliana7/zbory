@@ -21,8 +21,8 @@ import {
 import { SpinnerIcon } from '../../icons';
 import { forgetToken, loadToken, saveToken } from '../../utils/monobankToken';
 import { DateRangeField } from '../DateRangeField';
-import { RememberToken } from './RememberToken';
 import { CountdownRing } from './CountdownRing';
+import { MonobankTokenForm } from './MonobankTokenForm';
 
 export interface MonobankFetchResult {
   rows: RawDonation[];
@@ -37,11 +37,6 @@ interface MonobankImportProps {
 }
 
 type Stage = 'token' | 'loadingJars' | 'jars' | 'range' | 'fetching';
-
-const INPUT =
-  // text-base (16px): anything smaller makes iOS zoom the page on focus
-  'w-full px-3 py-2 rounded-lg border border-gray-300 bg-white text-base text-gray-900 ' +
-  'focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent placeholder:text-gray-400';
 
 const fmtUah = (kopecks: number) => new Intl.NumberFormat('uk-UA').format(Math.round(kopecks / 100));
 
@@ -150,63 +145,16 @@ export function MonobankImport({ onFetched, onCancel }: MonobankImportProps) {
       )}
 
       {(stage === 'token' || stage === 'loadingJars') && (
-        <div className="mt-4 space-y-4">
-          <details open className="bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 text-sm text-indigo-900">
-            <summary className="font-semibold cursor-pointer">{t('monobank.howTitle')}</summary>
-            <ol className="mt-3 space-y-2 list-decimal list-inside text-indigo-800">
-              <li>
-                {t('monobank.how1Before')}{' '}
-                <a href="https://api.monobank.ua/" target="_blank" rel="noopener noreferrer" className="font-medium underline">
-                  api.monobank.ua
-                </a>{' '}
-                {t('monobank.how1After')}
-              </li>
-              <li>{t('monobank.how2')}</li>
-              <li>{t('monobank.how3')}</li>
-            </ol>
-            <p className="mt-3 text-xs text-indigo-600">{t('monobank.privacy')}</p>
-          </details>
-
-          <label className="block">
-            <span className="block text-sm font-semibold text-gray-900 mb-1">{t('monobank.tokenLabel')}</span>
-            <input
-              type="password"
-              value={token}
-              onChange={(e) => setToken(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleToken()}
-              placeholder={t('monobank.tokenPlaceholder')}
-              autoComplete="off"
-              autoCapitalize="off"
-              autoCorrect="off"
-              spellCheck={false}
-              className={INPUT}
-            />
-          </label>
-          <RememberToken checked={remember} onChange={setRemember} />
-
-          {stage === 'loadingJars' && jarsWait > 0 && (
-            <p className="flex items-center gap-2 text-xs text-indigo-600" aria-live="polite">
-              <CountdownRing secondsLeft={jarsWait} totalSeconds={REQUEST_GAP_SECONDS} className="w-5 h-5 shrink-0" />
-              <span>
-                {t('monobank.waitingPause', { seconds: jarsWait })} · {t('monobank.rateLimitPause')}
-              </span>
-            </p>
-          )}
-
-          <div className="flex flex-col sm:flex-row gap-3">
-            <button
-              onClick={handleToken}
-              disabled={!token.trim() || stage === 'loadingJars'}
-              className="btn-primary flex-1 flex items-center justify-center gap-2"
-            >
-              {stage === 'loadingJars' && <SpinnerIcon className="w-4 h-4 animate-spin" />}
-              {t('monobank.showJars')}
-            </button>
-            <button onClick={onCancel} className="btn-secondary">
-              {t('monobank.cancel')}
-            </button>
-          </div>
-        </div>
+        <MonobankTokenForm
+          token={token}
+          onToken={setToken}
+          remember={remember}
+          onRemember={setRemember}
+          onSubmit={() => void handleToken()}
+          onCancel={onCancel}
+          loading={stage === 'loadingJars'}
+          wait={jarsWait}
+        />
       )}
 
       {stage === 'jars' && (

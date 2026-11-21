@@ -6,7 +6,8 @@ import { listCampaigns, setArchivedGoalReached, type CampaignMeta } from '../../
 import { listOwnJars, goalPct, ownJarDataset, setOwnJarGoalReached } from '../../utils/ownJars';
 import { ARCHIVE_PAGE_SIZE, archiveYears, goalsUnsaid, inYear, isArchived, matchesName, ownJarsOnTheirOwn, yearRecap, yearSummary } from '../../utils/archive';
 import { fmtUah, pageOf } from '../../utils/friendJars';
-import { ArchiveIcon, ChartIcon, LockIcon, PlusIcon, SpinnerIcon } from '../../icons';
+import { ArchiveIcon, ChartIcon, LockIcon, SpinnerIcon } from '../../icons';
+import { TopAction } from '../TopAction';
 import { Pager, SearchBox } from '../ListControls';
 import { ImportStatementsSheet } from './ImportStatementsSheet';
 import { YearGoalsSheet, type UnsaidGoal } from './YearGoalsSheet';
@@ -15,7 +16,8 @@ import { BackupControls } from '../upload/BackupControls';
 const shortDate = (ms: number) => new Date(ms).toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' });
 const daysBetween = (first: string, last: string) =>
   first && last ? Math.round((new Date(`${last}T12:00:00`).getTime() - new Date(`${first}T12:00:00`).getTime()) / 864e5) + 1 : 0;
-const MONTHS = ['січ', 'квіт', 'лип', 'жовт', 'груд'];
+/** every month under its own bar, so the bars can't be misread */
+const MONTHS = ['січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру'];
 
 /** The archive's list: a year at a time (or all of them), a card with what that year's closed projects
  * raised, then the projects and the user's own jars, each searchable and in pages. */
@@ -80,7 +82,7 @@ export function ArchiveList() {
 
   const yearCampaigns = inYear(campaigns, shownYear);
   const yearJars = inYear(jars, shownYear);
-  const summary = yearSummary(yearCampaigns, yearJars);
+  const summary = yearSummary(yearCampaigns, yearJars, shownYear);
   // own jars' statements join the year's projects in its cards (not those feeding one of them: their
   // donations are already in that project's statement)
   const yearStatements = ownJarsOnTheirOwn(yearCampaigns, yearJars).flatMap((j) => {
@@ -99,7 +101,7 @@ export function ArchiveList() {
     setJarPage(0);
   };
   const chip = (on: boolean) =>
-    `px-4 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
+    `shrink-0 px-3.5 py-2 rounded-full text-sm transition-colors ${on ? 'bg-indigo-600 text-white font-semibold' : 'bg-white border border-gray-200 text-gray-700 font-medium hover:border-indigo-300'}`;
   const open = (kind: 'project' | 'ownJar', id: string) => dispatch({ type: 'ARCHIVE_VIEW', payload: { kind, id } });
   // «Мій рік»: the year's statements load together (for the donors and the reports across them), then its cards open
   const makeYearCards = () => {
@@ -135,19 +137,11 @@ export function ArchiveList() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-6 sm:py-8 space-y-5 animate-fade-in">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold text-gray-900">{t('list.title')}</h2>
-        <button
-          onClick={() => setImporting(true)}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium transition-colors"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-          {t('import.open')}
-        </button>
-      </div>
-
-      <div role="tablist" aria-label={t('list.yearLabel')} className="flex flex-wrap gap-2">
+    <div className="max-w-3xl mx-auto pb-8 space-y-5 animate-fade-in">
+      {/* the years, and the one way to add on the same line, like the active jars */}
+      <div className="flex items-center gap-2">
+      {/* many years scroll sideways, so «З виписок» stays on this line */}
+      <div role="tablist" aria-label={t('list.yearLabel')} className="no-scrollbar -my-1 flex min-w-0 flex-1 gap-2 overflow-x-auto py-1">
         {years.map((y) => (
           <button key={y} role="tab" aria-selected={shownYear === y} onClick={() => pickYear(y)} className={chip(shownYear === y)}>
             {y}
@@ -158,6 +152,8 @@ export function ArchiveList() {
             {t('list.allYears')}
           </button>
         )}
+      </div>
+        <TopAction onClick={() => setImporting(true)} label={t('import.open')} />
       </div>
 
       {yearCampaigns.length + yearJars.length > 0 && (
@@ -182,14 +178,17 @@ export function ArchiveList() {
                 {summary.byMonth.map((v, i) => (
                   <div
                     key={i}
+                    title={`${MONTHS[i]}: ${fmtUah(v)} ₴`}
                     className={`flex-1 rounded ${v ? 'bg-indigo-300' : 'bg-indigo-300/30'}`}
                     style={{ height: v ? `${Math.max(6, Math.round((v / maxMonth) * 56))}px` : '3px' }}
                   />
                 ))}
               </div>
-              <div className="mt-1 flex justify-between text-[11px] text-indigo-200" aria-hidden="true">
-                {MONTHS.map((m) => (
-                  <span key={m}>{m}</span>
+              <div className="mt-1 flex gap-1.5 text-[10px] sm:text-[11px] leading-tight" aria-hidden="true">
+                {MONTHS.map((m, i) => (
+                  <span key={m} className={`flex-1 min-w-0 text-center ${summary.byMonth[i] ? 'font-semibold text-white' : 'text-indigo-200/70'}`}>
+                    {m}
+                  </span>
                 ))}
               </div>
             </div>

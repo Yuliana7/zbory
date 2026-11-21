@@ -5,9 +5,31 @@ import { deleteCampaign, type CampaignMeta } from '../../utils/campaignStore';
 import { formatCurrency } from '../../utils/dataAggregator';
 import { ARCHIVE_PAGE_SIZE, matchesName } from '../../utils/archive';
 import { pageOf } from '../../utils/friendJars';
-import { ArrowRightIcon, CheckIcon, GlobeIcon, PlusIcon } from '../../icons';
+import { ArrowRightIcon, CheckIcon, GlobeIcon } from '../../icons';
 import { Pager, SearchBox } from '../ListControls';
 import { CampaignActionsSheet, type CampaignAction } from './CampaignActionsSheet';
+import { RenewProjectsBar } from './RenewProjectsBar';
+import { goalPct } from '../../utils/ownJars';
+import { fmtUah } from '../../utils/friendJars';
+
+/** A main jar's progress to its goal (from Monobank when it was added, or set in «Редагувати»), as a
+ * friendly jar shows it. Nothing without a goal. */
+function GoalBar({ raised, goal }: { raised: number; goal?: number }) {
+  const { t } = useTranslation('upload');
+  const pct = goalPct(raised, goal);
+  if (pct === null) return null;
+  const left = Math.max(0, goal! - raised);
+  return (
+    <div className="mt-1.5">
+      <div className="h-1.5 overflow-hidden rounded-full bg-gray-100">
+        <div className={`h-full rounded-full ${pct >= 100 ? 'bg-green-500' : 'bg-indigo-500'}`} style={{ width: `${Math.min(100, pct)}%` }} />
+      </div>
+      <p className="mt-1 text-xs text-gray-500">
+        {t('ownJars.ofGoal', { pct, goal: fmtUah(goal!) })} · {left > 0 ? t('ownJars.left', { amount: fmtUah(left) }) : t('ownJars.reached')}
+      </p>
+    </div>
+  );
+}
 
 const formatIsoDate = (iso: string) => {
   const [y, m, d] = iso.split('-');
@@ -19,14 +41,12 @@ interface CampaignListProps {
   onCampaignsChange: (campaigns: CampaignMeta[]) => void;
   /** "Редагувати" → one of the actions in the menu; the page opens the matching screen */
   onAction: (campaign: CampaignMeta, action: CampaignAction) => void;
-  /** «Новий збір»: the ways to start a project */
-  onNew: () => void;
 }
 
 /** Saved projects on this device. "Аналітика" goes straight to step 2 with
  * everything that was saved (rows, goal, helpers, style); "Редагувати" opens a
  * small menu for updating the project's data. */
-export function CampaignList({ campaigns, onCampaignsChange, onAction, onNew }: CampaignListProps) {
+export function CampaignList({ campaigns, onCampaignsChange, onAction }: CampaignListProps) {
   const { t } = useTranslation('campaigns');
   const { t: tCommon } = useTranslation();
   const [query, setQuery] = useState('');
@@ -58,29 +78,19 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction, onNew }: 
   };
 
   return (
-    <div className="max-w-3xl mx-auto mb-10 animate-fade-in">
-      <div className="mb-3 flex items-center gap-2">
-        {campaigns.length > ARCHIVE_PAGE_SIZE / 2 ? (
-          <div className="flex-1 min-w-0">
-            <SearchBox
-              value={query}
-              onChange={(q) => {
-                setQuery(q);
-                setPage(0);
-              }}
-            />
-          </div>
-        ) : (
-          <p className="flex-1 px-1 text-xs text-gray-400">{t('listHint')}</p>
-        )}
-        <button
-          onClick={onNew}
-          className="shrink-0 flex items-center gap-1.5 px-3 py-2 rounded-lg border border-indigo-200 bg-white hover:bg-indigo-50 text-indigo-600 text-sm font-medium transition-colors"
-        >
-          <PlusIcon className="w-3.5 h-3.5" />
-          {t('new')}
-        </button>
-      </div>
+    <div className="animate-fade-in">
+      {campaigns.length > ARCHIVE_PAGE_SIZE / 2 && (
+        <div className="mb-3">
+          <SearchBox
+            value={query}
+            onChange={(q) => {
+              setQuery(q);
+              setPage(0);
+            }}
+          />
+        </div>
+      )}
+      <RenewProjectsBar campaigns={campaigns} onCampaignsChange={onCampaignsChange} />
       {found.length === 0 && <p className="py-6 text-center text-sm text-gray-500">{tCommon('list.nothingFound', { query: query.trim() })}</p>}
       <ul className="space-y-3">
         {shown.items.map((campaign) => (
@@ -115,6 +125,7 @@ export function CampaignList({ campaigns, onCampaignsChange, onAction, onNew }: 
                   {' · '}
                   {formatCurrency(campaign.summary.totalAmount)}
                 </p>
+                <GoalBar raised={campaign.summary.totalAmount} goal={campaign.goal} />
                 {campaign.monobankJar && (
                   <p className="mt-1 inline-flex items-center gap-1 text-xs text-indigo-600">
                     <GlobeIcon className="w-3 h-3" />

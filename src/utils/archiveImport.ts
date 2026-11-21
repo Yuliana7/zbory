@@ -7,6 +7,7 @@ import { normalizeDonations } from './csvParser';
 import { aggregateDonations } from './dataAggregator';
 import { generateId } from './id';
 import { saveOwnJar } from './ownJars';
+import { closedAtOf } from './archive';
 
 /** What the statements become: the user's own friendly jars, or main jars (projects). */
 export type ImportKind = 'ownJar' | 'project';
@@ -62,8 +63,6 @@ export function draftFromStatement(fileName: string, rows: RawDonation[], known:
   return { key: generateId(), fileName, rows, summary, amount, name: nameFromFile(fileName), closedOn: summary.lastDate, goal: '', duplicate, skip: duplicate };
 }
 
-/** Noon on the closing day (a day, not a moment: noon keeps it on that day in any zone the user is in). */
-const closedAt = (day: string) => new Date(`${day}T12:00:00`).getTime();
 
 const parseGoal = (raw: string) => {
   const n = Number(raw.replace(/\s/g, '').replace(',', '.'));
@@ -75,7 +74,7 @@ export async function importToArchive(drafts: ImportDraft[], kind: ImportKind, n
   const years: number[] = [];
   for (const d of drafts) {
     if (d.skip) continue;
-    const archivedAt = closedAt(d.closedOn || d.summary.lastDate);
+    const archivedAt = closedAtOf(d.closedOn || d.summary.lastDate);
     const name = d.name.trim() || nameFromFile(d.fileName);
     const goal = parseGoal(d.goal);
     if (kind === 'project') {

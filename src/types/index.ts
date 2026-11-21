@@ -97,7 +97,10 @@ export interface MainJarInfo {
  * user's own statement, so they are tracked like a friend's jar: by link, total only, with the
  * app keeping its own history. `name` is the jar's title and `target` its goal. */
 export interface OwnJar extends FriendJar {
+  /** the jar's long id for the public read; empty for a jar known only through the user's token */
   jarId: string;
+  /** the jar's id in the user's own client-info (the official API, with their token): one call reads all of them */
+  monoId?: string;
   main?: MainJarInfo;
   addedAt: number;
   /** moved to the archive (ms): read-only from then on, filed under that year */

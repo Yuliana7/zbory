@@ -305,3 +305,11 @@ input[type='date'] {
 input[type='date']::-webkit-date-and-time-value {
   text-align: left;
 }
+
+/* a row that scrolls sideways without showing a scrollbar (the archive's years) */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -177,6 +177,11 @@ export async function fetchJars(token: string, { deps = {}, signal, onWait }: Fe
   return info.jars ?? [];
 }
 
+/** One of the user's own friendly jars, as client-info lists them (undocumented, since 2026-11): a friendly
+ * jar comes without a share id, a main jar with "jar/<short id>". There is no statement for a friendly jar
+ * ("invalid 'account'") — only its balance (what it raised) and goal. */
+export const isFriendlyMonoJar = (jar: MonoJar) => !jar.sendId?.trim();
+
 /** The short id of a jar's share link; the API gives it as "jar/XXXXXXXXXX". */
 export const jarShortId = (jar: MonoJar): string | undefined => jar.sendId?.split('/').filter(Boolean).pop();
 

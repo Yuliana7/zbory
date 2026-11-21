@@ -10,6 +10,7 @@ import { RenameScreen } from '../components/upload/screens/RenameScreen';
 import { RafflesScreen } from '../components/upload/screens/RafflesScreen';
 import { ManualEntryEditor } from '../components/upload/ManualEntryEditor';
 import { MonobankImport, type MonobankFetchResult } from '../components/upload/MonobankImport';
+import { MonobankAddJars } from '../components/upload/MonobankAddJars';
 import { downloadCSV, manualRowsToCSVString, rawDonationsToManualRows } from '../utils/csvExporter';
 import { loadCampaignData, type CampaignMeta } from '../utils/campaignStore';
 import type { ManualRow } from '../types';
@@ -111,7 +112,11 @@ export function UploadPage() {
   if (showMonobank) {
     return (
       <div className="py-8">
-        <MonobankImport onFetched={handleNewFromMonobank} onCancel={() => setShowMonobank(false)} />
+        <MonobankAddJars
+          onSingleMain={(rows, jar, goal) => handleNewFromMonobank({ rows, jar, goal })}
+          onDone={() => setShowMonobank(false)}
+          onCancel={() => setShowMonobank(false)}
+        />
       </div>
     );
   }
